@@ -5,7 +5,7 @@ namespace Monero.Wallet
 {
     public class MoneroWalletLight : MoneroWalletKeys
     {
-        protected MoneroWalletLight(IntPtr walletHandle, string seedOffset = ""): base(walletHandle, seedOffset)
+        protected MoneroWalletLight(): base()
         {
 
         }
