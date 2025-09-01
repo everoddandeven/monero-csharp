@@ -26,8 +26,8 @@ namespace Monero.Test
         protected static readonly bool TEST_NOTIFICATIONS = true;
         protected static readonly bool TEST_RESETS = false;
         private static readonly int MAX_TX_PROOFS = 25; // maximum number of transactions to _check for each proof, undefined to _check all
-        private static readonly int SEND_MAX_DIFF = 60;
-        private static readonly int SEND_DIVISOR = 10;
+        private static readonly ulong SEND_MAX_DIFF = 60;
+        private static readonly ulong SEND_DIVISOR = 10;
         private static readonly ulong NUM_BLOCKS_LOCKED = 10;
 
         // instance variables
@@ -3014,6 +3014,1278 @@ namespace Monero.Test
         #endregion
 
         #region Test Relays
+
+        // Validates inputs when sending funds
+        [Fact]
+        public void TestValidateInputsSendingFunds()
+        {
+
+            // try sending with invalid address
+            try
+            {
+                wallet.CreateTx(new MoneroTxConfig().SetAddress("my invalid address").SetAccountIndex(0).SetAmount(TestUtils.MAX_FEE));
+                Assert.Fail("Should have thrown");
+            }
+            catch (MoneroError err)
+            {
+                Assert.Equal("Invalid destination address", err.Message);
+            }
+        }
+
+        // Can sync with txs in the pool sent from/to the same account
+        // TODO: this test fails because wallet does not recognize pool tx sent from/to same account
+        [Fact]
+        public void TestSyncWithPoolSameAccounts() {
+            Assert.True(TEST_NON_RELAYS);
+            TestSyncWithPoolSubmit(new MoneroTxConfig()
+                .SetAccountIndex(0)
+                .SetAddress(wallet.GetPrimaryAddress())
+                .SetAmount(TestUtils.MAX_FEE * 5)
+                .SetRelay(false));
+        }
+  
+        // Can sync with txs submitted and discarded from the pool
+        [Fact]
+        public void TestSyncWithPoolSubmitAndDiscard() {
+            Assert.True(TEST_NON_RELAYS);
+            TestSyncWithPoolSubmit(new MoneroTxConfig()
+                .SetAccountIndex(2)
+                .SetAddress(wallet.GetPrimaryAddress())
+                .SetAmount(TestUtils.MAX_FEE * 5)
+                .SetRelay(false));
+        }
+  
+        // Can sync with txs submitted and relayed from the pool
+        [Fact]
+        public void TestSyncWithPoolSubmitAndRelay() {
+            Assert.True(TEST_RELAYS && !LITE_MODE);
+            TestSyncWithPoolSubmit(new MoneroTxConfig()
+                .SetAccountIndex(2)
+                .SetAddress(wallet.GetPrimaryAddress())
+                .SetAmount(TestUtils.MAX_FEE * 5)
+                .SetRelay(true));
+        }
+
+        // Can sync with txs relayed to the pool
+        [Fact]
+        public void TestSyncWithPoolRelay()
+        {
+            Assert.True(TEST_RELAYS && !LITE_MODE);
+
+            // wait one time for wallet txs in the pool to clear
+            // TODO monero-project: update from pool does not prevent creating double spend tx
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // record wallet balances before submitting tx to pool
+            ulong balanceBefore = wallet.GetBalance();
+            ulong unlockedBalanceBefore = wallet.GetUnlockedBalance();
+
+            // create config
+            MoneroTxConfig config = new MoneroTxConfig()
+                    .SetAccountIndex(2)
+                    .SetAddress(wallet.GetPrimaryAddress())
+                    .SetAmount(TestUtils.MAX_FEE * 5);
+
+            // create tx to relay
+            MoneroTxWallet tx = wallet.CreateTx(config);
+
+            // create another tx using same config which would be double spend
+            MoneroTxWallet txDoubleSpend = wallet.CreateTx(config);
+
+            // relay first tx directly to daemon
+            MoneroSubmitTxResult result = daemon.SubmitTxHex(tx.GetFullHex());
+            if (result.IsGood() != true) throw new Exception("Transaction could not be submitted to the pool");
+            Assert.True(result.IsGood());
+
+            // sync wallet which updates from pool
+            wallet.Sync();
+
+            // collect issues to report at end of test
+            List<string> issues = new List<string>();
+
+            try
+            {
+
+                // wallet should be aware of tx
+                try
+                {
+                    MoneroTxWallet fetched = wallet.GetTx(tx.GetHash());
+                    Assert.NotNull(fetched);
+                }
+                catch (MoneroError e)
+                {
+                    throw new Exception("Wallet should be aware of its tx in pool after syncing");
+                }
+
+                // test wallet balances
+                if (unlockedBalanceBefore.CompareTo(wallet.GetUnlockedBalance()) != 1) issues.Add("WARNING: unlocked balance should have decreased after relaying tx directly to the daemon");
+                ulong expectedBalance = balanceBefore - ((ulong)tx.GetOutgoingAmount()) - ((ulong)tx.GetFee());
+                if (!expectedBalance.Equals(wallet.GetBalance())) issues.Add("WARNING: expected balance after relaying tx directly to the daemon to be " + expectedBalance + " but was " + wallet.GetBalance());
+
+                // submit double spend tx
+                MoneroSubmitTxResult resultDoubleSpend = daemon.SubmitTxHex(txDoubleSpend.GetFullHex(), true);
+                if (resultDoubleSpend.IsGood() == true)
+                {
+                    daemon.FlushTxPool(txDoubleSpend.GetHash());
+                    throw new Exception("Tx submit result should have been double spend");
+                }
+
+                // sync wallet which updates from pool
+                wallet.Sync();
+
+                // create tx using same config which is no longer double spend
+                MoneroTxWallet? tx2 = null;
+                try
+                {
+                    tx2 = wallet.CreateTx(config.Clone().SetRelay(true));
+                }
+                catch (Exception e)
+                {
+                    issues.Add("WARNING: creating and sending tx through wallet should succeed after syncing wallet with pool but creates a double spend"); // TODO monero-project: this fails meaning wallet did not recognize tx relayed directly to pool
+                }
+
+                // submit the transaction to the pool and test
+                if (tx2 != null)
+                {
+                    MoneroSubmitTxResult result2 = daemon.SubmitTxHex(tx2.GetFullHex(), true);
+                    if (result2.IsDoubleSpend() == true) issues.Add("WARNING: creating and submitting tx to daemon should succeed after syncing wallet with pool but was a double spend");
+                    else Assert.True(result.IsGood());
+                    wallet.Sync();
+                    wallet.GetTx(tx2.GetHash()); // wallet is aware of tx2
+                    daemon.FlushTxPool(tx2.GetHash());
+                }
+
+                // should be no issues
+                Assert.True(0 == issues.Count, "testSyncWithPoolRelay() issues: " + issues);
+            }
+            finally
+            {
+                TestUtils.WALLET_TX_TRACKER.Reset(); // all wallets need to wait for tx to confirm to reliably sync tx
+            }
+        }
+
+        // Can send to self
+        [Fact]
+        public void TestSendToSelf()
+        {
+            Assert.True(TEST_RELAYS);
+
+            // wait for txs to confirm and for sufficient unlocked balance
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+            ulong amount = TestUtils.MAX_FEE * 3;
+            TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(wallet, 0, null, amount);
+
+            // collect sender balances before
+            ulong balance1 = wallet.GetBalance();
+            ulong unlockedBalance1 = wallet.GetUnlockedBalance();
+
+            // test error sending funds to self with integrated subaddress
+            // TODO (monero-project): sending funds to self with integrated subaddress throws error: https://github.Com/monero-project/monero/issues/8380
+            try
+            {
+                wallet.CreateTx(new MoneroTxConfig()
+                        .SetAccountIndex(0)
+                        .SetAddress(MoneroUtils.GetIntegratedAddress(TestUtils.NETWORK_TYPE, wallet.GetSubaddress(0, 1).GetAddress(), null).GetIntegratedAddress())
+                        .SetAmount(amount)
+                        .SetRelay(true));
+                throw new Exception("Should have failed sending to self with integrated subaddress");
+            }
+            catch (MoneroError err)
+            {
+                if (!err.Message.Contains("Total received by")) throw err;
+            }
+
+            // send funds to self
+            MoneroTxWallet tx = wallet.CreateTx(new MoneroTxConfig()
+                    .SetAccountIndex(0)
+                    .SetAddress(wallet.GetIntegratedAddress().GetIntegratedAddress())
+                    .SetAmount(amount)
+                    .SetRelay(true));
+
+            // test balances after
+            ulong balance2 = wallet.GetBalance();
+            ulong unlockedBalance2 = wallet.GetUnlockedBalance();
+            Assert.True(unlockedBalance2.CompareTo(unlockedBalance1) < 0); // unlocked balance should decrease
+            ulong expectedBalance = balance1 - ((uint)tx.GetFee());
+            if (!expectedBalance.Equals(balance2)) Console.WriteLine("Expected=" + expectedBalance + " - Actual=" + balance2 + " = " + (expectedBalance - (balance2)));
+            Assert.True(expectedBalance == balance2, "Balance after send was not balance before - fee");
+        }
+
+        // Can send to external wallet
+        [Fact]
+        public void TestSendToExternal()
+        {
+            Assert.True(TEST_RELAYS);
+            MoneroWallet? recipient = null;
+            try
+            {
+                // wait for txs to confirm and for sufficient unlocked balance
+                TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+                ulong amount = TestUtils.MAX_FEE * 3;
+                TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(wallet, 0, null, amount);
+
+                // create recipient wallet
+                recipient = CreateWallet(new MoneroWalletConfig());
+
+                // collect sender balances before
+                ulong balance1 = wallet.GetBalance();
+                ulong unlockedBalance1 = wallet.GetUnlockedBalance();
+
+                // send funds to recipient
+                MoneroTxWallet tx = wallet.CreateTx(new MoneroTxConfig()
+                        .SetAccountIndex(0)
+                        .SetAddress(wallet.GetIntegratedAddress(recipient.GetPrimaryAddress(), "54491f3bb3572a37").GetIntegratedAddress())
+                        .SetAmount(amount)
+                        .SetRelay(true));
+
+                // test sender balances after
+                ulong balance2 = wallet.GetBalance();
+                ulong unlockedBalance2 = wallet.GetUnlockedBalance();
+                Assert.True(unlockedBalance2.CompareTo(unlockedBalance1) < 0); // unlocked balance should decrease
+                ulong expectedBalance = balance1 - ((ulong)tx.GetOutgoingAmount()) - ((ulong)tx.GetFee());
+                Assert.True(expectedBalance == balance2, "Balance after send was not balance before - net tx amount - fee (5 - 1 != 4 test)");
+
+                // test recipient balance after
+                recipient.Sync();
+                Assert.False(wallet.GetTxs(new MoneroTxQuery().SetIsConfirmed(false)).Count == 0);
+                Assert.Equal(amount, recipient.GetBalance());
+            }
+            finally
+            {
+                if (recipient != null && !recipient.IsClosed()) CloseWallet(recipient);
+            }
+        }
+
+        // Can send from multiple subaddresses in a single transaction
+        [Fact]
+        public void TestSendFromSubaddresses()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendFromMultiple(null);
+        }
+
+        // Can send from multiple subaddresses in split transactions
+        [Fact]
+        public void TestSendFromSubaddressesSplit()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendFromMultiple(new MoneroTxConfig().SetCanSplit(true));
+        }
+
+        // Can send to an address in a single transaction
+        [Fact]
+        public void TestSend()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendToSingle(new MoneroTxConfig().SetCanSplit(false));
+        }
+
+        // Can send to an address in a single transaction with a payment id
+        // NOTE: this test will be invalid when payment hashes are fully removed
+        [Fact]
+        public void TestSendWithPaymentId()
+        {
+            Assert.True(TEST_RELAYS);
+            MoneroIntegratedAddress integratedAddress = wallet.GetIntegratedAddress();
+            string paymentId = integratedAddress.GetPaymentId();
+            try
+            {
+                TestSendToSingle(new MoneroTxConfig().SetCanSplit(false).SetPaymentId(paymentId + paymentId + paymentId + paymentId));  // 64 character payment id
+                Assert.Fail("Should have thrown");
+            }
+            catch (MoneroError e)
+            {
+                Assert.Equal("Standalone payment IDs are obsolete. Use subaddresses or integrated addresses instead", e.Message);
+            }
+        }
+
+        // Can send to an address with split transactions
+        [Fact]
+        public void TestSendSplit()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendToSingle(new MoneroTxConfig().SetCanSplit(true).SetRelay(true));
+        }
+
+        // Can create then relay a transaction to send to a single address
+        [Fact]
+        public void TestCreateThenRelay()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendToSingle(new MoneroTxConfig().SetCanSplit(false));
+        }
+
+        // Can create then relay split transactions to send to a single address
+        [Fact]
+        public void TestCreateThenRelaySplit()
+        {
+            Assert.True(TEST_RELAYS);
+            TestSendToSingle(new MoneroTxConfig().SetCanSplit(true));
+        }
+
+        // Can send to multiple addresses in a single transaction
+        [Fact]
+        public void TestSendToMultiple()
+        {
+            Assert.True(TEST_RELAYS);
+            SendToMultiple(5, 3, false);
+        }
+
+        // Can send to multiple addresses in split transactions
+        [Fact]
+        public void TestSendToMultipleSplit()
+        {
+            Assert.True(TEST_RELAYS);
+            SendToMultiple(3, 15, true);
+        }
+
+        // Can send dust to multiple addresses in split transactions
+        [Fact]
+        public void TestSendDustToMultipleSplit()
+        {
+            Assert.True(TEST_RELAYS);
+            var fee = daemon.GetFeeEstimate().GetFee();
+            if (fee == null) throw new Exception("Fee estimate is null");
+            ulong dustAmt = ((ulong)fee) / 2;
+            SendToMultiple(5, 3, true, dustAmt);
+        }
+
+        // Can subtract fees from destinations
+        [Fact]
+        public void TestSubtractFeeFrom()
+        {
+            Assert.True(TEST_RELAYS);
+            SendToMultiple(5, 3, false, null, true);
+        }
+
+        // Cannot subtract fees from destinations in split transactions
+        [Fact]
+        public void TestSubtractFeeFromSplit()
+        {
+            Assert.True(TEST_RELAYS);
+            SendToMultiple(3, 15, true, null, true);
+        }
+
+        // Can sweep individual outputs identified by their key images
+        [Fact]
+        public void TestSweepOutputs()
+        {
+            Assert.True(TEST_RELAYS);
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // test config
+            int numOutputs = 3;
+
+            // get outputs to sweep (not spent, unlocked, and amount >= fee)
+            List<MoneroOutputWallet> spendableUnlockedOutputs = wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false).SetTxQuery(new MoneroTxQuery().SetIsLocked(false)));
+            List<MoneroOutputWallet> outputsToSweep = new List<MoneroOutputWallet>();
+            for (int i = 0; i < spendableUnlockedOutputs.Count && outputsToSweep.Count < numOutputs; i++)
+            {
+                if (((ulong)spendableUnlockedOutputs[i].GetAmount()).CompareTo(TestUtils.MAX_FEE) > 0) outputsToSweep.Add(spendableUnlockedOutputs[i]);  // output cannot be swept if amount does not cover fee
+            }
+            Assert.True(outputsToSweep.Count >= numOutputs, "Wallet does not have enough sweepable outputs; run send tests");
+
+            // sweep each output by key image
+            foreach (MoneroOutputWallet output in outputsToSweep)
+            {
+                TestOutputWallet(output);
+                Assert.False(output.IsSpent());
+                Assert.False(output.IsLocked());
+                if (((ulong)output.GetAmount()).CompareTo(TestUtils.MAX_FEE) <= 0) continue;
+
+                // sweep output to address
+                string address = wallet.GetAddress((uint)output.GetAccountIndex(), (uint)output.GetSubaddressIndex());
+                MoneroTxConfig config = new MoneroTxConfig().SetAddress(address).SetKeyImage(output.GetKeyImage().GetHex()).SetRelay(true);
+                MoneroTxWallet tx = wallet.SweepOutput(config);
+
+                // test resulting tx
+                TxContext ctx = new TxContext();
+                ctx.Wallet = wallet;
+                ctx.Config = config;
+                ctx.Config.SetCanSplit(false);
+                ctx.IsSendResponse = true;
+                ctx.IsSweepResponse = true;
+                ctx.IsSweepOutputResponse = true;
+                TestTxWallet(tx, ctx);
+            }
+
+            // get outputs after sweeping
+            List<MoneroOutputWallet> afterOutputs = wallet.GetOutputs();
+
+            // swept outputs are now spent
+            foreach (MoneroOutputWallet afterOutput in afterOutputs)
+            {
+                foreach (MoneroOutputWallet output in outputsToSweep)
+                {
+                    if (output.GetKeyImage().GetHex().Equals(afterOutput.GetKeyImage().GetHex()))
+                    {
+                        Assert.True(afterOutput.IsSpent(), "Output should be spent");
+                    }
+                }
+            }
+        }
+
+        // Can sweep dust without relaying
+        [Fact]
+        public void TestSweepDustNoRelay()
+        {
+            Assert.True(TEST_RELAYS);
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // sweep dust which returns empty list if no dust to sweep (dust does not exist after rct)
+            List<MoneroTxWallet> txs = wallet.SweepDust(false);
+            if (txs.Count == 0) return;
+
+            // test txs
+            TxContext ctx = new TxContext();
+            ctx.IsSendResponse = true;
+            ctx.Config = new MoneroTxConfig().SetRelay(false);
+            ctx.IsSweepResponse = true;
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestTxWallet(tx, ctx);
+            }
+
+            // relay txs
+            List<string> metadatas = new List<string>();
+            foreach (MoneroTxWallet tx in txs) metadatas.Add(tx.GetMetadata());
+            List<string> txHashes = wallet.RelayTxs(metadatas);
+            Assert.Equal(txHashes.Count, txs.Count);
+            foreach (string txHash in txHashes) Assert.Equal(64, txHash.Length);
+
+            // fetch and test txs
+            txs = wallet.GetTxs(new MoneroTxQuery().SetHashes(txHashes));
+            ctx.Config.SetRelay(true);
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestTxWallet(tx, ctx);
+            }
+        }
+
+        // Can sweep dust
+        [Fact]
+        public void TestSweepDust()
+        {
+            Assert.True(TEST_RELAYS);
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // sweep dust which returns empty list if no dust to sweep (dust does not exist after rct)
+            List<MoneroTxWallet> txs = wallet.SweepDust(true);
+
+            // test any txs
+            TxContext ctx = new TxContext();
+            ctx.Wallet = wallet;
+            ctx.Config = null;
+            ctx.IsSendResponse = true;
+            ctx.IsSweepResponse = true;
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestTxWallet(tx, ctx);
+            }
+        }
+
+        // TODO: test sending to multiple accounts
+        // Can update a locked tx sent from/to the same account as blocks are added to the chain
+        [Fact]
+        public void TestUpdateLockedSameAccount()
+        {
+            Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS);
+            MoneroTxConfig config = new MoneroTxConfig()
+                    .SetAddress(wallet.GetPrimaryAddress())
+                    .SetAmount(TestUtils.MAX_FEE)
+                    .SetAccountIndex(0)
+                    .SetCanSplit(false)
+                    .SetRelay(true);
+            TestSendAndUpdateTxs(config);
+        }
+
+        // Can update split locked txs sent from/to the same account as blocks are added to the chain
+        [Fact]
+        public void TestUpdateLockedSameAccountSplit()
+        {
+            Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
+            MoneroTxConfig config = new MoneroTxConfig()
+                    .SetAccountIndex(0)
+                    .SetAddress(wallet.GetPrimaryAddress())
+                    .SetAmount(TestUtils.MAX_FEE)
+                    .SetCanSplit(true)
+                    .SetRelay(true);
+            TestSendAndUpdateTxs(config);
+        }
+
+        // Can update a locked tx sent from/to different accounts as blocks are added to the chain
+        [Fact]
+        public void TestUpdateLockedDifferentAccounts()
+        {
+            Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
+            MoneroTxConfig config = new MoneroTxConfig()
+                    .SetAccountIndex(0)
+                    .SetAddress(wallet.GetSubaddress(1, 0).GetAddress())
+                    .SetAmount(TestUtils.MAX_FEE)
+                    .SetCanSplit(false)
+                    .SetRelay(true);
+            TestSendAndUpdateTxs(config);
+        }
+
+        // Can update locked, split txs sent from/to different accounts as blocks are added to the chain
+        [Fact]
+        public void TestUpdateLockedDifferentAccountsSplit()
+        {
+            Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
+            MoneroTxConfig config = new MoneroTxConfig()
+                    .SetAccountIndex(0)
+                    .SetAddress(wallet.GetSubaddress(1, 0).GetAddress())
+                    .SetAmount(TestUtils.MAX_FEE)
+                    .SetAccountIndex(0)
+                    .SetRelay(true);
+            TestSendAndUpdateTxs(config);
+        }
+
+        #region Relays Utils
+
+        private void TestSyncWithPoolSubmit(MoneroTxConfig config)
+        {
+            // wait for txs to confirm and for sufficient unlocked balance
+            // TODO monero-project: update from pool does not prevent creating double spend tx
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+            Assert.Null(config.GetSubaddressIndices());
+            TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(wallet, config.GetAccountIndex(), null, config.GetAmount());
+
+            // record wallet balances before submitting tx to pool
+            ulong balanceBefore = wallet.GetBalance();
+            ulong unlockedBalanceBefore = wallet.GetUnlockedBalance();
+
+            // create tx but do not relay
+            MoneroTxConfig configNoRelay = config.Clone().SetRelay(false);
+            MoneroTxConfig configNoRelayCopy = configNoRelay.Clone();
+            MoneroTxWallet tx = wallet.CreateTx(configNoRelay);
+
+            // create tx using same config which is double spend
+            MoneroTxWallet txDoubleSpend = wallet.CreateTx(configNoRelay);
+
+            // test that config is unchanged
+            Assert.True(configNoRelayCopy != configNoRelay);
+            Assert.Equal(configNoRelayCopy, configNoRelay);
+
+            // submit tx directly to the pool but do not relay
+            MoneroSubmitTxResult result = daemon.SubmitTxHex(tx.GetFullHex(), true);
+            if (result.IsGood() != true) throw new Exception("Transaction could not be submitted to the pool");
+            Assert.True(result.IsGood());
+
+            // sync wallet which checks pool
+            wallet.Sync();
+
+            // test result and flush on finally
+            try
+            {
+
+                // wallet should be aware of tx
+                try
+                {
+                    MoneroTxWallet fetched = wallet.GetTx(tx.GetHash());
+                    Assert.NotNull(fetched);
+                }
+                catch (MoneroError e)
+                {
+                    Assert.Fail("Wallet should be aware of its tx in pool after syncing");
+                }
+
+                // submit double spend tx
+                MoneroSubmitTxResult resultDoubleSpend = daemon.SubmitTxHex(txDoubleSpend.GetFullHex(), true);
+                if (resultDoubleSpend.IsGood() == true)
+                {
+                    daemon.FlushTxPool(txDoubleSpend.GetHash());
+                    throw new Exception("Tx submit result should have been double spend");
+                }
+
+                // relay if configured
+                if (config.GetRelay() == true) daemon.RelayTxByHash(tx.GetHash());
+
+                // sync wallet which updates from pool
+                wallet.Sync();
+
+                // TODO monero-project: this code fails which indicates issues // TODO (monero-project): sync txs from pool
+                bool runFailingCoreCode = false;
+                if (runFailingCoreCode)
+                {
+
+                    // wallet balances should change
+                    if(balanceBefore == wallet.GetBalance()) throw new Exception("Wallet balance should revert to original after flushing tx from pool without relaying");
+                    if(unlockedBalanceBefore == wallet.GetUnlockedBalance()) throw new Exception("Wallet unlocked balance should revert to original after flushing tx from pool without relaying");  // TODO: test exact amounts, maybe in ux test
+
+                    // create tx using same config which is no longer double spend
+                    MoneroTxWallet tx2 = wallet.CreateTx(configNoRelay);
+                    MoneroSubmitTxResult result2 = daemon.SubmitTxHex(tx2.GetFullHex(), true);
+
+                    // test result and flush on finally
+                    try
+                    {
+                        if (result2.IsDoubleSpend() == true) throw new Exception("Wallet created double spend transaction after syncing with the pool");
+                        Assert.True(result.IsGood());
+                        wallet.Sync();
+                        wallet.GetTx(tx2.GetHash()); // wallet is aware of tx2
+                    }
+                    finally
+                    {
+                        daemon.FlushTxPool(tx2.GetHash());
+                    }
+                }
+            }
+            finally
+            {
+                if (config.GetRelay() != true)
+                {
+
+                    // flush the tx from the pool
+                    daemon.FlushTxPool(tx.GetHash());
+
+                    // sync wallet which checks pool
+                    wallet.Sync();
+
+                    // wallet should no longer be aware of tx
+                    try
+                    {
+                        wallet.GetTx(tx.GetHash());
+                        Assert.Fail("Wallet should no longer be aware of tx which was not relayed and was manually removed from pool");
+                    }
+                    catch (MoneroError e)
+                    {
+                        // exception expected
+                    }
+
+                    // wallet balances should be restored
+                    if (balanceBefore != wallet.GetBalance()) throw new Exception("Wallet balance should be same as original since tx was flushed and not relayed");
+                    if (unlockedBalanceBefore != wallet.GetUnlockedBalance()) throw new Exception("Wallet unlocked balance should be same as original since tx was flushed and not relayed");
+                }
+                else
+                {
+                    TestUtils.WALLET_TX_TRACKER.Reset(); // all wallets need to wait for tx to confirm in order to reliably sync
+                }
+            }
+        }
+
+        private void TestSendFromMultiple(MoneroTxConfig? config)
+        {
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+            if (config == null) config = new MoneroTxConfig();
+
+            int NUM_SUBADDRESSES = 2; // number of subaddresses to send from
+
+            // get first account with (NUM_SUBADDRESSES + 1) subaddresses with unlocked balances
+            List<MoneroAccount> accounts = wallet.GetAccounts(true);
+            Assert.True(accounts.Count >= 2, "This test requires at least 2 accounts; run send-to-multiple tests");
+            MoneroAccount srcAccount = null;
+            List<MoneroSubaddress> unlockedSubaddresses = new List<MoneroSubaddress>();
+            bool hasBalance = false;
+            foreach (MoneroAccount account in accounts)
+            {
+                unlockedSubaddresses.Clear();
+                int numSubaddressBalances = 0;
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                {
+                    if (((ulong)subaddress.GetBalance()).CompareTo(TestUtils.MAX_FEE) > 0) numSubaddressBalances++;
+                    if (((ulong)subaddress.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) > 0) unlockedSubaddresses.Add(subaddress);
+                }
+                if (numSubaddressBalances >= NUM_SUBADDRESSES + 1) hasBalance = true;
+                if (unlockedSubaddresses.Count >= NUM_SUBADDRESSES + 1)
+                {
+                    srcAccount = account;
+                    break;
+                }
+            }
+            Assert.True(hasBalance, "Wallet does not have account with " + (NUM_SUBADDRESSES + 1) + " subaddresses with balances; run send-to-multiple tests");
+            Assert.True(unlockedSubaddresses.Count >= NUM_SUBADDRESSES + 1, "Wallet is waiting on unlocked funds");
+
+            // determine the indices of the first two subaddresses with unlocked balances
+            List<uint> fromSubaddressIndices = new List<uint>();
+            for (int i = 0; i < NUM_SUBADDRESSES; i++)
+            {
+                fromSubaddressIndices.Add((uint)unlockedSubaddresses[i].GetIndex());
+            }
+
+            // determine the amount to send
+            ulong sendAmount = 0;
+            foreach (int fromSubaddressIdx in fromSubaddressIndices)
+            {
+                sendAmount = sendAmount + ((ulong)srcAccount.GetSubaddresses()[fromSubaddressIdx].GetUnlockedBalance());
+            }
+            sendAmount = sendAmount / SEND_DIVISOR;
+
+            ulong fromBalance = 0;
+            ulong fromUnlockedBalance = 0;
+            foreach (uint subaddressIdx in fromSubaddressIndices)
+            {
+                MoneroSubaddress subaddress = wallet.GetSubaddress((uint)srcAccount.GetIndex(), subaddressIdx);
+                fromBalance = fromBalance + ((ulong)subaddress.GetBalance());
+                fromUnlockedBalance = fromUnlockedBalance + ((ulong)subaddress.GetUnlockedBalance());
+            }
+
+            // send from the first subaddresses with unlocked balances
+            string address = wallet.GetPrimaryAddress();
+            config.SetDestinations([new MoneroDestination(address, sendAmount)]);
+            config.SetAccountIndex(srcAccount.GetIndex());
+            config.SetSubaddressIndices(fromSubaddressIndices);
+            config.SetRelay(true);
+            MoneroTxConfig configCopy = config.Clone();
+            List<MoneroTxWallet> txs = new List<MoneroTxWallet>();
+            if (config.GetCanSplit() != false)
+            {
+                txs.AddRange(wallet.CreateTxs(config));
+            }
+            else txs.Add(wallet.CreateTx(config));
+            if (config.GetCanSplit() == false) Assert.Equal(1, txs.Count);  // must have exactly one tx if no split
+
+            // test that config is unchanged
+            Assert.True(configCopy != config);
+            Assert.Equal(configCopy, config);
+
+            // test that balances of intended subaddresses decreased
+            List<MoneroAccount> accountsAfter = wallet.GetAccounts(true);
+            Assert.Equal(accounts.Count, accountsAfter.Count);
+            bool srcUnlockedBalancedDecreased = false;
+            for (int i = 0; i < accounts.Count; i++)
+            {
+                Assert.Equal(accounts[i].GetSubaddresses().Count, accountsAfter[i].GetSubaddresses().Count);
+                for (uint j = 0; j < accounts[i].GetSubaddresses().Count; j++)
+                {
+                    MoneroSubaddress subaddressBefore = accounts[i].GetSubaddresses()[(int)j];
+                    MoneroSubaddress subaddressAfter = accountsAfter[i].GetSubaddresses()[(int)j];
+                    if (i == srcAccount.GetIndex() && fromSubaddressIndices.Contains(j))
+                    {
+                        if (((ulong)subaddressAfter.GetUnlockedBalance()).CompareTo(subaddressBefore.GetUnlockedBalance()) < 0) srcUnlockedBalancedDecreased = true;
+                    }
+                    else
+                    {
+                        Assert.True(((ulong)subaddressAfter.GetUnlockedBalance()).CompareTo(subaddressBefore.GetUnlockedBalance()) == 0, "Subaddress [" + i + "," + j + "] unlocked balance should not have changed");
+                    }
+                }
+            }
+            Assert.True(srcUnlockedBalancedDecreased, "Subaddress unlocked balances should have decreased");
+
+            // test context
+            TxContext ctx = new TxContext();
+            ctx.Config = config;
+            ctx.Wallet = wallet;
+            ctx.IsSendResponse = true;
+
+            // test each transaction
+            Assert.True(txs.Count > 0);
+            ulong outgoingSum = 0;
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestTxWallet(tx, ctx);
+                outgoingSum = outgoingSum + ((ulong)tx.GetOutgoingAmount());
+                if (tx.GetOutgoingTransfer() != null && tx.GetOutgoingTransfer().GetDestinations() != null)
+                {
+                    ulong destinationSum = 0;
+                    foreach (MoneroDestination destination in tx.GetOutgoingTransfer().GetDestinations())
+                    {
+                        TestDestination(destination);
+                        Assert.Equal(address, destination.GetAddress());
+                        destinationSum = destinationSum + ((ulong)destination.GetAmount());
+                    }
+                    Assert.True(tx.GetOutgoingAmount().Equals(destinationSum));  // Assert. that transfers sum up to tx amount
+                }
+            }
+
+            // Assert. that tx amounts sum up the amount sent within a small margin
+            if (sendAmount >= outgoingSum && (sendAmount - outgoingSum) > SEND_MAX_DIFF)
+            { // send amounts may be slightly different
+                throw new Exception("Tx amounts are too different: " + sendAmount + " - " + outgoingSum + " = " + (sendAmount - (outgoingSum)));
+            }
+        }
+
+        private void TestSendToSingle(MoneroTxConfig config)
+        {
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+            if (config == null) config = new MoneroTxConfig();
+
+            // find a non-primary subaddress to send from
+            bool sufficientBalance = false;
+            MoneroAccount fromAccount = null;
+            MoneroSubaddress fromSubaddress = null;
+            List<MoneroAccount> accounts = wallet.GetAccounts(true);
+            foreach (MoneroAccount account in accounts)
+            {
+                List<MoneroSubaddress> subaddresses = account.GetSubaddresses();
+                for (int i = 1; i < subaddresses.Count; i++)
+                {
+                    if (((ulong)subaddresses[i].GetBalance()).CompareTo(TestUtils.MAX_FEE) > 0) sufficientBalance = true;
+                    if (((ulong)subaddresses[i].GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) > 0)
+                    {
+                        fromAccount = account;
+                        fromSubaddress = subaddresses[i];
+                        break;
+                    }
+                }
+                if (fromAccount != null) break;
+            }
+            Assert.True(sufficientBalance, "No non-primary subaddress found with sufficient balance");
+            Assert.True(fromSubaddress != null, "Wallet is waiting on unlocked funds");
+
+            // get balance before send
+            ulong balanceBefore = (ulong)fromSubaddress.GetBalance();
+            ulong unlockedBalanceBefore = (ulong)fromSubaddress.GetUnlockedBalance();
+
+            // init tx config
+            ulong sendAmount = (unlockedBalanceBefore - TestUtils.MAX_FEE) / SEND_DIVISOR;
+            string address = wallet.GetPrimaryAddress();
+            config.SetDestinations([new MoneroDestination(address, sendAmount)]);
+            config.SetAccountIndex(fromAccount.GetIndex());
+            config.SetSubaddressIndices([(uint)fromSubaddress.GetIndex()]);
+            MoneroTxConfig configCopy = config.Clone();
+
+            // test sending to invalid address
+            try
+            {
+                config.SetAddress("my invalid address");
+                if (config.GetCanSplit() != false) wallet.CreateTxs(config);
+                else wallet.CreateTx(config);
+                Assert.Fail("Should have thrown error creating tx with invalid address");
+            }
+            catch (MoneroError e)
+            {
+                Assert.Equal("Invalid destination address", e.Message);
+                config.SetAddress(address);
+            }
+
+            // send to self
+            List<MoneroTxWallet> txs = wallet.CreateTxs(config);
+            if (config.GetCanSplit() != false) Assert.Equal(1, txs.Count);  // must have exactly one tx if no split
+
+            // test that config is unchanged
+            Assert.True(configCopy != config);
+            Assert.Equal(configCopy, config);
+
+            // test common tx set among txs
+            TestCommonTxSets(txs, false, false, false);
+
+            // handle non-relayed transaction
+            if (config.GetRelay() != true)
+            {
+
+                // build test context
+                TxContext ctx2 = new TxContext();
+                ctx2.Wallet = wallet;
+                ctx2.Config = config;
+                ctx2.IsSendResponse = true;
+
+                // test transactions
+                foreach (MoneroTxWallet tx in txs)
+                {
+                    TestTxWallet(tx, ctx2);
+                }
+
+                // txs are not in the pool
+                foreach (MoneroTxWallet txCreated in txs)
+                {
+                    foreach (MoneroTx txPool in daemon.GetTxPool())
+                    {
+                        Assert.False(txPool.GetHash().Equals(txCreated.GetHash()), "Created tx should not be in the pool");
+                    }
+                }
+
+                // relay txs
+                List<string> txHashes = null;
+                if (config.GetCanSplit() != true) txHashes = [wallet.RelayTx(txs[0])]; // test relayTx() with single transaction
+                else
+                {
+                    List<string> txMetadatas = new List<string>();
+                    foreach (MoneroTxWallet tx in txs) txMetadatas.Add(tx.GetMetadata());
+                    txHashes = wallet.RelayTxs(txMetadatas); // test relayTxs() with potentially multiple transactions
+                }
+                foreach (string txHash in txHashes) Assert.Equal(64, txHash.Length);
+
+                // fetch txs for testing
+                txs = wallet.GetTxs(new MoneroTxQuery().SetHashes(txHashes));
+            }
+
+            // test that balance and unlocked balance decreased
+            // TODO: test that other balances did not decrease
+            MoneroSubaddress subaddress = wallet.GetSubaddress((uint)fromAccount.GetIndex(), (uint)fromSubaddress.GetIndex());
+            Assert.True(((ulong)subaddress.GetBalance()).CompareTo(balanceBefore) < 0);
+            Assert.True(((ulong)subaddress.GetUnlockedBalance()).CompareTo(unlockedBalanceBefore) < 0);
+
+            // query locked txs
+            List<MoneroTxWallet> lockedTxs = GetAndTestTxs(wallet, new MoneroTxQuery().SetIsLocked(true), null, true);
+            foreach (MoneroTxWallet lockedTx in lockedTxs) Assert.Equal(true, lockedTx.IsLocked());
+
+            // build test context
+            TxContext ctx = new TxContext();
+            ctx.Wallet = wallet;
+            ctx.Config = config;
+            ctx.IsSendResponse = config.GetRelay() == true;
+
+            // test transactions
+            Assert.True(txs.Count > 0);
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestTxWallet(tx, ctx);
+                Assert.Equal(fromAccount.GetIndex(), tx.GetOutgoingTransfer().GetAccountIndex());
+                Assert.Equal(1, tx.GetOutgoingTransfer().GetSubaddressIndices().Count);
+                Assert.Equal(fromSubaddress.GetIndex(), tx.GetOutgoingTransfer().GetSubaddressIndices()[0]);
+                Assert.True(sendAmount.Equals(tx.GetOutgoingAmount()));
+                if (config.GetPaymentId() != null) Assert.Equal(config.GetPaymentId(), tx.GetPaymentId());
+
+                // test outgoing destinations
+                if (tx.GetOutgoingTransfer() != null && tx.GetOutgoingTransfer().GetDestinations() != null)
+                {
+                    Assert.Equal(1, tx.GetOutgoingTransfer().GetDestinations().Count);
+                    foreach (MoneroDestination destination in tx.GetOutgoingTransfer().GetDestinations())
+                    {
+                        TestDestination(destination);
+                        Assert.Equal(destination.GetAddress(), address);
+                        Assert.True(sendAmount.Equals(destination.GetAmount()));
+                    }
+                }
+
+                // tx is among locked txs
+                bool found = false;
+                foreach (MoneroTxWallet locked in lockedTxs)
+                {
+                    if (locked.GetHash().Equals(tx.GetHash()))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                Assert.True(found, "Created txs should be among locked txs");
+            }
+
+            // if tx was relayed in separate step, all wallets will need to wait for tx to confirm in order to reliably sync
+            if (config.GetRelay() != true)
+            {
+                TestUtils.WALLET_TX_TRACKER.Reset(); // TODO: resetExcept(wallet), or does this test wallet also need to be waited on?
+            }
+        }
+
+        private void SendToMultiple(uint numAccounts, uint numSubaddressesPerAccount, bool canSplit, ulong? sendAmountPerSubaddress = null, bool subtractFeeFromDestinations = false)
+        {
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // compute the minimum account unlocked balance needed in order to fulfill the config
+            ulong? minAccountAmount = null;
+            uint totalSubaddresses = numAccounts * numSubaddressesPerAccount;
+            if (sendAmountPerSubaddress != null) minAccountAmount = (totalSubaddresses * sendAmountPerSubaddress) + TestUtils.MAX_FEE; // min account amount must cover the total amount being sent plus the tx fee = numAddresses * (amtPerSubaddress + fee)
+            else minAccountAmount = (TestUtils.MAX_FEE * totalSubaddresses * SEND_DIVISOR) + TestUtils.MAX_FEE; // account balance must be more than fee * numAddresses * divisor + fee so each destination amount is at least a fee's worth (so dust is not sent)
+
+            // send funds from first account with sufficient unlocked funds
+            MoneroAccount srcAccount = null;
+            bool hasBalance = false;
+            foreach (MoneroAccount walletAccount in wallet.GetAccounts())
+            {
+                if (walletAccount.GetBalance().CompareTo(minAccountAmount) > 0) hasBalance = true;
+                if (walletAccount.GetUnlockedBalance().CompareTo(minAccountAmount) > 0)
+                {
+                    srcAccount = walletAccount;
+                    break;
+                }
+            }
+            Assert.True(hasBalance, "Wallet does not have enough balance; load '" + TestUtils.WALLET_NAME + "' with XMR in order to test sending");
+            if (srcAccount == null) throw new Exception("Wallet is waiting on unlocked funds");
+            ulong balance = srcAccount.GetBalance();
+            ulong unlockedBalance = srcAccount.GetUnlockedBalance();
+
+            // get amount to send total and per subaddress
+            ulong? sendAmount = null;
+            if (sendAmountPerSubaddress == null)
+            {
+                sendAmount = TestUtils.MAX_FEE * 5 * totalSubaddresses;
+                sendAmountPerSubaddress = (ulong)(sendAmount / ((ulong)totalSubaddresses));
+            }
+            else
+            {
+                sendAmount = sendAmountPerSubaddress * totalSubaddresses;
+            }
+
+            // create minimum number of accounts
+            List<MoneroAccount> accounts = wallet.GetAccounts();
+            for (int i = 0; i < numAccounts - accounts.Count; i++)
+            {
+                wallet.CreateAccount();
+            }
+
+            // create minimum number of subaddresses per account and collect destination addresses
+            List<string> destinationAddresses = new List<string>();
+            for (uint i = 0; i < numAccounts; i++)
+            {
+                List<MoneroSubaddress> subaddresses = wallet.GetSubaddresses(i);
+                for (int j = 0; j < numSubaddressesPerAccount - subaddresses.Count; j++) wallet.CreateSubaddress(i);
+                subaddresses = wallet.GetSubaddresses(i);
+                Assert.True(subaddresses.Count >= numSubaddressesPerAccount);
+                for (int j = 0; j < numSubaddressesPerAccount; j++) destinationAddresses.Add(subaddresses[j].GetAddress());
+            }
+
+            // build tx config
+            MoneroTxConfig config = new MoneroTxConfig();
+            config.SetAccountIndex(srcAccount.GetIndex());
+            config.SetSubaddressIndices(null); // test assigning null
+            config.SetDestinations(new List<MoneroDestination>());
+            config.SetRelay(true);
+            config.SetCanSplit(canSplit);
+            config.SetPriority(MoneroTxPriority.NORMAL);
+            List<uint> subtractFeeFrom = new List<uint>();
+            for (uint i = 0; i < destinationAddresses.Count; i++)
+            {
+                config.GetDestinations().Add(new MoneroDestination(destinationAddresses[(int)i], sendAmountPerSubaddress));
+                subtractFeeFrom.Add(i);
+            }
+            if (subtractFeeFromDestinations) config.SetSubtractFeeFrom(subtractFeeFrom);
+
+            MoneroTxConfig configCopy = config.Clone();
+
+            // send tx(s) with config
+            List<MoneroTxWallet> txs = null;
+            try
+            {
+                txs = wallet.CreateTxs(config);
+            }
+            catch (MoneroError e)
+            {
+
+                // test error applying subtractFromFee with split txs
+                if (subtractFeeFromDestinations && txs == null)
+                {
+                    if (!e.Message.Equals("subtractfeefrom transfers cannot be split over multiple transactions yet")) throw e;
+                    return;
+                }
+
+                throw e;
+            }
+            if (!canSplit) Assert.Equal(1, txs.Count);
+
+            // test that config is unchanged
+            Assert.True(configCopy != config);
+            Assert.Equal(configCopy, config);
+
+            // test that wallet balance decreased
+            MoneroAccount account = wallet.GetAccount((uint)srcAccount.GetIndex());
+            Assert.True(account.GetBalance().CompareTo(balance) < 0);
+            Assert.True(account.GetUnlockedBalance().CompareTo(unlockedBalance) < 0);
+
+            // build test context
+            config.SetCanSplit(canSplit);
+            TxContext ctx = new TxContext();
+            ctx.Wallet = wallet;
+            ctx.Config = config;
+            ctx.IsSendResponse = true;
+
+            // test each transaction
+            Assert.True(txs.Count > 0);
+            ulong feeSum = 0;
+            ulong outgoingSum = 0;
+            TestTxsWallet(txs, ctx);
+            foreach (MoneroTxWallet tx in txs)
+            {
+                feeSum = feeSum + ((ulong)tx.GetFee());
+                outgoingSum = outgoingSum + ((ulong)tx.GetOutgoingAmount());
+                if (tx.GetOutgoingTransfer() != null && tx.GetOutgoingTransfer().GetDestinations() != null)
+                {
+                    ulong destinationSum = 0;
+                    foreach (MoneroDestination destination in tx.GetOutgoingTransfer().GetDestinations())
+                    {
+                        TestDestination(destination);
+                        Assert.True(destinationAddresses.Contains(destination.GetAddress()));
+                        destinationSum = destinationSum + ((ulong)destination.GetAmount());
+                    }
+                    Assert.True(tx.GetOutgoingAmount().Equals(destinationSum));  // Assert. that transfers sum up to tx amount
+                }
+            }
+
+            // Assert. that outgoing amounts sum up to the amount sent within a small margin
+            if (sendAmount - (subtractFeeFromDestinations ? feeSum : 0) - outgoingSum > SEND_MAX_DIFF)
+            { // send amounts may be slightly different
+                Assert.Fail("Actual send amount is too different from requested send amount: " + sendAmount + " - " + (subtractFeeFromDestinations ? feeSum : 0) + " - " + outgoingSum + " = " + (sendAmount - (subtractFeeFromDestinations ? feeSum : 0) - outgoingSum));
+            }
+        }
+
+        private void TestSendAndUpdateTxs(MoneroTxConfig config)
+        {
+
+            // wait for txs to confirm and for sufficient unlocked balance
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+            Assert.Null(config.GetSubaddressIndices());
+            TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(wallet, config.GetAccountIndex(), null, TestUtils.MAX_FEE * 2);
+
+            // this test starts and stops mining, so it's wrapped in order to stop mining if anything fails
+            try
+            {
+
+                // send transactions
+                List<MoneroTxWallet> sentTxs = wallet.CreateTxs(config);
+
+                // build test context
+                TxContext ctx = new TxContext();
+                ctx.Wallet = wallet;
+                ctx.Config = config;
+                ctx.IsSendResponse = true;
+
+                // test sent transactions
+                foreach (MoneroTxWallet tx in sentTxs)
+                {
+                    TestTxWallet(tx, ctx);
+                    Assert.Equal(false, tx.IsConfirmed());
+                    Assert.Equal(true, tx.InTxPool());
+                }
+
+                // track resulting outgoing and incoming txs as blocks are added to the chain
+                List<MoneroTxWallet> updatedTxs = null;
+
+                // attempt to start mining to push the network along
+                bool startedMining = false;
+                MoneroMiningStatus miningStatus = daemon.GetMiningStatus();
+                if (miningStatus.IsActive() != true)
+                {
+                    try
+                    {
+                        StartMining.Start();
+                        startedMining = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Warning: could not start mining: " + e.Message); // not fatal
+                    }
+                }
+
+                // loop to update txs through confirmations
+                ulong numConfirmations = 0;
+                ulong numConfirmationsTotal = 2; // number of confirmations to test
+                while (numConfirmations < numConfirmationsTotal)
+                {
+                    Console.WriteLine(numConfirmations + " < " + numConfirmationsTotal + " needed confirmations");
+
+                    // wait for a block
+                    MoneroBlockHeader header = daemon.WaitForNextBlockHeader();
+                    Console.WriteLine("*** Block " + header.GetHeight() + " added to chain ***");
+
+                    // give wallet time to catch up, otherwise incoming tx may not appear
+                    // TODO: this lets new block slip, okay?
+                    try
+                    {
+                        GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS);
+                    }
+                    catch (ThreadInterruptedException e)
+                    {
+                        throw new Exception("Thread was interrupted", e);
+                    }
+
+                    // get incoming/outgoing txs with sent hashes
+                    List<string> txHashes = new List<string>();
+                    foreach (MoneroTxWallet sentTx in sentTxs) txHashes.Add(sentTx.GetHash());
+                    MoneroTxQuery txQuery = new MoneroTxQuery().SetHashes(txHashes);
+                    List<MoneroTxWallet> fetchedTxs = GetAndTestTxs(wallet, txQuery, null, true);
+                    Assert.False(fetchedTxs.Count == 0);
+
+                    // test fetched txs
+                    TestOutInPairs(wallet, fetchedTxs, config, false);
+
+                    // merge fetched txs into updated txs and original sent txs
+                    foreach (MoneroTxWallet fetchedTx in fetchedTxs)
+                    {
+
+                        // merge with updated txs
+                        if (updatedTxs == null) updatedTxs = fetchedTxs;
+                        else
+                        {
+                            foreach (MoneroTxWallet updatedTx in updatedTxs)
+                            {
+                                if (!fetchedTx.GetHash().Equals(updatedTx.GetHash())) continue;
+                                if (fetchedTx.IsOutgoing() != updatedTx.IsOutgoing()) continue; // skip if directions are different
+                                updatedTx.Merge(fetchedTx.Clone());
+                                if (updatedTx.GetBlock() == null && fetchedTx.GetBlock() != null) updatedTx.SetBlock(fetchedTx.GetBlock().Clone().SetTxs([updatedTx]));  // copy block for testing
+                            }
+                        }
+
+                        // merge with original sent txs
+                        foreach (MoneroTxWallet sentTx in sentTxs)
+                        {
+                            if (!fetchedTx.GetHash().Equals(sentTx.GetHash())) continue;
+                            if (fetchedTx.IsOutgoing() != sentTx.IsOutgoing()) continue; // skip if directions are different
+                            sentTx.Merge(fetchedTx.Clone());  // TODO: it's mergeable but tests don't account for extra info from send (e.g. hex) so not tested; could specify in test config
+                        }
+                    }
+
+                    // test updated txs
+                    TestOutInPairs(wallet, updatedTxs, config, false);
+
+                    // update confirmations in order to exit loop
+                    numConfirmations = (ulong) fetchedTxs[0].GetNumConfirmations();
+                }
+
+                // stop mining if it was started by this test
+                if (startedMining) wallet.StopMining();
+
+            }
+            catch (MoneroError e)
+            {
+                throw e;
+            }
+            finally
+            {
+
+                // stop mining at end of test
+                try { daemon.StopMining(); }
+                catch (MoneroError e) { }
+            }
+        }
+
+        private void TestOutInPairs(MoneroWallet wallet, List<MoneroTxWallet> txs, MoneroTxConfig config, bool isSendResponse)
+        {
+            // for each out tx
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestUnlockTx(wallet, tx, config, isSendResponse);
+                if (tx.GetOutgoingTransfer() != null) continue;
+                MoneroTxWallet txOut = tx;
+
+                // find incoming counterpart
+                MoneroTxWallet txIn = null;
+                foreach (MoneroTxWallet tx2 in txs)
+                {
+                    if (tx2.IsIncoming() == true && tx.GetHash().Equals(tx2.GetHash()))
+                    {
+                        txIn = tx2;
+                        break;
+                    }
+                }
+
+                // test out / in pair
+                // TODO monero-wallet-rpc: incoming txs occluded by their outgoing counterpart #4500
+                if (txIn == null)
+                {
+                    Console.WriteLine("WARNING: outgoing tx " + txOut.GetHash() + " missing incoming counterpart (issue #4500)");
+                }
+                else
+                {
+                    TestOutInPair(txOut, txIn);
+                }
+            }
+        }
+
+        private void TestOutInPair(MoneroTxWallet txOut, MoneroTxWallet txIn)
+        {
+            Assert.Equal(txOut.IsConfirmed(), txIn.IsConfirmed());
+            Assert.Equal(txIn.GetIncomingAmount(), txOut.GetOutgoingAmount());
+        }
+
+        private void TestUnlockTx(MoneroWallet wallet, MoneroTxWallet tx, MoneroTxConfig config, bool isSendResponse)
+        {
+            TxContext ctx = new TxContext();
+            ctx.Wallet = wallet;
+            ctx.Config = config;
+            ctx.IsSendResponse = isSendResponse;
+            try
+            {
+                TestTxWallet(tx, ctx);
+            }
+            catch (MoneroError e)
+            {
+                Console.WriteLine(tx.ToString());
+                throw e;
+            }
+        }
+
+        #endregion
 
         #endregion
 

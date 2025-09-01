@@ -95,7 +95,7 @@ namespace Monero.Test.Utils
             }
         }
 
-        public ulong WaitForUnlockedBalance(MoneroWallet wallet, uint accountIndex, uint? subaddressIndex, ulong? minAmount)
+        public ulong WaitForUnlockedBalance(MoneroWallet wallet, uint? accountIndex, uint? subaddressIndex, ulong? minAmount)
         {
             if (minAmount == null) minAmount = 0;
 
