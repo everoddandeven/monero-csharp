@@ -3019,6 +3019,314 @@ namespace Monero.Test
 
         #region Reset Tests
 
+        // Can sweep subaddresses
+        [Fact]
+        public void TestSweepSubaddresses()
+        {
+            Assert.True(TEST_RESETS);
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            const int NUM_SUBADDRESSES_TO_SWEEP = 2;
+
+            // collect subaddresses with balance and unlocked balance
+            List<MoneroSubaddress> subaddresses = new List<MoneroSubaddress>();
+            List<MoneroSubaddress> subaddressesBalance = new List<MoneroSubaddress>();
+            List<MoneroSubaddress> subaddressesUnlocked = new List<MoneroSubaddress>();
+            foreach (MoneroAccount account in wallet.GetAccounts(true))
+            {
+                if (account.GetIndex() == 0) continue;  // skip default account
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                {
+                    subaddresses.Add(subaddress);
+                    if (((ulong)subaddress.GetBalance()).CompareTo(TestUtils.MAX_FEE) > 0) subaddressesBalance.Add(subaddress);
+                    if (((ulong)subaddress.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) > 0) subaddressesUnlocked.Add(subaddress);
+                }
+            }
+
+            // test requires at least one more subaddresses than the number being swept to verify it does not change
+            Assert.True(subaddressesBalance.Count >= NUM_SUBADDRESSES_TO_SWEEP + 1, "Test requires balance in at least " + (NUM_SUBADDRESSES_TO_SWEEP + 1) + " subaddresses from non-default acccount; run send-to-multiple tests");
+            Assert.True(subaddressesUnlocked.Count >= NUM_SUBADDRESSES_TO_SWEEP + 1, "Wallet is waiting on unlocked funds");
+
+            // sweep from first unlocked subaddresses
+            for (int i = 0; i < NUM_SUBADDRESSES_TO_SWEEP; i++)
+            {
+
+                // sweep unlocked account
+                MoneroSubaddress unlockedSubaddress = subaddressesUnlocked[i];
+                MoneroTxConfig config = new MoneroTxConfig()
+                        .SetAddress(wallet.GetPrimaryAddress())
+                        .SetAccountIndex(unlockedSubaddress.GetAccountIndex())
+                        .SetSubaddressIndices([(uint)unlockedSubaddress.GetIndex()])
+                        .SetRelay(true);
+                List<MoneroTxWallet> txs = wallet.SweepUnlocked(config);
+
+                // test transactions
+                Assert.True(txs.Count > 0);
+                foreach (MoneroTxWallet tx in txs)
+                {
+                    Assert.True(tx.GetTxSet().GetTxs().Contains(tx));
+                    TxContext ctx = new TxContext();
+                    ctx.Wallet = wallet;
+                    ctx.Config = config;
+                    ctx.IsSendResponse = true;
+                    ctx.IsSweepResponse = true;
+                    TestTxWallet(tx, ctx);
+                }
+
+                // Assert. unlocked balance is less than max fee
+                MoneroSubaddress subaddress = wallet.GetSubaddress(((uint)unlockedSubaddress.GetAccountIndex()), ((uint)unlockedSubaddress.GetIndex()));
+                Assert.True(((ulong)subaddress.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) < 0);
+            }
+
+            // test subaddresses after sweeping
+            List<MoneroSubaddress> subaddressesAfter = new List<MoneroSubaddress>();
+            foreach (MoneroAccount account in wallet.GetAccounts(true))
+            {
+                if (account.GetIndex() == 0) continue;  // skip default account
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                {
+                    subaddressesAfter.Add(subaddress);
+                }
+            }
+            Assert.Equal(subaddresses.Count, subaddressesAfter.Count);
+            for (int i = 0; i < subaddresses.Count; i++)
+            {
+                MoneroSubaddress subaddressBefore = subaddresses[i];
+                MoneroSubaddress subaddressAfter = subaddressesAfter[i];
+
+                // determine if subaddress was swept
+                bool swept = false;
+                for (int j = 0; j < NUM_SUBADDRESSES_TO_SWEEP; j++)
+                {
+                    if (subaddressesUnlocked[j].GetAccountIndex().Equals(subaddressBefore.GetAccountIndex()) && subaddressesUnlocked[j].GetIndex().Equals(subaddressBefore.GetIndex()))
+                    {
+                        swept = true;
+                        break;
+                    }
+                }
+
+                // Assert. unlocked balance is less than max fee if swept, unchanged otherwise
+                if (swept)
+                {
+                    Assert.True(((ulong)subaddressAfter.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) < 0);
+                }
+                else
+                {
+                    Assert.True(((ulong)subaddressBefore.GetUnlockedBalance()).CompareTo(subaddressAfter.GetUnlockedBalance()) == 0);
+                }
+            }
+        }
+
+        // Can sweep accounts
+        [Fact]
+        public void TestSweepAccounts()
+        {
+            Assert.True(TEST_RESETS);
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            const int NUM_ACCOUNTS_TO_SWEEP = 1;
+
+            // collect accounts with sufficient balance and unlocked balance to cover the fee
+            List<MoneroAccount> accounts = wallet.GetAccounts(true);
+            List<MoneroAccount> accountsBalance = new List<MoneroAccount>();
+            List<MoneroAccount> accountsUnlocked = new List<MoneroAccount>();
+            foreach (MoneroAccount account in accounts)
+            {
+                if (account.GetIndex() == 0) continue;  // skip default account
+                if (account.GetBalance().CompareTo(TestUtils.MAX_FEE) > 0) accountsBalance.Add(account);
+                if (account.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) > 0) accountsUnlocked.Add(account);
+            }
+
+            // test requires at least one more accounts than the number being swept to verify it does not change
+            Assert.True(accountsBalance.Count >= NUM_ACCOUNTS_TO_SWEEP + 1, "Test requires balance greater than the fee in at least " + (NUM_ACCOUNTS_TO_SWEEP + 1) + " non-default accounts; run send-to-multiple tests");
+            Assert.True(accountsUnlocked.Count >= NUM_ACCOUNTS_TO_SWEEP + 1, "Wallet is waiting on unlocked funds");
+
+            // sweep from first unlocked accounts
+            for (int i = 0; i < NUM_ACCOUNTS_TO_SWEEP; i++)
+            {
+
+                // sweep unlocked account
+                MoneroAccount unlockedAccount = accountsUnlocked[i];
+                MoneroTxConfig config = new MoneroTxConfig().SetAddress(wallet.GetPrimaryAddress()).SetAccountIndex(unlockedAccount.GetIndex()).SetRelay(true);
+                List<MoneroTxWallet> txs = wallet.SweepUnlocked(config);
+
+                // test transactions
+                Assert.True(txs.Count > 0);
+                foreach (MoneroTxWallet tx in txs)
+                {
+                    TxContext ctx = new TxContext();
+                    ctx.Wallet = wallet;
+                    ctx.Config = config;
+                    ctx.IsSendResponse = true;
+                    ctx.IsSweepResponse = true;
+                    TestTxWallet(tx, ctx);
+                    Assert.NotNull(tx.GetTxSet());
+                    Assert.True(tx.GetTxSet().GetTxs().Contains(tx));
+                }
+
+                // Assert. unlocked account balance less than max fee
+                MoneroAccount account = wallet.GetAccount((uint)unlockedAccount.GetIndex());
+                Assert.True(account.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) < 0);
+            }
+
+            // test accounts after sweeping
+            List<MoneroAccount> accountsAfter = wallet.GetAccounts(true);
+            Assert.Equal(accounts.Count, accountsAfter.Count);
+            for (int i = 0; i < accounts.Count; i++)
+            {
+                MoneroAccount accountBefore = accounts[i];
+                MoneroAccount accountAfter = accountsAfter[i];
+
+                // determine if account was swept
+                bool swept = false;
+                for (int j = 0; j < NUM_ACCOUNTS_TO_SWEEP; j++)
+                {
+                    if (accountsUnlocked[j].GetIndex().Equals(accountBefore.GetIndex()))
+                    {
+                        swept = true;
+                        break;
+                    }
+                }
+
+                // Assert. unlocked balance is less than max fee if swept, unchanged otherwise
+                if (swept)
+                {
+                    Assert.True(accountAfter.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) < 0);
+                }
+                else
+                {
+                    Assert.True(accountBefore.GetUnlockedBalance().CompareTo(accountAfter.GetUnlockedBalance()) == 0);
+                }
+            }
+        }
+
+        // Can sweep the whole wallet by accounts
+        [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
+        public void TestSweepWalletByAccounts()
+        {
+            Assert.True(TEST_RESETS);
+            TestSweepWallet(null);
+        }
+
+        // Can sweep the whole wallet by subaddresses
+        [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
+        public void TestSweepWalletBySubaddresses()
+        {
+            Assert.True(TEST_RESETS);
+            TestSweepWallet(true);
+        }
+
+        private void TestSweepWallet(bool? sweepEachSubaddress)
+        {
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+            // verify 2 subaddresses with enough unlocked balance to cover the fee
+            List<MoneroSubaddress> subaddressesBalance = new List<MoneroSubaddress>();
+            List<MoneroSubaddress> subaddressesUnlocked = new List<MoneroSubaddress>();
+            foreach (MoneroAccount account in wallet.GetAccounts(true))
+            {
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                {
+                    if (((ulong)subaddress.GetBalance()).CompareTo(TestUtils.MAX_FEE) > 0) subaddressesBalance.Add(subaddress);
+                    if (((ulong)subaddress.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) > 0) subaddressesUnlocked.Add(subaddress);
+                }
+            }
+            Assert.True(subaddressesBalance.Count >= 2, "Test requires multiple accounts with a balance greater than the fee; run send to multiple first");
+            Assert.True(subaddressesUnlocked.Count >= 2, "Wallet is waiting on unlocked funds");
+
+            // sweep
+            string destination = wallet.GetPrimaryAddress();
+            MoneroTxConfig config = new MoneroTxConfig().SetAddress(destination).SetSweepEachSubaddress(sweepEachSubaddress).SetRelay(true);
+            MoneroTxConfig copy = config.Clone();
+            List<MoneroTxWallet> txs = wallet.SweepUnlocked(config);
+            Assert.Equal(copy, config);  // config is unchanged
+            foreach (MoneroTxWallet tx in txs)
+            {
+                Assert.True(tx.GetTxSet().GetTxs().Contains(tx));
+                Assert.Null(tx.GetTxSet().GetMultisigTxHex());
+                Assert.Null(tx.GetTxSet().GetSignedTxHex());
+                Assert.Null(tx.GetTxSet().GetUnsignedTxHex());
+            }
+            Assert.True(txs.Count > 0);
+            foreach (MoneroTxWallet tx in txs)
+            {
+                config = new MoneroTxConfig()
+                        .SetAddress(destination)
+                        .SetAccountIndex(tx.GetOutgoingTransfer().GetAccountIndex())
+                        .SetSweepEachSubaddress(sweepEachSubaddress)
+                        .SetRelay(true);
+                TxContext ctx = new TxContext();
+                ctx.Wallet = wallet;
+                ctx.Config = config;
+                ctx.IsSendResponse = true;
+                ctx.IsSweepResponse = true;
+                TestTxWallet(tx, ctx);
+            }
+
+            // all unspent, unlocked outputs must be less than fee
+            List<MoneroOutputWallet> spendableOutputs = wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false).SetTxQuery(new MoneroTxQuery().SetIsLocked(false)));
+            foreach (MoneroOutputWallet spendableOutput in spendableOutputs)
+            {
+                Assert.True(((ulong)spendableOutput.GetAmount()).CompareTo(TestUtils.MAX_FEE) < 0, "Unspent output should have been swept\n" + spendableOutput.ToString());
+            }
+
+            // all subaddress unlocked balances must be less than fee
+            subaddressesBalance.Clear();
+            subaddressesUnlocked.Clear();
+            foreach (MoneroAccount account in wallet.GetAccounts(true))
+            {
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                {
+                    Assert.True(((ulong)subaddress.GetUnlockedBalance()).CompareTo(TestUtils.MAX_FEE) < 0, "No subaddress should have more unlocked than the fee");
+                }
+            }
+        }
+
+        // Can scan transactions by id
+        [Fact]
+        public void TestScanTxs()
+        {
+
+            // get a few tx hashes
+            List<string> txHashes = [];
+            List<MoneroTxWallet> txs = wallet.GetTxs();
+            if (txs.Count < 3) Assert.Fail("Not enough txs to scan");
+            for (int i = 0; i < 3; i++) txHashes.Add(txs[i].GetHash());
+
+            // start wallet without scanning
+            MoneroWallet scanWallet = CreateWallet(new MoneroWalletConfig().SetSeed(wallet.GetSeed()).SetRestoreHeight(0));
+            scanWallet.StopSyncing(); // TODO: create wallet without daemon connection (offline does not reconnect, default connects to localhost, offline then online causes confirmed txs to disappear)
+            Assert.True(scanWallet.IsConnectedToDaemon());
+
+            // scan txs
+            scanWallet.ScanTxs(txHashes);
+
+            // TODO: scanning txs causes merge problems reconciling 0 fee, isMinerTx with test txs
+
+            //    // txs are scanned
+            //    Assert.Equal(txHashes.Count, scanWallet.GetTxs().Count);
+            //    for (int i = 0; i < txHashes.Count; i++) {
+            //      Assert.Equal(wallet.GetTx(txHashes[i]), scanWallet.GetTx(txHashes[i]));
+            //    }
+            //    List<MoneroTxWallet> scannedTxs = scanWallet.GetTxs(txHashes);
+            //    Assert.Equal(txHashes.Count, scannedTxs.Count);
+
+            // close wallet
+            CloseWallet(scanWallet, false);
+        }
+
+        // Can rescan the blockchain
+        [Fact(Skip = "Disabled so tests don't delete local cache")]
+        public void TestRescanBlockchain()
+        {
+            Assert.True(TEST_RESETS);
+            wallet.RescanBlockchain();
+            foreach (MoneroTxWallet tx in wallet.GetTxs())
+            {
+                TestTxWallet(tx, null);
+            }
+        }
+
         #endregion
 
         #region Notification Tests

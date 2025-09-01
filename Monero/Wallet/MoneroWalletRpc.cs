@@ -1087,7 +1087,7 @@ namespace Monero.Wallet
             if (config.GetRelay() == true && IsMultisig()) throw new MoneroError("Cannot relay multisig transaction until co-signed");
 
             // determine account and subaddresses to send from
-            uint accountIdx = config.GetAccountIndex();
+            uint accountIdx = (uint)config.GetAccountIndex();
             if (accountIdx == null) throw new MoneroError("Must specify the account index to send from");
             List<uint> subaddressIndices = config.GetSubaddressIndices() == null ? null : [.. config.GetSubaddressIndices()]; // fetch all or copy given indices
 
@@ -1112,11 +1112,11 @@ namespace Monero.Wallet
             parameters.Add("priority", config.GetPriority() == null ? null : config.GetPriority());
             parameters.Add("get_tx_hex", true);
             parameters.Add("get_tx_metadata", true);
-            if (config.GetCanSplit()) parameters.Add("get_tx_keys", true); // param to get tx key(s) depends if split
+            if (config.GetCanSplit() == true) parameters.Add("get_tx_keys", true); // param to get tx key(s) depends if split
             else parameters.Add("get_tx_key", true);
 
             // cannot apply subtractFeeFrom with `transfer_split` call
-            if (config.GetCanSplit() && config.GetSubtractFeeFrom() != null && config.GetSubtractFeeFrom().Count > 0)
+            if (config.GetCanSplit() == true && config.GetSubtractFeeFrom() != null && config.GetSubtractFeeFrom().Count > 0)
             {
                 throw new MoneroError("subtractfeefrom transfers cannot be split over multiple transactions yet");
             }
@@ -1125,7 +1125,7 @@ namespace Monero.Wallet
             Dictionary<string, object>? result = null;
             try
             {
-                var resp = rpc.SendJsonRequest(config.GetCanSplit() ? "transfer_split" : "transfer", parameters);
+                var resp = rpc.SendJsonRequest(config.GetCanSplit() == true ? "transfer_split" : "transfer", parameters);
                 result = resp.Result;
             }
             catch (MoneroRpcError err)
@@ -1136,7 +1136,7 @@ namespace Monero.Wallet
 
             // pre-initialize txs iff present. multisig and view-only wallets will have tx set without transactions
             List<MoneroTxWallet>? txs = null;
-            int numTxs = config.GetCanSplit() ? (result.ContainsKey("fee_list") ? ((List<string>)result["fee_list"]).Count : 0) : (result.ContainsKey("fee") ? 1 : 0);
+            int numTxs = config.GetCanSplit() == true ? (result.ContainsKey("fee_list") ? ((List<string>)result["fee_list"]).Count : 0) : (result.ContainsKey("fee") ? 1 : 0);
             if (numTxs > 0) txs = [];
             bool copyDestinations = numTxs == 1;
             for (int i = 0; i < numTxs; i++)
@@ -1152,7 +1152,7 @@ namespace Monero.Wallet
             if (config.GetRelay() == true) Poll();
 
             // initialize tx set from rpc response with pre-initialized txs
-            if (config.GetCanSplit()) return ConvertRpcSentTxsToTxSet(result, txs, config).GetTxs();
+            if (config.GetCanSplit() == true) return ConvertRpcSentTxsToTxSet(result, txs, config).GetTxs();
             else return ConvertRpcTxToTxSet(result, txs == null ? null : txs[0], true, config).GetTxs();
         }
 
@@ -1210,13 +1210,13 @@ namespace Monero.Wallet
             {
                 if (config.GetSubaddressIndices() != null)
                 {
-                    indices.Add(config.GetAccountIndex(), config.GetSubaddressIndices());
+                    indices.Add((uint)config.GetAccountIndex(), config.GetSubaddressIndices());
                 }
                 else
                 {
                     List<uint> subaddressIndices = [];
-                    indices.Add(config.GetAccountIndex(), subaddressIndices);
-                    foreach (MoneroSubaddress subaddress in GetSubaddresses(config.GetAccountIndex()))
+                    indices.Add((uint)config.GetAccountIndex(), subaddressIndices);
+                    foreach (MoneroSubaddress subaddress in GetSubaddresses((uint)config.GetAccountIndex()))
                     { // TODO: wallet rpc sweep_all now supports req.subaddr_indices_all
                         if (((ulong)subaddress.GetUnlockedBalance()).CompareTo(0) > 0) subaddressIndices.Add((uint)subaddress.GetIndex());
                     }
@@ -2205,7 +2205,7 @@ namespace Monero.Wallet
             if (config.GetSubaddressIndices() == null)
             {
                 config.SetSubaddressIndices([]);
-                foreach (MoneroSubaddress subaddress in GetSubaddresses(config.GetAccountIndex()))
+                foreach (MoneroSubaddress subaddress in GetSubaddresses((uint)config.GetAccountIndex()))
                 {
                     config.GetSubaddressIndices().Add((uint)subaddress.GetIndex());
                 }

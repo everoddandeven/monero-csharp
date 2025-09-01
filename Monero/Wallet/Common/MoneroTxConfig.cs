@@ -6,20 +6,20 @@ namespace Monero.Wallet.Common
 {
     public class MoneroTxConfig
     {
-        private List<MoneroDestination> destinations;
-        private List<uint> subtractFeeFrom;
-        private string paymentId;
-        private MoneroTxPriority priority;
-        private ulong fee;
-        private uint accountIndex;
-        private List<uint> subaddressIndices;
-        private bool canSplit;
-        private bool relay;
-        private string note;
-        private string recipientName;
-        private ulong belowAmount;
-        private bool sweepEachSubaddress;
-        private string keyImage;
+        private List<MoneroDestination> destinations = [];
+        private List<uint> subtractFeeFrom = [];
+        private string? paymentId;
+        private MoneroTxPriority? priority;
+        private ulong? fee;
+        private uint? accountIndex;
+        private List<uint> subaddressIndices = [];
+        private bool? canSplit;
+        private bool? relay;
+        private string? note;
+        private string? recipientName;
+        private ulong? belowAmount;
+        private bool? sweepEachSubaddress;
+        private string? keyImage;
 
         public MoneroTxConfig() { }
 
@@ -150,45 +150,45 @@ namespace Monero.Wallet.Common
             return this;
         }
 
-        public string GetPaymentId()
+        public string? GetPaymentId()
         {
             return paymentId;
         }
 
-        public MoneroTxConfig SetPaymentId(string paymentId)
+        public MoneroTxConfig SetPaymentId(string? paymentId)
         {
             this.paymentId = paymentId;
             return this;
         }
 
-        public MoneroTxPriority GetPriority()
+        public MoneroTxPriority? GetPriority()
         {
             return priority;
         }
 
-        public MoneroTxConfig SetPriority(MoneroTxPriority priority)
+        public MoneroTxConfig SetPriority(MoneroTxPriority? priority)
         {
             this.priority = priority;
             return this;
         }
 
-        public ulong GetFee()
+        public ulong? GetFee()
         {
             return fee;
         }
 
-        public MoneroTxConfig SetFee(ulong fee)
+        public MoneroTxConfig SetFee(ulong? fee)
         {
             this.fee = fee;
             return this;
         }
 
-        public uint GetAccountIndex()
+        public uint? GetAccountIndex()
         {
             return accountIndex;
         }
 
-        public MoneroTxConfig SetAccountIndex(uint accountIndex)
+        public MoneroTxConfig SetAccountIndex(uint? accountIndex)
         {
             this.accountIndex = accountIndex;
             return this;
@@ -217,78 +217,78 @@ namespace Monero.Wallet.Common
             return this;
         }
 
-        public bool GetCanSplit()
+        public bool? GetCanSplit()
         {
             return canSplit;
         }
 
-        public MoneroTxConfig SetCanSplit(bool canSplit)
+        public MoneroTxConfig SetCanSplit(bool? canSplit)
         {
             this.canSplit = canSplit;
             return this;
         }
 
-        public bool GetRelay()
+        public bool? GetRelay()
         {
             return relay;
         }
 
-        public MoneroTxConfig SetRelay(bool relay)
+        public MoneroTxConfig SetRelay(bool? relay)
         {
             this.relay = relay;
             return this;
         }
 
-        public string GetNote()
+        public string? GetNote()
         {
             return note;
         }
 
-        public MoneroTxConfig SetNote(string note)
+        public MoneroTxConfig SetNote(string? note)
         {
             this.note = note;
             return this;
         }
 
-        public string GetRecipientName()
+        public string? GetRecipientName()
         {
             return recipientName;
         }
 
-        public MoneroTxConfig SetRecipientName(string recipientName)
+        public MoneroTxConfig SetRecipientName(string? recipientName)
         {
             this.recipientName = recipientName;
             return this;
         }
 
-        public ulong GetBelowAmount()
+        public ulong? GetBelowAmount()
         {
             return belowAmount;
         }
 
-        public MoneroTxConfig SetBelowAmount(ulong belowAmount)
+        public MoneroTxConfig SetBelowAmount(ulong? belowAmount)
         {
             this.belowAmount = belowAmount;
             return this;
         }
 
-        public bool GetSweepEachSubaddress()
+        public bool? GetSweepEachSubaddress()
         {
             return sweepEachSubaddress;
         }
 
-        public MoneroTxConfig SetSweepEachSubaddress(bool sweepEachSubaddress)
+        public MoneroTxConfig SetSweepEachSubaddress(bool? sweepEachSubaddress)
         {
             this.sweepEachSubaddress = sweepEachSubaddress;
             return this;
         }
 
-        public string GetKeyImage()
+        public string? GetKeyImage()
         {
             return keyImage;
         }
 
-        public MoneroTxConfig SetKeyImage(string keyImage)
+        public MoneroTxConfig SetKeyImage(string? keyImage)
         {
             this.keyImage = keyImage;
             return this;
