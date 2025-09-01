@@ -44,6 +44,24 @@ namespace Monero.Wallet.Common
             return new MoneroTxQuery(this);
         }
 
+        public override MoneroTxQuery SetIsConfirmed(bool? IsConfirmed)
+        {
+            base.SetIsConfirmed(IsConfirmed);
+            return this;
+        }
+
+        public override MoneroTxQuery SetInTxPool(bool? inTxPool)
+        {
+            base.SetInTxPool(inTxPool);
+            return this;
+        }
+
+        public override MoneroTxQuery SetIsFailed(bool? IsFailed)
+        {
+            base.SetIsFailed(IsFailed);
+            return this;
+        }
+
         public override MoneroTxQuery SetIsLocked(bool? isLocked)
         {
             base.SetIsLocked(isLocked);
@@ -111,17 +129,12 @@ namespace Monero.Wallet.Common
             return this;
         }
 
-        public MoneroTxQuery SetPaymentId(string paymentId)
+        public override MoneroTxQuery SetPaymentId(string paymentId)
         {
             return SetPaymentIds([paymentId]);
         }
 
-        public ulong? GetHeight()
-        {
-            return height;
-        }
-
-        public MoneroTxQuery SetHeight(ulong height)
+        public MoneroTxQuery SetHeight(ulong? height)
         {
             this.height = height;
             return this;
@@ -132,7 +145,7 @@ namespace Monero.Wallet.Common
             return minHeight;
         }
 
-        public MoneroTxQuery SetMinHeight(ulong minHeight)
+        public MoneroTxQuery SetMinHeight(ulong? minHeight)
         {
             this.minHeight = minHeight;
             return this;
@@ -143,7 +156,7 @@ namespace Monero.Wallet.Common
             return maxHeight;
         }
 
-        public MoneroTxQuery SetMaxHeight(ulong maxHeight)
+        public MoneroTxQuery SetMaxHeight(ulong? maxHeight)
         {
             this.maxHeight = maxHeight;
             return this;

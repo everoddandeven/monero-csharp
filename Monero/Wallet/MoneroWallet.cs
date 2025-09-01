@@ -973,7 +973,7 @@ namespace Monero.Wallet
          * @param description is the entry description (optional)
          * @return the index of the added entry
          */
-        public int AddAddressBookEntry(string address, string description);
+        public uint AddAddressBookEntry(string address, string description);
 
         /**
          * Edit an address book entry.

@@ -104,7 +104,7 @@ namespace Monero.Wallet
 
         #region Override Base Methods
 
-        public override int AddAddressBookEntry(string address, string description)
+        public override uint AddAddressBookEntry(string address, string description)
         {
             throw new NotImplementedException("Not supported by keys only wallet");
         }

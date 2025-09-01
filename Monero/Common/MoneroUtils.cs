@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
+using Monero.Wallet.Common;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Utilities.Encoders;
 
@@ -506,7 +507,6 @@ namespace Monero.Common
             return res;
         }
 
-
         private static string BinToHex(int[] data)
         {
             var builder = new StringBuilder();
@@ -520,6 +520,32 @@ namespace Monero.Common
         public static Dictionary<string, object> BinaryBlocksToMap(byte[] blocks)
         {
             throw new NotImplementedException("");
+        }
+
+        public static void MergeTx(List<MoneroTx> txs, MoneroTx tx)
+        {
+            foreach (MoneroTx aTx in txs)
+            {
+                if (aTx.GetHash().Equals(tx.GetHash()))
+                {
+                    aTx.Merge(tx);
+                    return;
+                }
+            }
+            txs.Add(tx);
+        }
+
+        public static void MergeTx(List<MoneroTxWallet> txs, MoneroTxWallet tx)
+        {
+            foreach (MoneroTx aTx in txs)
+            {
+                if (aTx.GetHash().Equals(tx.GetHash()))
+                {
+                    aTx.Merge(tx);
+                    return;
+                }
+            }
+            txs.Add(tx);
         }
     }
 }

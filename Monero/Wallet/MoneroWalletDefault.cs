@@ -16,7 +16,7 @@ namespace Monero.Wallet
 
         public abstract MoneroNetworkType GetNetworkType();
 
-        public abstract int AddAddressBookEntry(string address, string description);
+        public abstract uint AddAddressBookEntry(string address, string description);
 
         public virtual void AddListener(MoneroWalletListener listener)
         {
@@ -459,7 +459,7 @@ namespace Monero.Wallet
             }
             if (query.GetTxQuery() == null) query.SetTxQuery(new MoneroTxQuery());
             query.GetTxQuery().SetTransferQuery(query);
-            if (query.GetTxQuery().GetBlock() == null) query.GetTxQuery().SetBlock(new MoneroBlock().SetTxs(query.GetTxQuery()));
+            if (query.GetTxQuery().GetBlock() == null) query.GetTxQuery().SetBlock(new MoneroBlock().SetTxs([query.GetTxQuery()]));
             return query;
         }
     }

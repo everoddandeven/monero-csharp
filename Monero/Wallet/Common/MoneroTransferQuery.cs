@@ -45,6 +45,12 @@ namespace Monero.Wallet.Common
             return new MoneroTransferQuery(this);
         }
 
+        public override MoneroTransferQuery SetAmount(ulong? amount)
+        {
+            base.SetAmount(amount);
+            return this;
+        }
+
         public MoneroTxQuery? GetTxQuery()
         {
             return txQuery;

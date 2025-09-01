@@ -52,6 +52,91 @@ namespace Monero.Wallet.Common
             return new MoneroTxWallet(this);
         }
 
+        public override MoneroTxWallet Merge(MoneroTx tx)
+        {
+            if (tx != null && tx is not MoneroTxWallet) throw new MoneroError("Wallet transaction must be merged with type MoneroTxWallet");
+            return Merge((MoneroTxWallet)tx);
+        }
+
+        public MoneroTxWallet Merge(MoneroTxWallet tx)
+        {
+            if (!(tx is MoneroTxWallet)) throw new MoneroError("Wallet transaction must be merged with type MoneroTxWallet");
+            if (this == tx) return this;
+
+            // merge base classes
+            base.Merge(tx);
+
+            // merge tx set if they're different which comes back to merging txs
+            if (txSet != tx.GetTxSet())
+            {
+                if (txSet == null)
+                {
+                    txSet = new MoneroTxSet();
+                    txSet.SetTxs([this]);
+                }
+                if (tx.GetTxSet() == null)
+                {
+                    tx.SetTxSet(new MoneroTxSet());
+                    tx.GetTxSet().SetTxs([tx]);
+                }
+                txSet.Merge(tx.GetTxSet());
+                return this;
+            }
+
+            // merge incoming transfers
+            if (tx.GetIncomingTransfers() != null)
+            {
+                if (this.GetIncomingTransfers() == null) this.SetIncomingTransfers(new List<MoneroIncomingTransfer>());
+                foreach (MoneroIncomingTransfer transfer in tx.GetIncomingTransfers())
+                {
+                    transfer.SetTx(this);
+                    MergeIncomingTransfer(this.GetIncomingTransfers(), transfer);
+                }
+            }
+
+            // merge outgoing transfer
+            if (tx.GetOutgoingTransfer() != null)
+            {
+                tx.GetOutgoingTransfer().SetTx(this);
+                if (this.GetOutgoingTransfer() == null) this.SetOutgoingTransfer(tx.GetOutgoingTransfer());
+                else this.GetOutgoingTransfer().Merge(tx.GetOutgoingTransfer());
+            }
+
+            // merge simple extensions
+            this.SetIsIncoming(GenUtils.Reconcile(this.IsIncoming(), tx.IsIncoming(), null, true, null)); // outputs seen on confirmation
+            this.SetIsOutgoing(GenUtils.Reconcile(this.IsOutgoing(), tx.IsOutgoing()));
+            this.SetNote(GenUtils.Reconcile(this.GetNote(), tx.GetNote()));
+            this.SetIsLocked(GenUtils.Reconcile(this.IsLocked(), tx.IsLocked(), null, false, null));  // tx can become unlocked
+            this.SetInputSum(GenUtils.Reconcile(this.GetInputSum(), tx.GetInputSum()));
+            this.SetOutputSum(GenUtils.Reconcile(this.GetOutputSum(), tx.GetOutputSum()));
+            this.SetChangeAddress(GenUtils.Reconcile(this.GetChangeAddress(), tx.GetChangeAddress()));
+            this.SetChangeAmount(GenUtils.Reconcile(this.GetChangeAmount(), tx.GetChangeAmount()));
+            this.SetNumDummyOutputs(GenUtils.Reconcile(this.GetNumDummyOutputs(), tx.GetNumDummyOutputs()));
+            this.SetExtraHex(GenUtils.Reconcile(this.GetExtraHex(), tx.GetExtraHex()));
+
+            return this;  // for chaining
+        }
+
+        // private helper to merge transfers
+        private static void MergeIncomingTransfer(List<MoneroIncomingTransfer> transfers, MoneroIncomingTransfer transfer)
+        {
+            foreach (MoneroIncomingTransfer aTransfer in transfers)
+            {
+                if (aTransfer.GetAccountIndex() == transfer.GetAccountIndex() && aTransfer.GetSubaddressIndex() == transfer.GetSubaddressIndex())
+                {
+                    aTransfer.Merge(transfer);
+                    return;
+                }
+            }
+            transfers.Add(transfer);
+        }
+
+        public override MoneroTxWallet SetInTxPool(bool? inTxPool)
+        {
+            base.SetInTxPool(inTxPool);
+            return this;
+        }
+
         public MoneroTxSet GetTxSet()
         {
             return txSet;
@@ -117,7 +202,7 @@ namespace Monero.Wallet.Common
             return transfers;
         }
 
-        public List<MoneroTransfer> filterTransfers(MoneroTransferQuery query)
+        public List<MoneroTransfer> FilterTransfers(MoneroTransferQuery query)
         {
             List<MoneroTransfer> transfers = new List<MoneroTransfer>();
 
@@ -165,7 +250,7 @@ namespace Monero.Wallet.Common
         }
 
 
-        public override MoneroTxWallet SetInputs(List<MoneroOutput> inputs)
+        public override MoneroTxWallet SetInputs(List<MoneroOutput>? inputs)
         {
 
             // Validate that all inputs are wallet inputs
@@ -204,7 +289,7 @@ namespace Monero.Wallet.Common
             return inputsWallet;
         }
 
-        public override MoneroTxWallet SetOutputs(List<MoneroOutput> outputs)
+        public override MoneroTxWallet SetOutputs(List<MoneroOutput>? outputs)
         {
 
             // Validate that all outputs are wallet outputs

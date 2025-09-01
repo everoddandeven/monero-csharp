@@ -1,4 +1,6 @@
 ﻿
+using Monero.Common;
+
 namespace Monero.Wallet.Common
 {
     public class MoneroOutputQuery : MoneroOutputWallet
@@ -16,6 +18,30 @@ namespace Monero.Wallet.Common
             if (query.GetMaxAmount() != null) this.maxAmount = query.GetMaxAmount();
             if (query.subaddressIndices != null) this.subaddressIndices = new List<uint>(query.subaddressIndices);
             this.txQuery = query.txQuery;  // reference original by default, MoneroTxQuery's deep copy will Set this to itself
+        }
+
+        public override MoneroOutputQuery SetKeyImage(MoneroKeyImage? keyImage)
+        {
+            base.SetKeyImage(keyImage);
+            return this;
+        }
+
+        public override MoneroOutputQuery SetIsSpent(bool? isSpent)
+        {
+            base.SetIsSpent(isSpent);
+            return this;
+        }
+
+        public override MoneroOutputQuery SetAccountIndex(uint? accountIndex)
+        {
+            base.SetAccountIndex(accountIndex);
+            return this;
+        }
+
+        public override MoneroOutputQuery SetSubaddressIndex(uint? subaddressIndex)
+        {
+            base.SetSubaddressIndex(subaddressIndex);
+            return this;
         }
 
         public override MoneroOutputQuery Clone()

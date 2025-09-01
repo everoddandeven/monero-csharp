@@ -964,7 +964,7 @@ namespace Monero.Wallet
             // otherwise get txs with full models to fulfill query
             List<MoneroTransfer> transfers = [];
             query.GetTxQuery().SetTransferQuery(query);
-            foreach (MoneroTxWallet tx in GetTxs(query.GetTxQuery())) transfers.AddRange(tx.filterTransfers(query));
+            foreach (MoneroTxWallet tx in GetTxs(query.GetTxQuery())) transfers.AddRange(tx.FilterTransfers(query));
             return transfers;
         }
 
@@ -1585,14 +1585,14 @@ namespace Monero.Wallet
             return entries;
         }
 
-        public override int AddAddressBookEntry(string address, string description)
+        public override uint AddAddressBookEntry(string address, string description)
         {
             MoneroJsonRpcParams parameters = [];
             parameters.Add("address", address);
             parameters.Add("description", description);
             var respMap = rpc.SendJsonRequest("add_address_book", parameters);
             var resultMap = respMap.Result;
-            return ((int)resultMap["index"]);
+            return ((uint)resultMap["index"]);
         }
 
         public override void EditAddressBookEntry(uint index, bool setAddress, string address, bool setDescription, string description)
@@ -2089,7 +2089,7 @@ namespace Monero.Wallet
                 if (tx.GetIncomingTransfers() != null) tx.GetIncomingTransfers().Sort(new MoneroIncomingTransferComparer());
 
                 // collect queried transfers, erase if excluded
-                transfers.AddRange(tx.filterTransfers(query));
+                transfers.AddRange(tx.FilterTransfers(query));
 
                 // remove excluded txs from block
                 if (tx.GetBlock() != null && tx.GetOutgoingTransfer() == null && tx.GetIncomingTransfers() == null)
@@ -2662,7 +2662,7 @@ namespace Monero.Wallet
             }
 
             // link block and tx
-            if (header != null) tx.SetBlock(new MoneroBlock(header).SetTxs(tx));
+            if (header != null) tx.SetBlock(new MoneroBlock(header).SetTxs([tx]));
 
             // initialize final fields
             if (transfer != null)
@@ -2721,7 +2721,7 @@ namespace Monero.Wallet
                 else if (key.Equals("block_height"))
                 {
                     ulong height = ((ulong)val);
-                    tx.SetBlock(new MoneroBlock().SetHeight(height).SetTxs(tx));
+                    tx.SetBlock(new MoneroBlock().SetHeight(height).SetTxs([tx]));
                 }
                 else MoneroUtils.Log(0, "ignoring unexpected transaction field with output: " + key + ": " + val);
             }

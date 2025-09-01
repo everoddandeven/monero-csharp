@@ -2,6 +2,7 @@
 using Monero.Daemon;
 using Monero.Wallet;
 using Monero.Wallet.Common;
+using Org.BouncyCastle.Utilities;
 using System.Data;
 using System.Diagnostics;
 using System.Numerics;
@@ -219,5 +220,27 @@ namespace Monero.Test.Utils
                     throw new MoneroError("Invalid network type: " + networkType);
             }
         }
-    }
+
+        public static MoneroWallet CreateWalletGroundTruth(MoneroNetworkType networkType, string seed, ulong? startHeight, ulong? restoreHeight) 
+        {
+            throw new NotImplementedException("MoneroWalletFull is not implemented");
+        }
+
+        public static bool TxsMergeable(MoneroTxWallet tx1, MoneroTxWallet tx2)
+        {
+            try
+            {
+                MoneroTxWallet copy1 = tx1.Clone();
+                MoneroTxWallet copy2 = tx2.Clone();
+                if (copy1.IsConfirmed() == true) copy1.SetBlock(tx1.GetBlock().Clone().SetTxs([copy1]));
+                if (copy2.IsConfirmed() == true) copy2.SetBlock(tx2.GetBlock().Clone().SetTxs([copy2]));
+                copy1.Merge(copy2);
+                return true;
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+                return false;
+            }
+            }
+        }
 }

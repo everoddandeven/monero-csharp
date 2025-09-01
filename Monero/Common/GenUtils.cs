@@ -4,6 +4,11 @@ namespace Monero.Common
 {
     public class GenUtils
     {
+        public static string GetUUID()
+        {
+            return Guid.NewGuid().ToString();
+        }
+
         public static T? Reconcile<T>(T? val1, T? val2, bool? resolveDefined = null, bool? resolveTrue = null, bool? resolveMax = null)
         {
             // check for same reference

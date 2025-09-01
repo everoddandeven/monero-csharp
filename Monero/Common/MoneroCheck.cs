@@ -3,16 +3,16 @@ namespace Monero.Common
 {
     public class MoneroCheck
     {
-        protected bool isGood;
+        protected bool? isGood;
     
-        public MoneroCheck(bool isGood = false)
+        public MoneroCheck(bool? isGood = null)
         {
             this.isGood = isGood;
         }
 
-        public virtual bool IsGood() { return isGood; }
+        public virtual bool? IsGood() { return isGood; }
 
-        public virtual MoneroCheck SetIsGood(bool isGood)
+        public virtual MoneroCheck SetIsGood(bool? isGood)
         {
             this.isGood = isGood;
             return this;

@@ -45,7 +45,7 @@ namespace Monero.Common
             return keyImage;
         }
 
-        public MoneroOutput SetKeyImage(MoneroKeyImage? keyImage)
+        public virtual MoneroOutput SetKeyImage(MoneroKeyImage? keyImage)
         {
             this.keyImage = keyImage;
             return this;

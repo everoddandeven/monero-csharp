@@ -513,7 +513,7 @@ namespace Monero.Common
             return this;
         }
 
-        public MoneroTx Merge(MoneroTx tx)
+        public virtual MoneroTx Merge(MoneroTx tx)
         {
             if (this == tx) return this;
 
