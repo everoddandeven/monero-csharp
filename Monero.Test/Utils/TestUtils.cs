@@ -2,9 +2,6 @@
 using Monero.Daemon;
 using Monero.Wallet;
 using Monero.Wallet.Common;
-using Org.BouncyCastle.Utilities;
-using System.Data;
-using System.Diagnostics;
 using System.Numerics;
 
 namespace Monero.Test.Utils
@@ -15,7 +12,7 @@ namespace Monero.Test.Utils
         private static MoneroWalletRpc? walletRpc = null;
 
         // directory with monero binaries to test (monerod and monero-wallet-rpc)
-        public static readonly string MONERO_BINS_DIR = "C:\\Users\\J.Argenio\\Documents\\monero-x86_64-w64-mingw32-v0.18.4.2";
+        public static readonly string MONERO_BINS_DIR = "";
   
         // monero daemon rpc endpoint configuration (change per your configuration)
         public static readonly string DAEMON_RPC_URI = "http://127.0.0.1:28081";
