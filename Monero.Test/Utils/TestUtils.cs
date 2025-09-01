@@ -48,7 +48,7 @@ namespace Monero.Test.Utils
         public static readonly string SEED = "silk mocked cucumber lettuce hope adrenalin aching lush roles fuel revamp baptism wrist ulong tender teardrop midst pastry pigment equip frying inbound pinched ravine frying";
         public static readonly string ADDRESS = "A1y9sbVt8nqhZAVm3me1U18rUVXcjeNKuBd1oE2cTs8biA9cozPMeyYLhe77nPv12JA3ejJN3qprmREriit2fi6tJDi99RR";
         public static readonly ulong FIRST_RECEIVE_HEIGHT = 171; // NOTE: this value must be the height of the wallet's first tx for tests
-        public static readonly int SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in milliseconds
+        public static readonly ulong SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in milliseconds
         public static readonly string OFFLINE_SERVER_URI = "offline_server_uri"; // dummy server uri to remain offline because wallet2 connects to default if not given
         public static readonly int AUTO_CONNECT_TIMEOUT_MS = 3000;
 

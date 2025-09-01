@@ -103,7 +103,7 @@ public class TestMoneroConnectionManager
             TestUtils.StopWalletRpcProcess(walletRpcs[2]);
             TestUtils.StopWalletRpcProcess(walletRpcs[3]);
             TestUtils.StopWalletRpcProcess(walletRpcs[4]);
-            Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS + 100); // allow time to poll
+            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS + 100); // allow time to poll
             Assert.False(connectionManager.IsConnected());
             Assert.False(connectionManager.GetConnection().IsOnline());
             Assert.Null(connectionManager.GetConnection().IsAuthenticated());
@@ -143,7 +143,7 @@ public class TestMoneroConnectionManager
 
             // test auto switch when disconnected
             connectionManager.SetAutoSwitch(true);
-            Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS + 100);
+            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS + 100);
             Assert.True(connectionManager.IsConnected());
             connection = connectionManager.GetConnection();
             Assert.True(connection.IsOnline());
@@ -251,7 +251,7 @@ public class TestMoneroConnectionManager
             // shut down all connections
             connection = connectionManager.GetConnection();
             foreach (MoneroWalletRpc walletRpc in walletRpcs) TestUtils.StopWalletRpcProcess(walletRpc);
-            Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS + 100);
+            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS + 100);
             Assert.False(connection.IsOnline());
             Assert.True(++numExpectedChanges == listener.ChangedConnections.Count);
             Assert.True(listener.ChangedConnections[listener.ChangedConnections.Count - 1] == connection);

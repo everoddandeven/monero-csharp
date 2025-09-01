@@ -32,6 +32,12 @@ namespace Monero.Wallet.Common
             return this;
         }
 
+        public override MoneroOutputQuery SetIsFrozen(bool? isFrozen)
+        {
+            base.SetIsFrozen(isFrozen);
+            return this;
+        }
+
         public override MoneroOutputQuery SetAccountIndex(uint? accountIndex)
         {
             base.SetAccountIndex(accountIndex);

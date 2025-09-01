@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
@@ -27,7 +28,7 @@ namespace Monero.Test
         private static readonly int MAX_TX_PROOFS = 25; // maximum number of transactions to _check for each proof, undefined to _check all
         private static readonly int SEND_MAX_DIFF = 60;
         private static readonly int SEND_DIVISOR = 10;
-        private static readonly int NUM_BLOCKS_LOCKED = 10;
+        private static readonly ulong NUM_BLOCKS_LOCKED = 10;
 
         // instance variables
         protected MoneroWallet wallet = new MoneroWalletRpc("");        // wallet instance to test
@@ -757,10 +758,10 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
 
             // collect dates to test starting 100 days ago
-            long DAY_MS = 24 * 60 * 60 * 1000;
+            ulong DAY_MS = 24 * 60 * 60 * 1000;
             DateTime yesterday = DateTime.UtcNow.AddDays(-1); // TODO monero-project: today's date can throw exception as "in future" so we test up to yesterday
             List<DateTime> dates = new List<DateTime>();
-            for (long i = 99; i >= 0; i--)
+            for (int i = 99; i >= 0; i--)
             {
                 dates.Add(yesterday.AddDays(-i)); // subtract i days
             }
@@ -2139,7 +2140,7 @@ namespace Monero.Test
                     {
                         // TODO monero-wallet-rpc: indicates amount received amount is 0 despite transaction with transfer to this address
                         // TODO monero-wallet-rpc: returns 0-4 errors, not consistent
-                        //        Assert.True(_check.GetReceivedAmount().compareTo(BigInteger.valueOf(0)) > 0);
+                        //        Assert.True(_check.GetReceivedAmount().CompareTo(BigInteger.valueOf(0)) > 0);
                         if (_check.GetReceivedAmount().Equals(0))
                         {
                             Console.WriteLine("WARNING: _key proof indicates no funds received despite transfer (txid=" + _tx.GetHash() + ", _key=" + _key + ", address=" + dest.GetAddress() + ", amount=" + dest.GetAmount() + ")");
@@ -2499,7 +2500,7 @@ namespace Monero.Test
                     Assert.Equal("expecting this to succeed", e.Message);
                 }
                 //Console.WriteLine("Check reserve proof: " + JsonUtils.serialize(reserve));
-                Assert.Fail("Should have thrown exception but got reserve proof: https://github.com/monero-project/monero/issues/6595");
+                Assert.Fail("Should have thrown exception but got reserve proof: https://github.Com/monero-project/monero/issues/6595");
             }
             catch (MoneroError e)
             {
@@ -2644,7 +2645,7 @@ namespace Monero.Test
         }
 
         // Can import key images
-        // TODO monero-project: importing key images can cause erasure of incoming transfers per wallet2.cpp:11957
+        // TODO monero-project: importing key images can cause erasure of incoming transfers per wallet2.Cpp:11957
         [Fact]
         public void TestImportKeyImages()
         {
@@ -3021,6 +3022,739 @@ namespace Monero.Test
         #endregion
 
         #region Notification Tests
+
+        // Can generate notifications sending to different wallet
+        [Fact]
+        public void TestNotificationsDifferentWallet()
+        {
+            TestWalletNotifications("TestNotificationsDifferentWallet", false, false, false, false, 0);
+        }
+
+        // Can generate notifications sending to different wallet when relayed
+        [Fact]
+        public void TestNotificationsDifferentWalletWhenRelayed()
+        {
+            TestWalletNotifications("TestNotificationsDifferentWalletWhenRelayed", false, false, false, true, 3);
+        }
+
+        // Can generate notifications sending to different account
+        [Fact]
+        public void TestNotificationsDifferentAccounts()
+        {
+            TestWalletNotifications("TestNotificationsDifferentAccounts", true, false, false, false, 0);
+        }
+
+        // Can generate notifications sending to same account
+        [Fact]
+        public void TestNotificationsSameAccount()
+        {
+            TestWalletNotifications("TestNotificationsSameAccount", true, true, false, false, 0);
+        }
+
+        // Can generate notifications sweeping output to different account
+        [Fact]
+        public void TestNotificationsDifferentAccountSweepOutput()
+        {
+            TestWalletNotifications("TestNotificationsDifferentAccountSweepOutput", true, false, true, false, 0);
+        }
+
+        // Can generate notifications sweeping output to same account when relayed
+        [Fact]
+        public void TestNotificationsSameAccountSweepOutputWhenRelayed()
+        {
+            TestWalletNotifications("TestNotificationsSameAccountSweepOutputWhenRelayed", true, true, true, true, 0);
+        }
+
+        // Can stop listening
+        [Fact]
+        public void TestStopListening()
+        {
+            // create wallet and start background synchronizing
+            MoneroWallet wallet = CreateWallet(new MoneroWalletConfig());
+
+            // add listener
+            WalletNotificationCollector listener = new WalletNotificationCollector();
+            wallet.AddListener(listener);
+            try { GenUtils.WaitFor(1000); }
+            catch (Exception e) { throw new Exception("An error occurred while sleeping", e); }
+
+            // remove listener and close
+            wallet.RemoveListener(listener);
+            CloseWallet(wallet);
+        }
+
+        // Can be created and receive funds
+        [Fact]
+        public void TestCreateAndReceive()
+        {
+            Assert.True(TEST_NOTIFICATIONS);
+
+            // create random wallet
+            MoneroWallet receiver = CreateWallet(new MoneroWalletConfig());
+            try
+            {
+
+                // listen for received outputs
+                WalletNotificationCollector myListener = new WalletNotificationCollector();
+                receiver.AddListener(myListener);
+
+                // wait for txs to confirm and for sufficient unlocked balance
+                TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+                TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(wallet, 0, null, TestUtils.MAX_FEE);
+
+                // send funds to the receiver
+                MoneroTxWallet sentTx = wallet.CreateTx(new MoneroTxConfig().SetAccountIndex(0).SetAddress(receiver.GetPrimaryAddress()).SetAmount(TestUtils.MAX_FEE).SetRelay(true));
+
+                // wait for funds to confirm
+                try { StartMining.Start(); } catch (Exception e) { }
+                while ((wallet.GetTx(sentTx.GetHash())).IsConfirmed() != true)
+                {
+                    if (wallet.GetTx(sentTx.GetHash()).IsFailed() == true) throw new MoneroError("Tx failed in mempool: " + sentTx.GetHash());
+                    daemon.WaitForNextBlockHeader();
+                }
+
+                // receiver should have notified listeners of received outputs
+                try { GenUtils.WaitFor(1000); } catch (ThreadInterruptedException e) { throw new Exception("Thread was interrupted", e); } // zmq notifications received within 1 second
+                Assert.False(myListener.GetOutputsReceived().Count == 0);
+            }
+            finally
+            {
+                CloseWallet(receiver);
+                try { daemon.StopMining(); } catch (Exception e) { }
+            }
+        }
+
+        // Can freeze and thaw outputs
+        [Fact]
+        public void TestFreezeOutputs()
+        {
+            Assert.True(TEST_NON_RELAYS);
+
+            // get an available output
+            List<MoneroOutputWallet> outputs = wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false).SetIsFrozen(false).SetTxQuery(new MoneroTxQuery().SetIsLocked(false)));
+            foreach (MoneroOutputWallet _out in outputs) Assert.False(_out.IsFrozen());
+            Assert.True(outputs.Count > 0);
+            MoneroOutputWallet output = outputs[0];
+            Assert.False(output.GetTx().IsLocked());
+            Assert.False(output.IsSpent());
+            Assert.False(output.IsFrozen());
+            Assert.False(wallet.IsOutputFrozen(output.GetKeyImage().GetHex()));
+
+            // freeze output by key image
+            int numFrozenBefore = wallet.GetOutputs(new MoneroOutputQuery().SetIsFrozen(true)).Count;
+            wallet.FreezeOutput(output.GetKeyImage().GetHex());
+            Assert.True(wallet.IsOutputFrozen(output.GetKeyImage().GetHex()));
+
+            // test querying
+            Assert.Equal(numFrozenBefore + 1, wallet.GetOutputs(new MoneroOutputQuery().SetIsFrozen(true)).Count);
+            outputs = wallet.GetOutputs(new MoneroOutputQuery().SetKeyImage(new MoneroKeyImage().SetHex(output.GetKeyImage().GetHex())).SetIsFrozen(true));
+            Assert.Equal(1, outputs.Count);
+            MoneroOutputWallet outputFrozen = outputs[0];
+            Assert.True(outputFrozen.IsFrozen());
+            Assert.Equal(output.GetKeyImage().GetHex(), outputFrozen.GetKeyImage().GetHex());
+
+            // try to sweep frozen output
+            try
+            {
+                wallet.SweepOutput(new MoneroTxConfig().SetAddress(wallet.GetPrimaryAddress()).SetKeyImage(output.GetKeyImage().GetHex()));
+                Assert.Fail("Should have thrown error");
+            }
+            catch (MoneroError e)
+            {
+                Assert.Equal("No outputs found", e.Message);
+            }
+
+            // try to freeze null key image
+            try
+            {
+                wallet.FreezeOutput(null);
+                Assert.Fail("Should have thrown error");
+            }
+            catch (MoneroError e)
+            {
+                Assert.Equal("Must specify key image to freeze", e.Message);
+            }
+
+            // try to freeze empty key image
+            try
+            {
+                wallet.FreezeOutput("");
+                Assert.Fail("Should have thrown error");
+            }
+            catch (MoneroError e)
+            {
+                Assert.Equal("Must specify key image to freeze", e.Message);
+            }
+
+            // try to freeze bad key image
+            try
+            {
+                wallet.FreezeOutput("123");
+                Assert.Fail("Should have thrown error");
+            }
+            catch (MoneroError e)
+            {
+                //Assert.Equal("Bad key image", e.Message);
+            }
+
+            // thaw output by key image
+            wallet.ThawOutput(output.GetKeyImage().GetHex());
+            Assert.False(wallet.IsOutputFrozen(output.GetKeyImage().GetHex()));
+
+            // test querying
+            Assert.Equal(numFrozenBefore, wallet.GetOutputs(new MoneroOutputQuery().SetIsFrozen(true)).Count);
+            outputs = wallet.GetOutputs(new MoneroOutputQuery().SetKeyImage(new MoneroKeyImage().SetHex(output.GetKeyImage().GetHex())).SetIsFrozen(true));
+            Assert.Equal(0, outputs.Count);
+            outputs = wallet.GetOutputs(new MoneroOutputQuery().SetKeyImage(new MoneroKeyImage().SetHex(output.GetKeyImage().GetHex())).SetIsFrozen(false));
+            Assert.Equal(1, outputs.Count);
+            MoneroOutputWallet outputThawed = outputs[0];
+            Assert.False(outputThawed.IsFrozen());
+            Assert.Equal(output.GetKeyImage().GetHex(), outputThawed.GetKeyImage().GetHex());
+        }
+
+        // Provides key images of spent outputs
+        [Fact]
+        public void TestInputKeyImages()
+        {
+            uint accountIndex = 0;
+            uint subaddressIndex = (wallet.GetSubaddresses(0).Count > 1) ? (uint)1 : 0; // TODO: avoid subaddress 0 which is more likely to fail transaction sanity check
+
+            // test unrelayed single transaction
+            TestSpendTx(wallet.CreateTx(new MoneroTxConfig().AddDestination(wallet.GetPrimaryAddress(), TestUtils.MAX_FEE).SetAccountIndex(accountIndex)));
+
+            // test unrelayed split transactions
+            foreach (MoneroTxWallet tx in wallet.CreateTxs(new MoneroTxConfig().AddDestination(wallet.GetPrimaryAddress(), TestUtils.MAX_FEE).SetAccountIndex(accountIndex)))
+            {
+                TestSpendTx(tx);
+            }
+
+            // test unrelayed sweep dust
+            List<string> dustKeyImages = new List<string>();
+            foreach (MoneroTxWallet tx in wallet.SweepDust(false))
+            {
+                TestSpendTx(tx);
+                foreach (MoneroOutput input in tx.GetInputs()) dustKeyImages.Add(input.GetKeyImage().GetHex());
+            }
+
+            // get available outputs above min amount
+            List<MoneroOutputWallet> outputs = wallet.GetOutputs(new MoneroOutputQuery().SetAccountIndex(accountIndex).SetSubaddressIndex(subaddressIndex).SetIsSpent(false).SetIsFrozen(false).SetTxQuery(new MoneroTxQuery().SetIsLocked(false)).SetMinAmount(TestUtils.MAX_FEE));
+
+            // filter dust outputs
+            List<MoneroOutputWallet> dustOutputs = new List<MoneroOutputWallet>();
+            foreach (MoneroOutputWallet output in outputs)
+            {
+                if (dustKeyImages.Contains(output.GetKeyImage().GetHex())) dustOutputs.Add(output);
+            }
+            
+            foreach (var dustOutput in dustOutputs) outputs.Remove(dustOutput);
+
+            // test unrelayed sweep output
+            TestSpendTx(wallet.SweepOutput(new MoneroTxConfig().SetAddress(wallet.GetPrimaryAddress()).SetKeyImage(outputs[0].GetKeyImage().GetHex())));
+
+            // test unrelayed sweep wallet ensuring all non-dust outputs are spent
+            HashSet<string> availableKeyImages = new HashSet<string>();
+            foreach (MoneroOutputWallet output in outputs) availableKeyImages.Add(output.GetKeyImage().GetHex());
+            HashSet<string> sweptKeyImages = new HashSet<string>();
+            List<MoneroTxWallet> txs = wallet.SweepUnlocked(new MoneroTxConfig().SetAccountIndex(accountIndex).SetSubaddressIndex(subaddressIndex).SetAddress(wallet.GetPrimaryAddress()));
+            foreach (MoneroTxWallet tx in txs)
+            {
+                TestSpendTx(tx);
+                foreach (MoneroOutput input in tx.GetInputs()) sweptKeyImages.Add(input.GetKeyImage().GetHex());
+            }
+            Assert.True(sweptKeyImages.Count > 0);
+
+            // max skipped output is less than max fee amount
+            MoneroOutputWallet maxSkippedOutput = null;
+            foreach (MoneroOutputWallet output in outputs)
+            {
+                if (!sweptKeyImages.Contains(output.GetKeyImage().GetHex()))
+                {
+                    if (maxSkippedOutput == null || ((ulong)maxSkippedOutput.GetAmount()).CompareTo(output.GetAmount()) < 0)
+                    {
+                        maxSkippedOutput = output;
+                    }
+                }
+            }
+            Assert.True(maxSkippedOutput == null || ((ulong)maxSkippedOutput.GetAmount()).CompareTo(TestUtils.MAX_FEE) < 0);
+        }
+
+        // Can prove unrelayed
+        [Fact]
+        public void TestProveUnrelayedTxs()
+        {
+            // create unrelayed tx to verify
+            string address1 = TestUtils.GetExternalWalletAddress();
+            string address2 = wallet.GetAddress(0, 0);
+            string address3 = wallet.GetAddress(1, 0);
+            MoneroTxWallet tx = wallet.CreateTx(new MoneroTxConfig()
+                    .SetAccountIndex(0)
+                    .AddDestination(address1, TestUtils.MAX_FEE)
+                    .AddDestination(address2, TestUtils.MAX_FEE * 2)
+                    .AddDestination(address3, TestUtils.MAX_FEE * 2));
+
+            // submit tx to daemon but do not relay
+            MoneroSubmitTxResult result = daemon.SubmitTxHex(tx.GetFullHex(), true);
+            Assert.True(result.IsGood());
+
+            // create random wallet to verify transfers
+            MoneroWallet verifyingWallet = CreateWallet(new MoneroWalletConfig());
+
+            // verify transfer 1
+            MoneroCheckTx check = verifyingWallet.CheckTxKey(tx.GetHash(), tx.GetKey(), address1);
+            Assert.True(check.IsGood());
+            Assert.True(check.InTxPool());
+            Assert.True(0 == check.GetNumConfirmations());
+            Assert.Equal(TestUtils.MAX_FEE, check.GetReceivedAmount());
+
+            // verify transfer 2
+            check = verifyingWallet.CheckTxKey(tx.GetHash(), tx.GetKey(), address2);
+            Assert.True(check.IsGood());
+            Assert.True(check.InTxPool());
+            Assert.True(0 == check.GetNumConfirmations());
+            Assert.True(check.GetReceivedAmount().CompareTo(TestUtils.MAX_FEE * 2) >= 0); // + change amount
+
+            // verify transfer 3
+            check = verifyingWallet.CheckTxKey(tx.GetHash(), tx.GetKey(), address3);
+            Assert.True(check.IsGood());
+            Assert.True(check.InTxPool());
+            Assert.True(0 == check.GetNumConfirmations());
+            Assert.Equal(TestUtils.MAX_FEE * 3, check.GetReceivedAmount());
+
+            // cleanup
+            daemon.FlushTxPool(tx.GetHash());
+            CloseWallet(verifyingWallet);
+        }
+
+        // Can get the default fee priority
+        [Fact]
+        public void TestGetDefaultFeePriority()
+        {
+            MoneroTxPriority defaultPriority = wallet.GetDefaultFeePriority();
+            Assert.True(defaultPriority > 0);
+        }
+
+        #region Notification Utils
+
+        private void TestWalletNotifications(string testName, bool sameWallet, bool sameAccount, bool sweepOutput, bool createThenRelay, ulong unlockDelay)
+        {
+            Assert.True(TEST_NOTIFICATIONS);
+            List<string> issues = TestWalletNotificationsAux(sameWallet, sameAccount, sweepOutput, createThenRelay, unlockDelay);
+            if (issues.Count == 0) return;
+            string msg = testName + "(" + sameWallet + ", " + sameAccount + ", " + sweepOutput + ", " + createThenRelay + ") generated " + issues.Count + " issues:\n" + IssuesToStr(issues);
+            Console.WriteLine(msg);
+            if (msg.Contains("ERROR:")) Assert.Fail(msg);
+        }
+
+        private List<string> TestWalletNotificationsAux(bool sameWallet, bool sameAccount, bool sweepOutput, bool createThenRelay, ulong unlockDelay)
+        {
+            ulong MAX_POLL_TIME = 5000l; // maximum time granted for wallet to poll
+
+            // collect issues as test runs
+            List<string> issues = new List<string>();
+
+            // set sender and receiver
+            MoneroWallet sender = wallet;
+            MoneroWallet receiver = sameWallet ? sender : CreateWallet(new MoneroWalletConfig());
+
+            // create receiver accounts if necessary
+            int numAccounts = receiver.GetAccounts().Count;
+            for (int i = 0; i < 4 - numAccounts; i++) receiver.CreateAccount();
+
+            // wait for unlocked funds in source account
+            TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(sender);
+            TestUtils.WALLET_TX_TRACKER.WaitForUnlockedBalance(sender, 0, null, TestUtils.MAX_FEE * 10);
+
+            // get balances to compare after sending
+            ulong senderBalanceBefore = sender.GetBalance();
+            ulong senderUnlockedBalanceBefore = sender.GetUnlockedBalance();
+            ulong receiverBalanceBefore = receiver.GetBalance();
+            ulong receiverUnlockedBalanceBefore = receiver.GetUnlockedBalance();
+            ulong lastHeight = daemon.GetHeight();
+
+            // start collecting notifications from sender and receiver
+            WalletNotificationCollector senderNotificationCollector = new WalletNotificationCollector();
+            WalletNotificationCollector receiverNotificationCollector = new WalletNotificationCollector();
+            sender.AddListener(senderNotificationCollector);
+            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS / 2);
+            receiver.AddListener(receiverNotificationCollector);
+
+            // send funds
+            TxContext ctx = new TxContext();
+            ctx.Wallet = wallet;
+            ctx.IsSendResponse = true;
+            MoneroTxWallet? senderTx = null;
+            List<uint> destinationAccounts = sameAccount ? (sweepOutput ? [ 0 ] : [ 0, 1, 2 ]) : (sweepOutput ? [ 1 ] : [ 1, 2, 3 ]);
+            List<MoneroOutputWallet> expectedOutputs = new List<MoneroOutputWallet>();
+            if (sweepOutput)
+            {
+                ctx.IsSweepResponse = true;
+                ctx.IsSweepOutputResponse = true;
+                List<MoneroOutputWallet> outputs = sender.GetOutputs(new MoneroOutputQuery().SetIsSpent(false).SetTxQuery(new MoneroTxQuery().SetIsLocked(false)).SetAccountIndex(0).SetMinAmount(TestUtils.MAX_FEE * 5));
+                if (outputs.Count == 0)
+                {
+                    issues.Add("ERROR: No outputs available to sweep from account 0");
+                    return issues;
+                }
+                MoneroTxConfig config = new MoneroTxConfig().SetAddress(receiver.GetAddress(destinationAccounts[0], 0)).SetKeyImage(outputs[0].GetKeyImage().GetHex()).SetRelay(!createThenRelay);
+                senderTx = sender.SweepOutput(config);
+                expectedOutputs.Add(new MoneroOutputWallet().SetAmount(senderTx.GetOutgoingTransfer().GetDestinations()[0].GetAmount()).SetAccountIndex(destinationAccounts[0]).SetSubaddressIndex(0));
+                ctx.Config = config;
+            }
+            else
+            {
+                MoneroTxConfig config = new MoneroTxConfig().SetAccountIndex(0).SetRelay(!createThenRelay);
+                foreach (uint destinationAccount in destinationAccounts)
+                {
+                    config.AddDestination(receiver.GetAddress(destinationAccount, 0), TestUtils.MAX_FEE); // TODO: send and check random amounts?
+                    expectedOutputs.Add(new MoneroOutputWallet().SetAmount(TestUtils.MAX_FEE).SetAccountIndex(destinationAccount).SetSubaddressIndex(0));
+                }
+                senderTx = sender.CreateTx(config);
+                ctx.Config = config;
+            }
+            if (createThenRelay) sender.RelayTx(senderTx);
+
+            // start timer to measure end of sync period
+            ulong startTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            // test send tx
+            TestTxWallet(senderTx, ctx);
+
+            // test sender after sending
+            MoneroOutputQuery outputQuery = new MoneroOutputQuery().SetTxQuery(new MoneroTxQuery().SetHash(senderTx.GetHash())); // query for outputs from sender tx
+            if (sameWallet)
+            {
+                if (senderTx.GetIncomingAmount() == null) issues.Add("WARNING: sender tx incoming amount is null when sent to same wallet");
+                else if (senderTx.GetIncomingAmount().Equals(0)) issues.Add("WARNING: sender tx incoming amount is 0 when sent to same wallet");
+                else if (((ulong)senderTx.GetIncomingAmount()).CompareTo(senderTx.GetOutgoingAmount() - (senderTx.GetFee())) != 0) issues.Add("WARNING: sender tx incoming amount != outgoing amount - fee when sent to same wallet");
+            }
+            else
+            {
+                if (senderTx.GetIncomingAmount() != null) issues.Add("ERROR: tx incoming amount should be null"); // TODO: should be 0? then can remove null checks in this method
+            }
+            senderTx = sender.GetTxs(new MoneroTxQuery().SetHash(senderTx.GetHash()).SetIncludeOutputs(true))[0];
+            if (!sender.GetBalance().Equals(senderBalanceBefore - senderTx.GetFee() - senderTx.GetOutgoingAmount() + senderTx.GetIncomingAmount() == null ? 0 : senderTx.GetIncomingAmount())) issues.Add("ERROR: sender balance after send != balance before - tx fee - outgoing amount + incoming amount (" + sender.GetBalance() + " != " + senderBalanceBefore + " - " + senderTx.GetFee() + " - " + senderTx.GetOutgoingAmount() + " + " + senderTx.GetIncomingAmount() + ")");
+            if (((ulong)sender.GetUnlockedBalance()).CompareTo(senderUnlockedBalanceBefore) >= 0) issues.Add("ERROR: sender unlocked balance should have decreased after sending");
+            if (senderNotificationCollector.GetBalanceNotifications().Count == 0) issues.Add("ERROR: sender did not notify balance change after sending");
+            else
+            {
+                if (!sender.GetBalance().Equals(senderNotificationCollector.GetBalanceNotifications().Last().Key)) issues.Add("ERROR: sender balance != last notified balance after sending (" + sender.GetBalance() + " != " + senderNotificationCollector.GetBalanceNotifications().Last().Key + ")");
+                if (!sender.GetUnlockedBalance().Equals(senderNotificationCollector.GetBalanceNotifications().Last().Value)) issues.Add("ERROR: sender unlocked balance != last notified unlocked balance after sending (" + sender.GetUnlockedBalance() + " != " + senderNotificationCollector.GetBalanceNotifications().Last().Value + ")");
+            }
+            if (senderNotificationCollector.GetOutputsSpent(outputQuery).Count == 0) issues.Add("ERROR: sender did not announce unconfirmed spent output");
+
+            // test receiver after 2 sync periods
+            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS - (((ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) - startTime));
+            startTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // reset timer
+            MoneroTxWallet receiverTx = receiver.GetTx(senderTx.GetHash());
+            if (!senderTx.GetOutgoingAmount().Equals(receiverTx.GetIncomingAmount()))
+            {
+                if (sameAccount) issues.Add("WARNING: sender tx outgoing amount != receiver tx incoming amount when sent to same account (" + senderTx.GetOutgoingAmount() + " != " + receiverTx.GetIncomingAmount() + ")");
+                else if (sameAccount) issues.Add("ERROR: sender tx outgoing amount != receiver tx incoming amount (" + senderTx.GetOutgoingAmount() + " != " + receiverTx.GetIncomingAmount() + ")");
+            }
+            if (!receiver.GetBalance().Equals(receiverBalanceBefore + (receiverTx.GetIncomingAmount() == null ? 0 : receiverTx.GetIncomingAmount()) - (receiverTx.GetOutgoingAmount() == null ? 0 : receiverTx.GetOutgoingAmount()) - (sameWallet ? receiverTx.GetFee() : 0)))
+            {
+                if (sameAccount) issues.Add("WARNING: after sending, receiver balance != balance before + incoming amount - outgoing amount - tx fee when sent to same account (" + receiver.GetBalance() + " != " + receiverBalanceBefore + " + " + receiverTx.GetIncomingAmount() + " - " + receiverTx.GetOutgoingAmount() + " - " + (sameWallet ? receiverTx.GetFee() : 0) + ")");
+                else issues.Add("ERROR: after sending, receiver balance != balance before + incoming amount - outgoing amount - tx fee (" + receiver.GetBalance() + " != " + receiverBalanceBefore + " + " + receiverTx.GetIncomingAmount() + " - " + receiverTx.GetOutgoingAmount() + " - " + (sameWallet ? receiverTx.GetFee() : 0) + ")");
+            }
+            if (!sameWallet && !receiver.GetUnlockedBalance().Equals(receiverUnlockedBalanceBefore)) issues.Add("ERROR: receiver unlocked balance should not have changed after sending");
+            if (receiverNotificationCollector.GetBalanceNotifications().Count == 0) issues.Add("ERROR: receiver did not notify balance change when funds received");
+            else
+            {
+                if (!receiver.GetBalance().Equals(receiverNotificationCollector.GetBalanceNotifications().Last().Key)) issues.Add("ERROR: receiver balance != last notified balance after funds received");
+                if (!receiver.GetUnlockedBalance().Equals(receiverNotificationCollector.GetBalanceNotifications().Last().Value)) issues.Add("ERROR: receiver unlocked balance != last notified unlocked balance after funds received");
+            }
+            if (receiverNotificationCollector.GetOutputsReceived(outputQuery).Count == 0) issues.Add("ERROR: receiver did not announce unconfirmed received output");
+            else
+            {
+                foreach (MoneroOutputWallet output in GetMissingOutputs(expectedOutputs, receiverNotificationCollector.GetOutputsReceived(outputQuery), true))
+                {
+                    issues.Add("ERROR: receiver did not announce received output for amount " + output.GetAmount() + " to subaddress [" + output.GetAccountIndex() + ", " + output.GetSubaddressIndex() + "]");
+                }
+            }
+
+            // mine until test completes
+            StartMining.Start();
+
+            // loop every sync period until unlock tested
+            List<Thread> threads = new List<Thread>();
+            ulong expectedUnlockTime = lastHeight + unlockDelay;
+            ulong? confirmHeight = null;
+            while (true)
+            {
+
+                // test height notifications
+                ulong height = daemon.GetHeight();
+                if (height > lastHeight)
+                {
+                    ulong testStartHeight = lastHeight;
+                    lastHeight = height;
+                    Thread thread = new Thread(() =>
+                    {
+                        // Aspetta 2 periodi di sync + poll time per notifiche
+                        GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS * 2 + MAX_POLL_TIME);
+
+                        List<ulong> senderBlockNotifications = senderNotificationCollector.GetBlockNotifications();
+                        List<ulong> receiverBlockNotifications = receiverNotificationCollector.GetBlockNotifications();
+
+                        for (ulong i = testStartHeight; i < height; i++)
+                        {
+                            if (!senderBlockNotifications.Contains(i))
+                                issues.Add($"ERROR: sender did not announce block {i}");
+
+                            if (!receiverBlockNotifications.Contains(i))
+                                issues.Add($"ERROR: receiver did not announce block {i}");
+                        }
+                    });
+                    threads.Add(thread);
+                    thread.Start();
+                }
+
+                // check if tx confirmed
+                if (confirmHeight == null)
+                {
+
+                    // get updated tx
+                    MoneroTxWallet tx = receiver.GetTx(senderTx.GetHash());
+
+                    // break if tx fails
+                    if (tx.IsFailed() == true)
+                    {
+                        issues.Add("ERROR: tx failed in tx pool");
+                        break;
+                    }
+
+                    // test confirm notifications
+                    if (tx.IsConfirmed() == true && confirmHeight == null)
+                    {
+                        confirmHeight = tx.GetHeight();
+                        expectedUnlockTime = Math.Max(((ulong)confirmHeight) + NUM_BLOCKS_LOCKED, expectedUnlockTime); // exact unlock time known
+                        Thread thread = new Thread(() =>
+                        {
+                            // Aspetta 2 periodi di sync + poll time per notifiche
+                            GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS * 2 + MAX_POLL_TIME);
+
+                            // Prepara query confermata
+                            MoneroOutputQuery confirmedQuery = outputQuery.GetTxQuery()
+                                .Clone()
+                                .SetIsConfirmed(true)
+                                .SetIsLocked(true)
+                                .GetOutputQuery();
+
+                            // Controlli sugli output
+                            if (senderNotificationCollector.GetOutputsSpent(confirmedQuery).Count == 0)
+                                issues.Add("ERROR: sender did not announce confirmed spent output"); // TODO: test amount
+
+                            if (receiverNotificationCollector.GetOutputsReceived(confirmedQuery).Count == 0)
+                            {
+                                issues.Add("ERROR: receiver did not announce confirmed received output");
+                            }
+                            else
+                            {
+                                foreach (MoneroOutputWallet output in GetMissingOutputs(expectedOutputs, receiverNotificationCollector.GetOutputsReceived(confirmedQuery), true))
+                                {
+                                    issues.Add($"ERROR: receiver did not announce confirmed received output for amount {output.GetAmount()} " +
+                                              $"to subaddress [{output.GetAccountIndex()}, {output.GetSubaddressIndex()}]");
+                                }
+                            }
+
+                            // Se stesso wallet → il net amount speso deve essere uguale alla tx fee
+                            if (sameWallet)
+                            {
+                                ulong netAmount = 0;
+
+                                foreach (MoneroOutputWallet outputSpent in senderNotificationCollector.GetOutputsSpent(confirmedQuery))
+                                    netAmount += (ulong)outputSpent.GetAmount();
+
+                                foreach (MoneroOutputWallet outputReceived in senderNotificationCollector.GetOutputsReceived(confirmedQuery))
+                                    netAmount -= (ulong)outputReceived.GetAmount();
+
+                                if (((ulong)tx.GetFee()).CompareTo(netAmount) != 0)
+                                {
+                                    if (sameAccount)
+                                    {
+                                        issues.Add($"WARNING: net output amount != tx fee when funds sent to same account: {netAmount} vs {tx.GetFee()}");
+                                    }
+                                    else if (sender is MoneroWalletRpc)
+                                    {
+                                        issues.Add($"WARNING: net output amount != tx fee when funds sent to same wallet because monero-wallet-rpc does not provide tx inputs: {netAmount} vs {tx.GetFee()}");
+                                    }
+                                    else
+                                    {
+                                        issues.Add($"ERROR: net output amount must equal tx fee when funds sent to same wallet: {netAmount} vs {tx.GetFee()}");
+                                    }
+                                }
+                            }
+                        });
+                        threads.Add(thread);
+                        thread.Start();
+                    }
+                }
+
+                // otherwise test unlock notifications
+                else if (height >= expectedUnlockTime)
+                {
+                    Thread thread = new Thread(() =>
+                    {
+                        // Aspetta 2 periodi di sync + poll time per notifiche
+                        GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS * 2 + MAX_POLL_TIME);
+
+                        // Prepara query sbloccata
+                        MoneroOutputQuery unlockedQuery = outputQuery.GetTxQuery()
+                            .Clone()
+                            .SetIsLocked(false)
+                            .GetOutputQuery();
+
+                        // Controlli sugli output
+                        if (senderNotificationCollector.GetOutputsSpent(unlockedQuery).Count == 0)
+                            issues.Add("ERROR: sender did not announce unlocked spent output"); // TODO: test amount?
+
+                        foreach (MoneroOutputWallet output in GetMissingOutputs(expectedOutputs, receiverNotificationCollector.GetOutputsReceived(unlockedQuery), true))
+                        {
+                            issues.Add($"ERROR: receiver did not announce unlocked received output for amount {output.GetAmount()} " +
+                                      $"to subaddress [{output.GetAccountIndex()}, {output.GetSubaddressIndex()}]");
+                        }
+
+                        // Controllo bilanci del receiver
+                        if (!sameWallet && !receiver.GetBalance().Equals(receiver.GetUnlockedBalance()))
+                            issues.Add("ERROR: receiver balance != unlocked balance after funds unlocked");
+
+                        // Controllo notifiche balance del sender
+                        if (senderNotificationCollector.GetBalanceNotifications().Count == 0)
+                        {
+                            issues.Add("ERROR: sender did not announce any balance notifications");
+                        }
+                        else
+                        {
+                            var lastNotification = senderNotificationCollector.GetBalanceNotifications()[^1]; // ultimo elemento
+                            if (!sender.GetBalance().Equals(lastNotification.Key))
+                                issues.Add("ERROR: sender balance != last notified balance after funds unlocked");
+                            if (!sender.GetUnlockedBalance().Equals(lastNotification.Value))
+                                issues.Add("ERROR: sender unlocked balance != last notified unlocked balance after funds unlocked");
+                        }
+
+                        // Controllo notifiche balance del receiver
+                        if (receiverNotificationCollector.GetBalanceNotifications().Count == 0)
+                        {
+                            issues.Add("ERROR: receiver did not announce any balance notifications");
+                        }
+                        else
+                        {
+                            var lastNotification = receiverNotificationCollector.GetBalanceNotifications()[^1]; // ultimo elemento
+                            if (!receiver.GetBalance().Equals(lastNotification.Key))
+                                issues.Add("ERROR: receiver balance != last notified balance after funds unlocked");
+                            if (!receiver.GetUnlockedBalance().Equals(lastNotification.Value))
+                                issues.Add("ERROR: receiver unlocked balance != last notified unlocked balance after funds unlocked");
+                        }
+                    });
+                    threads.Add(thread);
+                    thread.Start();
+                    break;
+                }
+
+                // wait for end of sync period
+                GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS - (((ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) - startTime));
+                startTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // reset timer
+            }
+
+            // wait for test threads
+            try
+            {
+                foreach (Thread thread in threads) thread.Join();
+            }
+            catch (ThreadInterruptedException e)
+            {
+                throw new Exception("Thread was interrupted", e);
+            }
+
+            // test notified outputs
+            foreach (MoneroOutputWallet output in senderNotificationCollector.GetOutputsSpent(outputQuery)) TestNotifiedOutput(output, true, issues);
+            foreach (MoneroOutputWallet output in senderNotificationCollector.GetOutputsReceived(outputQuery)) TestNotifiedOutput(output, false, issues);
+            foreach (MoneroOutputWallet output in receiverNotificationCollector.GetOutputsSpent(outputQuery)) TestNotifiedOutput(output, true, issues);
+            foreach (MoneroOutputWallet output in receiverNotificationCollector.GetOutputsReceived(outputQuery)) TestNotifiedOutput(output, false, issues);
+
+            // clean up
+            if (daemon.GetMiningStatus().IsActive() == true) daemon.StopMining();
+            sender.RemoveListener(senderNotificationCollector);
+            senderNotificationCollector.SetListening(false);
+            receiver.RemoveListener(receiverNotificationCollector);
+            receiverNotificationCollector.SetListening(false);
+            if (sender != receiver) CloseWallet(receiver);
+            return issues;
+        }
+
+        private static List<MoneroOutputWallet> GetMissingOutputs(List<MoneroOutputWallet> expectedOutputs, List<MoneroOutputWallet> actualOutputs, bool matchSubaddress)
+        {
+            List<MoneroOutputWallet> missing = [];
+            List<MoneroOutputWallet> used = [];
+            foreach (MoneroOutputWallet expectedOutput in expectedOutputs)
+            {
+                bool found = false;
+                foreach (MoneroOutputWallet actualOutput in actualOutputs)
+                {
+                    if (used.Contains(actualOutput)) continue;
+                    if (actualOutput.GetAmount().Equals(expectedOutput.GetAmount()) && (!matchSubaddress || (actualOutput.GetAccountIndex() == expectedOutput.GetAccountIndex() && actualOutput.GetSubaddressIndex() == expectedOutput.GetSubaddressIndex())))
+                    {
+                        used.Add(actualOutput);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) missing.Add(expectedOutput);
+            }
+            return missing;
+        }
+
+        private static string IssuesToStr(List<string> issues)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < issues.Count; i++)
+            {
+                sb.Append((i + 1) + ": " + issues[i]);
+                if (i < issues.Count - 1)
+                    sb.Append('\n');
+            }
+            return sb.ToString();
+        }
+
+        private static void TestNotifiedOutput(MoneroOutputWallet output, bool isTxInput, List<string> issues)
+        {
+            // test tx link
+            Assert.NotNull(output.GetTx());
+            if (isTxInput) Assert.True(output.GetTx().GetInputs().Contains(output));
+            else Assert.True(output.GetTx().GetOutputs().Contains(output));
+
+            // test output values
+            TestUtils.TestUnsignedBigInteger(output.GetAmount());
+            if (output.GetAccountIndex() != null) Assert.True(output.GetAccountIndex() >= 0);
+            else
+            {
+                if (isTxInput) issues.Add("WARNING: notification of " + GetOutputState(output) + " spent output missing account index"); // TODO (monero-project): account index not provided when output swept by key image.  could retrieve it but slows tx creation significantly
+                else issues.Add("ERROR: notification of " + GetOutputState(output) + " received output missing account index");
+            }
+            if (output.GetSubaddressIndex() != null) Assert.True(output.GetSubaddressIndex() >= 0);
+            else
+            {
+                if (isTxInput) issues.Add("WARNING: notification of " + GetOutputState(output) + " spent output missing subaddress index"); // TODO (monero-project): because inputs are not provided, creating fake input from outgoing transfer, which can be sourced from multiple subaddress indices, whereas an output can only come from one subaddress index; need to provide tx inputs to resolve this
+                else issues.Add("ERROR: notification of " + GetOutputState(output) + " received output missing subaddress index");
+            }
+        }
+
+        private static string GetOutputState(MoneroOutputWallet output)
+        {
+            if (output.GetTx().IsLocked() == false) return "unlocked";
+            if (output.GetTx().IsConfirmed() == true) return "confirmed";
+            if (output.GetTx().IsConfirmed() == false) return "unconfirmed";
+            throw new Exception("Unknown output state: " + output.ToString());
+        }
+
+        private static void TestSpendTx(MoneroTxWallet spendTx)
+        {
+            Assert.NotNull(spendTx.GetInputs());
+            Assert.True(spendTx.GetInputs().Count > 0);
+            foreach (MoneroOutput input in spendTx.GetInputs()) Assert.NotNull(input.GetKeyImage().GetHex());
+        }
+
+        #endregion
 
         #endregion
 
@@ -3571,7 +4305,7 @@ namespace Monero.Test
 
         private void TestTxWalletCopy(MoneroTxWallet tx, TxContext ctx)
         {
-            // copy _tx and assert deep equality
+            // copy _tx and Assert. deep equality
             MoneroTxWallet copy = tx.Clone();
             Assert.True(copy is MoneroTxWallet);
             Assert.Equal(copy, tx);
@@ -3744,7 +4478,7 @@ namespace Monero.Test
         {
             Assert.True(txs.Count > 0);
 
-            // assert that all sets are same reference
+            // Assert. that all sets are same reference
             MoneroTxSet? set = null;
             for (int i = 0; i < txs.Count; i++)
             {
@@ -3780,7 +4514,7 @@ namespace Monero.Test
                 Assert.True(check.GetNumConfirmations() >= 0);
                 Assert.NotNull(check.InTxPool());
                 TestUtils.TestUnsignedBigInteger(check.GetReceivedAmount());
-                if (check.InTxPool()) Assert.Equal(0, (long)check.GetNumConfirmations());
+                if (check.InTxPool()) Assert.True(0 == check.GetNumConfirmations());
                 else Assert.True(check.GetNumConfirmations() > 0); // TODO (monero-wall-rpc) this fails (confirmations is 0) for (at least one) transaction that has 1 confirmation on testCheckTxKey()
             }
             else

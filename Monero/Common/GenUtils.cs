@@ -106,5 +106,22 @@ namespace Monero.Common
             Array.Copy(array, startIndexInclusive, subarray, 0, newSize);
             return subarray;
         }
+
+        public static void WaitFor(ulong durationMs) {
+            WaitFor((int)durationMs);
+        }
+
+        public static void WaitFor(int durationMs)
+        {
+            try
+            {
+                // brutto, non mi piace
+                Thread.Sleep((int)durationMs);
+            }
+            catch (ThreadInterruptedException)
+            {
+                throw new Exception("Thread was interrupted while sleeping");
+            }
+        }
     }
 }

@@ -1227,7 +1227,7 @@ public class TestMoneroDaemonRpc
         daemon.Stop();
 
         // give the daemon time to shut down
-        Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS);
+        GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS);
         // try to interact with the daemon
         try
         {

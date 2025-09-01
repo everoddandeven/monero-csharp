@@ -80,7 +80,7 @@ namespace Monero.Test.Utils
                 }
 
                 // sleep for a moment
-                try { Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS); }
+                try { GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS); }
                 catch (Exception e) { throw new MoneroError(e.Message); }
             }
 
@@ -124,7 +124,7 @@ namespace Monero.Test.Utils
             while (unlockedBalance < minAmount)
             {
                 unlockedBalance = wallet.GetUnlockedBalance(accountIndex, subaddressIndex);
-                try { Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS); }
+                try { GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS); }
                 catch (ThreadInterruptedException e) { throw new Exception("Thread was interrupted", e); }
             }
 
