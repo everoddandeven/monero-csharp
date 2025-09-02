@@ -542,8 +542,8 @@ namespace Monero.Wallet
             // convert rpc response
             var rpcIndices = (Dictionary<string, uint>)result["index"];
             MoneroSubaddress subaddress = new MoneroSubaddress(address);
-            subaddress.SetAccountIndex((uint)rpcIndices["major"]);
-            subaddress.SetIndex((uint)rpcIndices["minor"]);
+            subaddress.SetAccountIndex(Convert.ToUInt32(rpcIndices["major"]));
+            subaddress.SetIndex(Convert.ToUInt32(rpcIndices["minor"]));
             return subaddress;
         }
 
@@ -579,7 +579,7 @@ namespace Monero.Wallet
         {
             var resp = rpc.SendJsonRequest("get_height");
             var result = resp.Result;
-            return ((ulong)result["height"]);
+            return Convert.ToUInt64(result["height"]);
         }
 
         public override ulong GetDaemonHeight()
@@ -603,7 +603,7 @@ namespace Monero.Wallet
                     var resp = rpc.SendJsonRequest("refresh", parameters);
                     Poll();
                     var result = resp.Result;
-                    return new MoneroSyncResult(((ulong)result["blocks_fetched"]), (bool)result["received_money"]);
+                    return new MoneroSyncResult(Convert.ToUInt64(result["blocks_fetched"]), (bool)result["received_money"]);
                 }
                 catch (MoneroError err)
                 {
@@ -684,7 +684,7 @@ namespace Monero.Wallet
             // build account objects and fetch subaddresses per account using get_address
             // TODO monero-wallet-rpc: get_address should support all_accounts so not called once per account
             List<MoneroAccount> accounts = [];
-            foreach (var rpcAccount in (List<Dictionary<string, object>>)result["subaddress_accounts"])
+            foreach (var rpcAccount in ((JArray)result["subaddress_accounts"]).ToObject<List<Dictionary<string, object>>>())
             {
                 MoneroAccount account = ConvertRpcAccount(rpcAccount);
                 if (includeSubaddresses) account.SetSubaddresses(GetSubaddresses((uint)account.GetIndex(), null, true));
@@ -714,7 +714,7 @@ namespace Monero.Wallet
                 result = resp.Result;
                 if (result.ContainsKey("per_subaddress"))
                 {
-                    foreach (var rpcSubaddress in (List<Dictionary<string, object>>)result["per_subaddress"])
+                    foreach (var rpcSubaddress in ((JArray)result["per_subaddress"]).ToObject<List<Dictionary<string, object>>>())
                     {
                         MoneroSubaddress subaddress = ConvertRpcSubaddress(rpcSubaddress);
 
@@ -761,7 +761,7 @@ namespace Monero.Wallet
             parameters.Add("label", label);
             var resp = rpc.SendJsonRequest("create_account", parameters);
             var result = resp.Result;
-            return new MoneroAccount(((uint)result["account_index"]), (string)result["address"], 0, 0, null);
+            return new MoneroAccount(Convert.ToUInt32(result["account_index"]), (string)result["address"], 0, 0, null);
         }
 
         public override List<MoneroSubaddress> GetSubaddresses(uint accountIdx, List<uint>? subaddressIndices = null)
@@ -780,7 +780,7 @@ namespace Monero.Wallet
 
             // initialize subaddresses
             List<MoneroSubaddress> subaddresses = [];
-            foreach (var rpcSubaddress in (List<Dictionary<string, object>>)result["addresses"])
+            foreach (var rpcSubaddress in ((JArray)result["addresses"]).ToObject<List<Dictionary<string, object>>>())
             {
                 MoneroSubaddress subaddress = ConvertRpcSubaddress(rpcSubaddress);
                 subaddress.SetAccountIndex(accountIdx);
@@ -805,7 +805,7 @@ namespace Monero.Wallet
                 result = resp.Result;
                 if (result.ContainsKey("per_subaddress"))
                 {
-                    foreach (var rpcSubaddress in (List<Dictionary<string, object>>)result["per_subaddress"])
+                    foreach (var rpcSubaddress in ((JArray)result["per_subaddress"]).ToObject<List<Dictionary<string, object>>>())
                     {
                         MoneroSubaddress subaddress = ConvertRpcSubaddress(rpcSubaddress);
 
@@ -850,7 +850,7 @@ namespace Monero.Wallet
             // build subaddress object
             MoneroSubaddress subaddress = new MoneroSubaddress();
             subaddress.SetAccountIndex(accountIdx);
-            subaddress.SetIndex(((uint)result["address_index"]));
+            subaddress.SetIndex(Convert.ToUInt32(result["address_index"]));
             subaddress.SetAddress((string)result["address"]);
             subaddress.SetLabel(label);
             subaddress.SetBalance(0);
@@ -1038,9 +1038,9 @@ namespace Monero.Wallet
 
             // build and return result
             MoneroKeyImageImportResult importResult = new MoneroKeyImageImportResult();
-            importResult.SetHeight(((ulong)result["height"]));
-            importResult.SetSpentAmount((ulong)result["spent"]);
-            importResult.SetUnspentAmount((ulong)result["unspent"]);
+            importResult.SetHeight(Convert.ToUInt64(result["height"]));
+            importResult.SetSpentAmount(Convert.ToUInt64(result["spent"]));
+            importResult.SetUnspentAmount(Convert.ToUInt64(result["unspent"]));
             return importResult;
         }
 
@@ -1415,9 +1415,9 @@ namespace Monero.Wallet
                 var result = resp.Result;
                 MoneroCheckTx check = new MoneroCheckTx();
                 check.SetIsGood(true);
-                check.SetNumConfirmations(((ulong)result["confirmations"]));
+                check.SetNumConfirmations(Convert.ToUInt64(result["confirmations"]));
                 check.SetInTxPool((bool)result["in_pool"]);
-                check.SetReceivedAmount((ulong)result["received"]);
+                check.SetReceivedAmount(Convert.ToUInt64(result["received"]));
                 return check;
             }
             catch (MoneroRpcError e)
@@ -1465,9 +1465,9 @@ namespace Monero.Wallet
                 check.SetIsGood(isGood);
                 if (isGood)
                 {
-                    check.SetNumConfirmations(((ulong)result["confirmations"]));
+                    check.SetNumConfirmations(Convert.ToUInt64(result["confirmations"]));
                     check.SetInTxPool((bool)result["in_pool"]);
-                    check.SetReceivedAmount((ulong)result["received"]);
+                    check.SetReceivedAmount(Convert.ToUInt64(result["received"]));
                 }
                 return check;
             }
@@ -1554,8 +1554,8 @@ namespace Monero.Wallet
             check.SetIsGood(isGood);
             if (isGood)
             {
-                check.SetTotalAmount((ulong)result["total"]);
-                check.SetUnconfirmedSpentAmount((ulong)result["spent"]);
+                check.SetTotalAmount(Convert.ToUInt64(result["total"]));
+                check.SetUnconfirmedSpentAmount(Convert.ToUInt64(result["spent"]));
             }
             return check;
         }
@@ -1585,11 +1585,11 @@ namespace Monero.Wallet
             var resultMap = respMap.Result;
             List<MoneroAddressBookEntry> entries = [];
             if (!resultMap.ContainsKey("entries")) return entries;
-            var entriesMap = (List<Dictionary<string, object>>)resultMap["entries"];
+            var entriesMap = ((JArray)resultMap["entries"]).ToObject<List<Dictionary<string, object>>>();
             foreach (var entryMap in entriesMap)
             {
                 MoneroAddressBookEntry entry = new MoneroAddressBookEntry(
-                        ((uint)entryMap["index"]),
+                        Convert.ToUInt32(entryMap["index"]),
                         (string)entryMap["address"],
                         (string)entryMap["description"],
                         (string)entryMap["payment_id"]
@@ -1606,7 +1606,7 @@ namespace Monero.Wallet
             parameters.Add("description", description);
             var respMap = rpc.SendJsonRequest("add_address_book", parameters);
             var resultMap = respMap.Result;
-            return ((uint)resultMap["index"]);
+            return Convert.ToUInt32(resultMap["index"]);
         }
 
         public override void EditAddressBookEntry(uint index, bool setAddress, string address, bool setDescription, string description)
@@ -1647,7 +1647,7 @@ namespace Monero.Wallet
             List<MoneroAccountTag> tags = [];
             var respMap = rpc.SendJsonRequest("get_account_tags");
             var resultMap = respMap.Result;
-            var accountTagMaps = (List<Dictionary<string, object>>)resultMap["account_tags"];
+            var accountTagMaps = ((JArray)resultMap["account_tags"]).ToObject<List<Dictionary<string, object>>>();
             if (accountTagMaps != null)
             {
                 foreach (var accountTagMap in accountTagMaps)
@@ -1695,7 +1695,7 @@ namespace Monero.Wallet
             var resp = rpc.SendJsonRequest("parse_uri", parameters);
             var result = resp.Result;
             var rpcUri = (Dictionary<string, object>)result["uri"];
-            MoneroTxConfig config = new MoneroTxConfig().SetAddress((string)rpcUri["address"]).SetAmount((ulong)rpcUri["amount"]);
+            MoneroTxConfig config = new MoneroTxConfig().SetAddress((string)rpcUri["address"]).SetAmount(Convert.ToUInt64(rpcUri["amount"]));
             config.SetPaymentId((string)rpcUri["payment_id"]);
             config.SetRecipientName((string)rpcUri["recipient_name"]);
             config.SetNote((string)rpcUri["tx_description"]);
@@ -1934,9 +1934,9 @@ namespace Monero.Wallet
             parameters.Add("account_index", accountIdx);
             var resp = rpc.SendJsonRequest("get_address", parameters);
             var result = resp.Result;
-            foreach (var address in (List<Dictionary<string, object>>)result["addresses"])
+            foreach (var address in ((JArray)result["addresses"]).ToObject<List<Dictionary<string, object>>>())
             {
-                subaddressIndices.Add(((uint)address["address_index"]));
+                subaddressIndices.Add(Convert.ToUInt32(address["address_index"]));
             }
             return subaddressIndices;
         }
@@ -1949,7 +1949,7 @@ namespace Monero.Wallet
             var result = resp.Result;
             List<MoneroKeyImage> images = [];
             if (!result.ContainsKey("signed_key_images")) return images;
-            foreach (var rpcImage in (List<Dictionary<string, object>>)result["signed_key_images"])
+            foreach (var rpcImage in ((JArray)result["signed_key_images"]).ToObject<List<Dictionary<string, object>>>())
             {
                 images.Add(new MoneroKeyImage((string)rpcImage["key_image"], (string)rpcImage["signature"]));
             }
@@ -1977,11 +1977,11 @@ namespace Monero.Wallet
                 parameters.Add("address_indices", subaddressIdx == null ? null : new List<uint?> { subaddressIdx });
                 var resp = rpc.SendJsonRequest("get_balance", parameters);
                 var result = resp.Result;
-                if (subaddressIdx == null) return new List<ulong> { (ulong)result["balance"], (ulong)result["unlocked_balance"] };
+                if (subaddressIdx == null) return new List<ulong> { Convert.ToUInt64(result["balance"]), Convert.ToUInt64(result["unlocked_balance"]) };
                 else
                 {
-                    var rpcBalancesPerSubaddress = (List<Dictionary<string, object>>)result["per_subaddress"];
-                    return new List<ulong> { (ulong)rpcBalancesPerSubaddress[0]["balance"], (ulong)rpcBalancesPerSubaddress[0]["unlocked_balance"] };
+                    var rpcBalancesPerSubaddress = ((JArray)result["per_subaddress"]).ToObject<List<Dictionary<string, object>>>();
+                    return new List<ulong> { Convert.ToUInt64(rpcBalancesPerSubaddress[0]["balance"]), Convert.ToUInt64(rpcBalancesPerSubaddress[0]["unlocked_balance"]) };
                 }
             }
         }
@@ -2061,7 +2061,7 @@ namespace Monero.Wallet
             var result = resp.Result;
             foreach (string key in result.Keys)
             {
-                foreach (var rpcTx in ((List<Dictionary<string, object>>)result[key]))
+                foreach (var rpcTx in ((JArray)result[key]).ToObject<List<Dictionary<string, object>>>())
                 {
                     MoneroTxWallet tx = ConvertRpcTxWithTransfer(rpcTx, null, null, null);
                     if (tx.IsConfirmed() == true) if (tx.GetBlock().GetTxs().Contains(tx) != true) throw new MoneroError("Tx not in block");
@@ -2174,7 +2174,7 @@ namespace Monero.Wallet
 
                 // convert response to txs with outputs and merge
                 if (!result.ContainsKey("transfers")) continue;
-                foreach (var rpcOutput in (List<Dictionary<string, object>>)result["transfers"])
+                foreach (var rpcOutput in ((JArray)result["transfers"]).ToObject<List<Dictionary<string, object>>>())
                 {
                     MoneroTxWallet tx = ConvertRpcTxWithOutput(rpcOutput);
                     MergeTx(tx, txMap, blockMap);
@@ -2316,9 +2316,9 @@ namespace Monero.Wallet
             foreach (string key in rpcAccount.Keys)
             {
                 Object val = rpcAccount[key];
-                if (key.Equals("account_index")) account.SetIndex(((uint)val));
-                else if (key.Equals("balance")) account.SetBalance((ulong)val);
-                else if (key.Equals("unlocked_balance")) account.SetUnlockedBalance((ulong)val);
+                if (key.Equals("account_index")) account.SetIndex(Convert.ToUInt32(val));
+                else if (key.Equals("balance")) account.SetBalance(Convert.ToUInt64(val));
+                else if (key.Equals("unlocked_balance")) account.SetUnlockedBalance(Convert.ToUInt64(val));
                 else if (key.Equals("base_address")) account.SetPrimaryAddress((string)val);
                 else if (key.Equals("tag")) account.SetTag((string)val);
                 else if (key.Equals("label")) { } // label belongs to first subaddress
@@ -2334,15 +2334,15 @@ namespace Monero.Wallet
             foreach (string key in rpcSubaddress.Keys)
             {
                 Object val = rpcSubaddress[key];
-                if (key.Equals("account_index")) subaddress.SetAccountIndex(((uint)val));
-                else if (key.Equals("address_index")) subaddress.SetIndex(((uint)val));
+                if (key.Equals("account_index")) subaddress.SetAccountIndex(Convert.ToUInt32(val));
+                else if (key.Equals("address_index")) subaddress.SetIndex(Convert.ToUInt32(val));
                 else if (key.Equals("address")) subaddress.SetAddress((string)val);
-                else if (key.Equals("balance")) subaddress.SetBalance((ulong)val);
-                else if (key.Equals("unlocked_balance")) subaddress.SetUnlockedBalance((ulong)val);
-                else if (key.Equals("num_unspent_outputs")) subaddress.SetNumUnspentOutputs(((ulong)val));
+                else if (key.Equals("balance")) subaddress.SetBalance(Convert.ToUInt64(val));
+                else if (key.Equals("unlocked_balance")) subaddress.SetUnlockedBalance(Convert.ToUInt64(val));
+                else if (key.Equals("num_unspent_outputs")) subaddress.SetNumUnspentOutputs((Convert.ToUInt64(val)));
                 else if (key.Equals("label")) { if (!"".Equals(val)) subaddress.SetLabel((string)val); }
                 else if (key.Equals("used")) subaddress.SetIsUsed((bool)val);
-                else if (key.Equals("blocks_to_unlock")) subaddress.SetNumBlocksToUnlock(((ulong)val));
+                else if (key.Equals("blocks_to_unlock")) subaddress.SetNumBlocksToUnlock((Convert.ToUInt64(val)));
                 else if (key.Equals("time_to_unlock")) { } // ignoring
                 //else LOGGER.warning("ignoring unexpected subaddress field: " + key + ": " + val);
             }
@@ -2450,12 +2450,12 @@ namespace Monero.Wallet
                 }
                 else if (key.Equals("fee_list"))
                 {
-                    List<ulong> fees = (List<ulong>)val;
+                    List<ulong> fees = ((JArray)val).ToObject<List<UInt64>>();
                     for (int i = 0; i < fees.Count; i++) txs[i].SetFee(fees[i]);
                 }
                 else if (key.Equals("amount_list"))
                 {
-                    List<ulong> amounts = (List<ulong>)val;
+                    List<ulong> amounts = ((JArray)val).ToObject<List<UInt64>>();
                     for (int i = 0; i < amounts.Count; i++)
                     {
                         if (txs[i].GetOutgoingTransfer() == null) txs[i].SetOutgoingTransfer(new MoneroOutgoingTransfer().SetTx(txs[i]));
@@ -2464,7 +2464,7 @@ namespace Monero.Wallet
                 }
                 else if (key.Equals("weight_list"))
                 {
-                    List<ulong> weights = (List<ulong>)val;
+                    List<ulong> weights = ((JArray)val).ToObject<List<UInt64>>();
                     for (int i = 0; i < weights.Count; i++) txs[i].SetWeight((ulong)weights[i]);
                 }
                 else if (key.Equals("multisig_txset") || key.Equals("unsigned_txset") || key.Equals("signed_txset"))
@@ -2473,7 +2473,7 @@ namespace Monero.Wallet
                 }
                 else if (key.Equals("spent_key_images_list"))
                 {
-                    var inputKeyImagesList = (List<Dictionary<string, object>>)val;
+                    var inputKeyImagesList = ((JArray)val).ToObject<List<Dictionary<string, object>>>();
                     for (int i = 0; i < inputKeyImagesList.Count; i++)
                     {
                         if(txs[i].GetInputs() != null) throw new Exception("Expected null inputs");
@@ -2486,11 +2486,11 @@ namespace Monero.Wallet
                 }
                 else if (key.Equals("amounts_by_dest_list"))
                 {
-                    var amountsByDestList = (List<Dictionary<string, object>>)val;
+                    var amountsByDestList = ((JArray)val).ToObject<List<Dictionary<string, object>>>();
                     int destinationIdx = 0;
                     for (int txIdx = 0; txIdx < amountsByDestList.Count; txIdx++)
                     {
-                        List<ulong> amountsByDest = (List<ulong>)amountsByDestList[txIdx]["amounts"];
+                        List<ulong> amountsByDest = ((JArray)amountsByDestList[txIdx]["amounts"]).ToObject<List<UInt64>>();
                         if (txs[txIdx].GetOutgoingTransfer() == null) txs[txIdx].SetOutgoingTransfer(new MoneroOutgoingTransfer().SetTx(txs[txIdx]));
                         txs[txIdx].GetOutgoingTransfer().SetDestinations([]);
                         foreach (ulong amount in amountsByDest)
@@ -2535,13 +2535,13 @@ namespace Monero.Wallet
                 Object val = rpcTx[key];
                 if (key.Equals("txid")) tx.SetHash((string)val);
                 else if (key.Equals("tx_hash")) tx.SetHash((string)val);
-                else if (key.Equals("fee")) tx.SetFee((ulong)val);
+                else if (key.Equals("fee")) tx.SetFee(Convert.ToUInt64(val));
                 else if (key.Equals("note")) { if (!"".Equals(val)) tx.SetNote((string)val); }
                 else if (key.Equals("tx_key")) tx.SetKey((string)val);
                 else if (key.Equals("type")) { } // type already handled
-                else if (key.Equals("tx_size")) tx.SetSize(((ulong)val));
-                else if (key.Equals("unlock_time")) tx.SetUnlockTime(((ulong)val));
-                else if (key.Equals("weight")) tx.SetWeight(((ulong)val));
+                else if (key.Equals("tx_size")) tx.SetSize((Convert.ToUInt64(val)));
+                else if (key.Equals("unlock_time")) tx.SetUnlockTime((Convert.ToUInt64(val)));
+                else if (key.Equals("weight")) tx.SetWeight((Convert.ToUInt64(val)));
                 else if (key.Equals("locked")) tx.SetIsLocked((bool)val);
                 else if (key.Equals("tx_blob")) tx.SetFullHex((string)val);
                 else if (key.Equals("tx_metadata")) tx.SetMetadata((string)val);
@@ -2551,7 +2551,7 @@ namespace Monero.Wallet
                     if (tx.IsConfirmed() == true)
                     {
                         if (header == null) header = new MoneroBlockHeader();
-                        header.SetHeight(((ulong)val));
+                        header.SetHeight((Convert.ToUInt64(val)));
                     }
                 }
                 else if (key.Equals("timestamp"))
@@ -2559,14 +2559,14 @@ namespace Monero.Wallet
                     if (tx.IsConfirmed() == true)
                     {
                         if (header == null) header = new MoneroBlockHeader();
-                        header.SetTimestamp(((ulong)val));
+                        header.SetTimestamp((Convert.ToUInt64(val)));
                     }
                     else
                     {
                         // timestamp of unconfirmed tx is current request time
                     }
                 }
-                else if (key.Equals("confirmations")) tx.SetNumConfirmations(((ulong)val));
+                else if (key.Equals("confirmations")) tx.SetNumConfirmations((Convert.ToUInt64(val)));
                 else if (key.Equals("suggested_confirmations_threshold"))
                 {
                     if (transfer == null)
@@ -2574,7 +2574,7 @@ namespace Monero.Wallet
                         transfer = (isOutgoing == true ? new MoneroOutgoingTransfer() : new MoneroIncomingTransfer());
                         transfer.SetTx(tx);
                     }
-                    if (isOutgoing != true) ((MoneroIncomingTransfer)transfer).SetNumSuggestedConfirmations(((ulong)val));
+                    if (isOutgoing != true) ((MoneroIncomingTransfer)transfer).SetNumSuggestedConfirmations((Convert.ToUInt64(val)));
                 }
                 else if (key.Equals("amount"))
                 {
@@ -2583,7 +2583,7 @@ namespace Monero.Wallet
                         transfer = (isOutgoing == true ? new MoneroOutgoingTransfer() : new MoneroIncomingTransfer());
                         transfer.SetTx(tx);
                     }
-                    transfer.SetAmount((ulong)val);
+                    transfer.SetAmount(Convert.ToUInt64(val));
                 }
                 else if (key.Equals("amounts")) { }  // ignoring, amounts sum to amount
                 else if (key.Equals("address"))
@@ -2609,7 +2609,7 @@ namespace Monero.Wallet
                         transfer = (isOutgoing == true ? new MoneroOutgoingTransfer() : new MoneroIncomingTransfer());
                         transfer.SetTx(tx);
                     }
-                    List<Dictionary<string, uint>> rpcIndices = (List<Dictionary<string, uint>>)val;
+                    List<Dictionary<string, uint>> rpcIndices = ((JArray)val).ToObject<List<Dictionary<string, uint>>>();
                     transfer.SetAccountIndex(rpcIndices[0]["major"]);
                     if (isOutgoing == true)
                     {
@@ -2627,7 +2627,7 @@ namespace Monero.Wallet
                 {
                     if (isOutgoing != true) throw new MoneroError("Expected outgoing transfer, but got incoming transfer");
                     List<MoneroDestination> destinations = [];
-                    foreach (var rpcDestination in (List<Dictionary<string, object>>)val)
+                    foreach (var rpcDestination in ((JArray)val).ToObject<List<Dictionary<string, object>>>())
                     {
                         MoneroDestination destination = new MoneroDestination();
                         destinations.Add(destination);
@@ -2643,16 +2643,17 @@ namespace Monero.Wallet
                 }
                 else if (key.Equals("multisig_txset") && val != null) { }  // handled elsewhere; this method only builds a tx wallet
                 else if (key.Equals("unsigned_txset") && val != null) { }  // handled elsewhere; this method only builds a tx wallet
-                else if (key.Equals("amount_in")) tx.SetInputSum((ulong)val);
-                else if (key.Equals("amount_out")) tx.SetOutputSum((ulong)val);
+                else if (key.Equals("amount_in")) tx.SetInputSum(Convert.ToUInt64(val));
+                else if (key.Equals("amount_out")) tx.SetOutputSum(Convert.ToUInt64(val));
                 else if (key.Equals("change_address")) tx.SetChangeAddress("".Equals(val) ? null : (string)val);
-                else if (key.Equals("change_amount")) tx.SetChangeAmount((ulong)val);
-                else if (key.Equals("dummy_outputs")) tx.SetNumDummyOutputs(((uint)val));
+                else if (key.Equals("change_amount")) tx.SetChangeAmount(Convert.ToUInt64(val));
+                else if (key.Equals("dummy_outputs")) tx.SetNumDummyOutputs(Convert.ToUInt32(val));
                 else if (key.Equals("extra")) tx.SetExtraHex((string)val);
-                else if (key.Equals("ring_size")) tx.SetRingSize(((uint)val));
+                else if (key.Equals("ring_size")) tx.SetRingSize(Convert.ToUInt32(val));
                 else if (key.Equals("spent_key_images"))
                 {
-                    List<string> inputKeyImages = (List<string>)((Dictionary<string, object>)val)["key_images"];
+                    var valMap = ((JObject)val).ToObject<Dictionary<string, object>>();
+                    List<string> inputKeyImages = ((JArray)valMap["key_images"]).ToObject<List<string>>();
                     if (tx.GetInputs() != null) throw new MoneroError("Expected null inputs");
                     tx.SetInputs([]);
                     foreach (string inputKeyImage in inputKeyImages)
@@ -2663,7 +2664,8 @@ namespace Monero.Wallet
                 else if (key.Equals("amounts_by_dest"))
                 {
                     if (isOutgoing != true) throw new MoneroError("Expected outgoing transfer, but got incoming transfer");
-                    List<ulong> amountsByDest = (List<ulong>)((Dictionary<string, object>)val)["amounts"];
+                    var valMap = ((JObject)val).ToObject<Dictionary<string, object>>();
+                    List<ulong> amountsByDest = ((JArray)valMap["amounts"]).ToObject<List<UInt64>>();
                     if (config.GetDestinations().Count != amountsByDest.Count) throw new MoneroError("Expected " + config.GetDestinations().Count + " destinations, but got " + amountsByDest.Count);
                     if (transfer == null) transfer = new MoneroOutgoingTransfer().SetTx(tx);
                     ((MoneroOutgoingTransfer)transfer).SetDestinations([]);
@@ -2718,23 +2720,23 @@ namespace Monero.Wallet
             foreach (string key in rpcOutput.Keys)
             {
                 Object val = rpcOutput[key];
-                if (key.Equals("amount")) output.SetAmount((ulong)val);
+                if (key.Equals("amount")) output.SetAmount(Convert.ToUInt64(val));
                 else if (key.Equals("spent")) output.SetIsSpent((bool)val);
                 else if (key.Equals("key_image")) { if (!"".Equals(val)) output.SetKeyImage(new MoneroKeyImage((string)val)); }
-                else if (key.Equals("global_index")) output.SetIndex(((ulong)val));
+                else if (key.Equals("global_index")) output.SetIndex((Convert.ToUInt64(val)));
                 else if (key.Equals("tx_hash")) tx.SetHash((string)val);
                 else if (key.Equals("unlocked")) tx.SetIsLocked(!(bool)val);
                 else if (key.Equals("frozen")) output.SetIsFrozen((bool)val);
                 else if (key.Equals("pubkey")) output.SetStealthPublicKey((string)val);
                 else if (key.Equals("subaddr_index"))
                 {
-                    var rpcIndices = (Dictionary<string, uint>)val;
+                    var rpcIndices = ((JObject)val).ToObject<Dictionary<string, UInt32>>();
                     output.SetAccountIndex(rpcIndices["major"]);
                     output.SetSubaddressIndex(rpcIndices["minor"]);
                 }
                 else if (key.Equals("block_height"))
                 {
-                    ulong height = ((ulong)val);
+                    ulong height = (Convert.ToUInt64(val));
                     tx.SetBlock(new MoneroBlock().SetHeight(height).SetTxs([tx]));
                 }
                 else MoneroUtils.Log(0, "ignoring unexpected transaction field with output: " + key + ": " + val);
@@ -2756,7 +2758,7 @@ namespace Monero.Wallet
                 if (key.Equals("desc"))
                 {
                     txSet.SetTxs([]);
-                    foreach (var txMap in (List<Dictionary<string, object>>)val)
+                    foreach (var txMap in ((JArray)val).ToObject<List<Dictionary<string, object>>>())
                     {
                         MoneroTxWallet tx = ConvertRpcTxWithTransfer(txMap, null, true, null);
                         tx.SetTxSet(txSet);
