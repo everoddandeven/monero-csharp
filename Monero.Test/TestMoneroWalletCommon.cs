@@ -2995,7 +2995,7 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
             MoneroMiningStatus status = daemon.GetMiningStatus();
             if (status.IsActive() == true) wallet.StopMining();
-            wallet.StartMining(2, false, true);
+            wallet.StartMining(1, false, true);
             wallet.StopMining();
         }
 

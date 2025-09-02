@@ -18,7 +18,7 @@ namespace Monero.Test.Utils
         public static readonly string DAEMON_RPC_URI = "http://127.0.0.1:28081";
         public static readonly string DAEMON_RPC_USERNAME = "";
         public static readonly string DAEMON_RPC_PASSWORD = "";
-        public static readonly string DAEMON_LOCAL_PATH = MONERO_BINS_DIR + "/monerod.exe";
+        public static readonly string DAEMON_LOCAL_PATH = MONERO_BINS_DIR + "/monerod";
   
         // monero wallet rpc configuration (change per your configuration)
         public static readonly int WALLET_RPC_PORT_START = 28084; // test wallet executables will bind to consecutive ports after these
@@ -31,7 +31,7 @@ namespace Monero.Test.Utils
         public static readonly string WALLET_RPC_DOMAIN = "localhost";
         public static readonly string WALLET_RPC_URI = WALLET_RPC_DOMAIN + ":" + WALLET_RPC_PORT_START;
         public static readonly string WALLET_RPC_ZMQ_URI = "tcp://" + WALLET_RPC_ZMQ_DOMAIN + ":" + WALLET_RPC_ZMQ_PORT_START;
-        public static readonly string WALLET_RPC_LOCAL_PATH = MONERO_BINS_DIR + "/monero-wallet-rpc.exe";
+        public static readonly string WALLET_RPC_LOCAL_PATH = MONERO_BINS_DIR + "/monero-wallet-rpc";
         public static readonly string WALLET_RPC_LOCAL_WALLET_DIR = MONERO_BINS_DIR;
         public static readonly string WALLET_RPC_ACCESS_CONTROL_ORIGINS = "http://localhost:8080"; // cors access from web browser
   
@@ -45,8 +45,9 @@ namespace Monero.Test.Utils
         public static readonly ulong MAX_FEE = 75000000000;
         public static readonly MoneroNetworkType NETWORK_TYPE = MoneroNetworkType.TESTNET;
         public static readonly string LANGUAGE = "English";
-        public static readonly string SEED = "silk mocked cucumber lettuce hope adrenalin aching lush roles fuel revamp baptism wrist ulong tender teardrop midst pastry pigment equip frying inbound pinched ravine frying";
+        public static readonly string SEED = "silk mocked cucumber lettuce hope adrenalin aching lush roles fuel revamp baptism wrist long tender teardrop midst pastry pigment equip frying inbound pinched ravine frying";
         public static readonly string ADDRESS = "A1y9sbVt8nqhZAVm3me1U18rUVXcjeNKuBd1oE2cTs8biA9cozPMeyYLhe77nPv12JA3ejJN3qprmREriit2fi6tJDi99RR";
+        public static readonly string PRIVATE_VIEW_KEY = "198820da9166ee114203eb38c29e00b0e8fc7df508aa632d56ead849093d3808";
         public static readonly ulong FIRST_RECEIVE_HEIGHT = 171; // NOTE: this value must be the height of the wallet's first tx for tests
         public static readonly ulong SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in milliseconds
         public static readonly string OFFLINE_SERVER_URI = "offline_server_uri"; // dummy server uri to remain offline because wallet2 connects to default if not given

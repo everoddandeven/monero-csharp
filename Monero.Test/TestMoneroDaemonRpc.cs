@@ -8,21 +8,20 @@ using System.Collections.ObjectModel;
 
 namespace Monero.Test;
 
-public class TestMoneroDaemonRpc
+public class MoneroDaemonRpcFixture : IDisposable
 {
-    private static MoneroDaemonRpc daemon = TestUtils.GetDaemonRpc();
-    private static MoneroWalletRpc wallet;
+    public readonly TestContext BINARY_BLOCK_CTX = new();
+    
+    public MoneroDaemonRpc Daemon;
+    public MoneroWalletRpc Wallet;
+    public bool IsRestricted;
 
-    private static readonly bool LITE_MODE = false;
-    private static readonly bool TEST_NON_RELAYS = true;
-    private static readonly bool TEST_RELAYS = true; // creates and relays outgoing txs
-    private static readonly bool TEST_NOTIFICATIONS = true;
-    private static readonly bool RESTRICTED_RPC = daemon.IsRestricted();
-
-    private static readonly TestContext BINARY_BLOCK_CTX = new();
-
-    public TestMoneroDaemonRpc()
+    public MoneroDaemonRpcFixture()
     {
+        Daemon = TestUtils.GetDaemonRpc();
+        Wallet = TestUtils.GetWalletRpc();
+        IsRestricted = Daemon.IsRestricted();
+        
         BINARY_BLOCK_CTX.hasHex = false;
         BINARY_BLOCK_CTX.headerIsFull = false;
         BINARY_BLOCK_CTX.hasTxs = true;
@@ -32,10 +31,43 @@ public class TestMoneroDaemonRpc
         BINARY_BLOCK_CTX.txContext.fromGetTxPool = false;
         BINARY_BLOCK_CTX.txContext.hasOutputIndices = false;
         BINARY_BLOCK_CTX.txContext.fromBinaryBlock = true;
-        TestUtils.WALLET_TX_TRACKER.Reset();
-
-        var rpcConnection = daemon.GetRpcConnection();
         
+        TestUtils.WALLET_TX_TRACKER.Reset(); // all wallets need to wait for txs to confirm to reliably sync
+    }
+    
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
+}
+
+public class TestMoneroDaemonRpc : IClassFixture<MoneroDaemonRpcFixture>
+{
+    private static MoneroDaemonRpc daemon;
+    private static MoneroWalletRpc wallet;
+
+    private static readonly bool LITE_MODE = false;
+    private static readonly bool TEST_NON_RELAYS = true;
+    private static readonly bool TEST_RELAYS = true; // creates and relays outgoing txs
+    private static readonly bool TEST_NOTIFICATIONS = true;
+    private static bool RESTRICTED_RPC = false;
+
+    private static TestContext BINARY_BLOCK_CTX = new();
+
+    private MoneroDaemonRpcFixture fixture;
+    
+    public TestMoneroDaemonRpc(MoneroDaemonRpcFixture fixture)
+    {
+        BINARY_BLOCK_CTX = fixture.BINARY_BLOCK_CTX;
+        
+        daemon = fixture.Daemon;
+        wallet = fixture.Wallet;
+
+        RESTRICTED_RPC = fixture.IsRestricted;
+
+        this.fixture = fixture;
+        var rpcConnection = daemon.GetRpcConnection();
+
         Assert.True(rpcConnection.IsConnected(), "Daemon offline");
     }
 
@@ -1080,7 +1112,7 @@ public class TestMoneroDaemonRpc
         string address = wallet.GetPrimaryAddress();
 
         // start mining
-        daemon.StartMining(address, 2, false, true);
+        daemon.StartMining(address, 1, false, true);
 
         // stop mining
         daemon.StopMining();
@@ -1339,7 +1371,7 @@ public class TestMoneroDaemonRpc
         {
             // start mining if possible to help push the network along
             string address = wallet.GetPrimaryAddress();
-            try { daemon.StartMining(address, 8, false, true); }
+            try { daemon.StartMining(address, 1, false, true); }
             catch (MoneroError e) { }
 
             // register a listener
@@ -1352,7 +1384,7 @@ public class TestMoneroDaemonRpc
             TestBlockHeader(header, true);
 
             // test that listener was called with equivalent header
-            Assert.True(header == listener.GetLastBlockHeader());
+            Assert.True(header.Equals(listener.GetLastBlockHeader()));
         }
         catch (MoneroError e)
         {
@@ -2191,7 +2223,7 @@ public class TestMoneroDaemonRpc
     #endregion
 }
 
-internal class TestContext
+public class TestContext
 {
     public bool? hasJson;
     public bool? isPruned;

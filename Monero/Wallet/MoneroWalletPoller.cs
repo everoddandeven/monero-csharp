@@ -49,6 +49,11 @@ namespace Monero.Wallet
             looper.SetPeriodInMs(periodInMs);
         }
 
+        public bool IsPolling()
+        {
+            return isPolling;
+        }
+        
         public void Poll()
         {
             // skip if next poll is queued

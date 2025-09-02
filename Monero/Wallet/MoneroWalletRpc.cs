@@ -66,64 +66,67 @@ namespace Monero.Wallet
             process.Start();
 
             var sb = new StringBuilder();
-            string uri = null;
+            string? uri = null;
             bool success = false;
 
-            using (var reader = process.StandardOutput)
+            var reader = process.StandardOutput;
+            
+            bool readerOpen = true;
+            string? line = null;
+            while ((line = reader.ReadLine()) != null)
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                Console.WriteLine(line); // debug log
+
+                sb.AppendLine(line);
+
+                const string uriLineContains = "Binding on ";
+                int idx = line.IndexOf(uriLineContains, StringComparison.Ordinal);
+                if (idx >= 0)
                 {
-                    Console.WriteLine(line); // debug log
-
-                    sb.AppendLine(line);
-
-                    const string uriLineContains = "Binding on ";
-                    int idx = line.IndexOf(uriLineContains, StringComparison.Ordinal);
-                    if (idx >= 0)
+                    string host = line.Substring(idx + uriLineContains.Length,
+                                                 line.LastIndexOf(' ') - (idx + uriLineContains.Length));
+                    string port = line.Substring(line.LastIndexOf(':') + 1);
+                    bool sslEnabled = false;
+                    int sslIdx = cmd.IndexOf("--rpc-ssl");
+                    if (sslIdx >= 0 && sslIdx + 1 < cmd.Count)
                     {
-                        string host = line.Substring(idx + uriLineContains.Length,
-                                                     line.LastIndexOf(' ') - (idx + uriLineContains.Length));
-                        string port = line.Substring(line.LastIndexOf(':') + 1);
-                        bool sslEnabled = false;
-                        int sslIdx = cmd.IndexOf("--rpc-ssl");
-                        if (sslIdx >= 0 && sslIdx + 1 < cmd.Count)
+                        sslEnabled = string.Equals(cmd[sslIdx + 1], "enabled", StringComparison.OrdinalIgnoreCase);
+                    }
+                    uri = (sslEnabled ? "https" : "http") + "://" + host + ":" + port;
+                }
+
+                if (line.Contains("Starting wallet RPC server"))
+                {
+                    Task.Run(() =>
+                    {
+                        try
                         {
-                            sslEnabled = string.Equals(cmd[sslIdx + 1], "enabled", StringComparison.OrdinalIgnoreCase);
+                            string l;
+                            while (readerOpen && (l = reader.ReadLine()) != null)
+                            {
+                                Console.WriteLine(l);
+                            }
                         }
-                        uri = (sslEnabled ? "https" : "http") + "://" + host + ":" + port;
-                    }
-
-                    if (line.Contains("Starting wallet RPC server"))
-                    {
-                        Task.Run(() =>
+                        catch (IOException)
                         {
-                            try
-                            {
-                                string l;
-                                while ((l = reader.ReadLine()) != null)
-                                {
-                                    Console.WriteLine(l);
-                                }
-                            }
-                            catch (IOException)
-                            {
-                            }
-                        });
+                        }
+                    });
 
-                        success = true;
-                        break;
-                    }
+                    success = true;
+                    break;
                 }
             }
+
+            readerOpen = false;
+            
 
             if (!success)
             {
                 throw new MoneroError("Failed to start monero-wallet-rpc server:\n\n" + sb.ToString().Trim());
             }
 
-            string username = null;
-            string password = null;
+            string? username = null;
+            string? password = null;
             int userPassIdx = cmd.IndexOf("--rpc-login");
             if (userPassIdx >= 0 && userPassIdx + 1 < cmd.Count)
             {
@@ -516,7 +519,9 @@ namespace Monero.Wallet
             if (address == null)
             {
                 GetSubaddresses(accountIdx, null, true);      // cache's all addresses at this account
-                return addressCache[accountIdx][subaddressIdx];
+
+                var map = addressCache.GetValueOrDefault(accountIdx);
+                return map.GetValueOrDefault(subaddressIdx);
             }
             return address;
         }
@@ -823,7 +828,7 @@ namespace Monero.Wallet
             }
 
             // cache addresses
-            var subaddressMap = addressCache[accountIdx];
+            var subaddressMap = addressCache.GetValueOrDefault(accountIdx, null);
             if (subaddressMap == null)
             {
                 subaddressMap = new Dictionary<uint, string>();
@@ -1912,7 +1917,10 @@ namespace Monero.Wallet
             //}
         }
 
-        private void Poll() { throw new NotImplementedException(); }
+        private void Poll()
+        {
+            if (walletPoller != null && walletPoller.IsPolling()) walletPoller.Poll();
+        }
 
         private Dictionary<uint, List<uint>> GetAccountIndices(bool getSubaddressIndices)
         {
@@ -2384,10 +2392,10 @@ namespace Monero.Wallet
 
         private static MoneroTxSet ConvertRpcTxSet(Dictionary<string, object> rpcMap)
         {
-            MoneroTxSet txSet = new MoneroTxSet();
-            txSet.SetMultisigTxHex((string)rpcMap["multisig_txset"]);
-            txSet.SetUnsignedTxHex((string)rpcMap["unsigned_txset"]);
-            txSet.SetSignedTxHex((string)rpcMap["signed_txset"]);
+            MoneroTxSet txSet = new MoneroTxSet(); 
+            if (rpcMap.ContainsKey("multisig_txset")) txSet.SetMultisigTxHex((string)rpcMap["multisig_txset"]);
+            if (rpcMap.ContainsKey("unsigned_txset")) txSet.SetUnsignedTxHex((string)rpcMap["unsigned_txset"]);
+            if (rpcMap.ContainsKey("signed_txset")) txSet.SetSignedTxHex((string)rpcMap["signed_txset"]);
             if (txSet.GetMultisigTxHex() != null && txSet.GetMultisigTxHex().Length == 0) txSet.SetMultisigTxHex(null);
             if (txSet.GetUnsignedTxHex() != null && txSet.GetUnsignedTxHex().Length == 0) txSet.SetUnsignedTxHex(null);
             if (txSet.GetSignedTxHex() != null && txSet.GetSignedTxHex().Length == 0) txSet.SetSignedTxHex(null);
@@ -2863,7 +2871,7 @@ namespace Monero.Wallet
 
         public override MoneroNetworkType GetNetworkType()
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("Not supported");
         }
 
         #endregion

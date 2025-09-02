@@ -104,9 +104,19 @@ namespace Monero.Daemon
 
         public abstract MoneroDaemonSyncInfo GetSyncInfo();
 
-        public abstract MoneroTx GetTx(string txHash, bool prune = false);
+        public virtual MoneroTx? GetTx(string txHash, bool prune = false)
+        {
+            var txs = GetTxs([txHash], prune);
 
-        public abstract string GetTxHex(string txHash, bool prune = false);
+            return txs.FirstOrDefault();
+        }
+
+        public virtual string? GetTxHex(string txHash, bool prune = false)
+        {
+            var hexes = GetTxHexes([txHash], prune);
+            
+            return hexes.FirstOrDefault();
+        }
 
         public abstract List<string> GetTxHexes(List<string> txHashes, bool prune = false);
 

@@ -191,6 +191,18 @@ namespace Monero.Daemon
             catch (Exception e) { throw new MoneroError(e.Message); }
         }
 
+        public override void AddListener(MoneroDaemonListener listener)
+        {
+            base.AddListener(listener);
+            RefreshListening();
+        }
+
+        public override void RemoveListener(MoneroDaemonListener listener)
+        {
+            base.RemoveListener(listener);
+            RefreshListening();
+        }
+
         public MoneroRpcConnection GetRpcConnection()
         {
             return rpc;
@@ -634,16 +646,6 @@ namespace Monero.Daemon
             return ConvertRpcSyncInfo(result);
         }
 
-        public override MoneroTx GetTx(string txHash, bool prune = false)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string GetTxHex(string txHash, bool prune = false)
-        {
-            throw new NotImplementedException();
-        }
-
         public override List<string> GetTxHexes(List<string> txHashes, bool prune = false)
         {
             List<string> hexes = [];
@@ -709,13 +711,14 @@ namespace Monero.Daemon
                 throw e;
             }
 
-            //  interpret response
-            var rpcTxs = (JArray)respMap["txs"];
-
-            // build transaction models
             List<MoneroTx> txs = [];
-            if (rpcTxs != null)
+
+            if (respMap.ContainsKey("txs"))
             {
+                //  interpret response
+                var rpcTxs = (JArray)respMap["txs"];
+
+                // build transaction models
                 for (int i = 0; i < rpcTxs.Count; i++)
                 {
                     MoneroTx tx = new MoneroTx();
@@ -723,6 +726,7 @@ namespace Monero.Daemon
                     txs.Add(ConvertRpcTx(rpcTxs[i].ToObject<Dictionary<string, object>>(), tx));
                 }
             }
+            
             return txs;
         }
 

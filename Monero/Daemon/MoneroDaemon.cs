@@ -24,9 +24,9 @@ namespace Monero.Daemon
         public List<MoneroBlock> GetBlocksByRange(ulong startHeight, ulong endHeight);
         public List<MoneroBlock> GetBlocksByRangeChunked(ulong startHeight, ulong endHeight, ulong? maxChunkSize = null);
         public List<string> GetBlockHashes(List<string> blockHashes, ulong startHeight);
-        public MoneroTx GetTx(string txHash, bool prune = false);
+        public MoneroTx? GetTx(string txHash, bool prune = false);
         public List<MoneroTx> GetTxs(List<string> txHashes, bool prune = false);
-        public string GetTxHex(string txHash, bool prune = false);
+        public string? GetTxHex(string txHash, bool prune = false);
         public List<string> GetTxHexes(List<string> txHashes, bool prune = false);
         public MoneroFeeEstimate GetFeeEstimate(int? graceBlocks = null);
         public MoneroMinerTxSum GetMinerTxSum(ulong height, ulong? numBlocks = null);

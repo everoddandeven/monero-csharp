@@ -68,9 +68,9 @@ namespace Monero.Test
             Assert.True(connection.IsAuthenticated());
             Assert.True(connection.IsConnected());
 
-            connection = new MoneroRpcConnection("https://node.sethforprivacy.com");
+            connection = new MoneroRpcConnection("https://moneronode.org:18081");
 
-            Assert.Equal("https://node.sethforprivacy.com", connection.GetUri());
+            Assert.Equal("https://moneronode.org:18081", connection.GetUri());
             Assert.True(connection.IsClearnet());
             Assert.False(connection.IsOnion());
             Assert.False(connection.IsI2p());
