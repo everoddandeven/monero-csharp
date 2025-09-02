@@ -1,5 +1,6 @@
 ﻿using Monero.Common;
 using Monero.Wallet.Common;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Text;
 using MoneroJsonRpcParams = System.Collections.Generic.Dictionary<string, object>;
@@ -347,6 +348,19 @@ namespace Monero.Wallet
             if (rpc == null || rpc.IsConnected() == true) return;
 
             rpc.CheckConnection(2000);
+        }
+
+        public List<string> GetSeedLanguages()
+        {
+            var resp = rpc.SendJsonRequest("get_languages").Result;
+            if (!resp.ContainsKey("languages")) return [];
+            return ((JArray)resp["languages"]).ToObject<List<string>>();
+        }
+
+        public void Stop()
+        {
+            Clear();
+            rpc.SendJsonRequest("stop_wallet");
         }
 
         #endregion
@@ -1847,7 +1861,7 @@ namespace Monero.Wallet
             rpc.SendJsonRequest("store");
         }
 
-        public override void Close(bool save)
+        public override void Close(bool save = false)
         {
             base.Close(save);
             Clear();

@@ -17,7 +17,42 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Monero.Test
 {
-    public abstract class TestMoneroWalletCommon
+    public abstract class MoneroWalletCommonFixture : IDisposable 
+    {
+        public MoneroWallet wallet;
+        public MoneroDaemonRpc daemon;
+
+        public MoneroWalletCommonFixture(MoneroWallet wallet, MoneroDaemonRpc daemon) {
+            // Before All
+            this.wallet = wallet;
+            this.daemon = daemon;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public virtual void Dispose(bool disposing)
+        {
+            // After All
+
+            if (disposing != true) return;
+
+            // try to stop mining
+            if (daemon != null)
+            {
+                try { daemon.StopMining(); }
+                catch (MoneroError e) { }
+            }
+
+            // close wallet
+            if (wallet != null) wallet.Close(true);
+        }
+    }
+
+    public abstract class TestMoneroWalletCommon : IDisposable
     {
         // test constants
         protected static readonly bool LITE_MODE = false;
@@ -31,7 +66,9 @@ namespace Monero.Test
         private static readonly ulong NUM_BLOCKS_LOCKED = 10;
 
         // instance variables
-        protected MoneroWallet wallet = new MoneroWalletRpc("");        // wallet instance to test
+
+        protected MoneroWalletCommonFixture fixture;
+        protected MoneroWallet wallet;        // wallet instance to test
         protected MoneroDaemonRpc daemon;     // daemon instance to test
 
         protected MoneroDaemonRpc GetTestDaemon() { return TestUtils.GetDaemonRpc(); }
@@ -39,21 +76,55 @@ namespace Monero.Test
         protected MoneroWallet OpenWallet(string path, string password) { return OpenWallet(new MoneroWalletConfig().SetPath(path).SetPassword(password)); }
         protected abstract MoneroWallet OpenWallet(MoneroWalletConfig config);
         protected abstract MoneroWallet CreateWallet(MoneroWalletConfig config);
-        protected void CloseWallet(MoneroWallet wallet) { CloseWallet(wallet, false); }
+        protected virtual void CloseWallet(MoneroWallet wallet) { CloseWallet(wallet, false); }
         protected abstract void CloseWallet(MoneroWallet wallet, bool save);
         protected abstract List<string> GetSeedLanguages();
 
-        protected TestMoneroWalletCommon() {
+        protected TestMoneroWalletCommon(MoneroWalletCommonFixture walletFixture)
+        {
+            fixture = walletFixture;
+            daemon = walletFixture.daemon;
+            wallet = walletFixture.wallet;
+
+            // Before each
+
             // stop mining
-            MoneroMiningStatus status = daemon.GetMiningStatus();
-            if (status.IsActive() == true) wallet.StopMining();
+            if (daemon != null)
+            {
+                MoneroMiningStatus status = daemon.GetMiningStatus();
+                if (status.IsActive() == true && wallet != null) wallet.StopMining();
+                else if (wallet == null) Console.WriteLine("WARNING: wallet is null");
+            }
+            else
+            {
+                Console.WriteLine("WARNING: daemon is null");
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public virtual void Dispose(bool disposing)
+        {
+            // After each
+
+            if (disposing != true) return;
+
+            if (daemon.GetMiningStatus().IsActive() == true)
+            {
+                Console.WriteLine("WARNING: Mining is still active after tests");
+                daemon.StopMining();
+            }
         }
 
         #region Begin Tests
 
         // Can create a random wallet
         [Fact]
-        public void TestCreateWalletRandom()
+        public virtual void TestCreateWalletRandom()
         {
             Assert.True(TEST_NON_RELAYS);
             Exception? e1 = null;  // emulating Java "finally" but compatible with other languages
@@ -111,7 +182,7 @@ namespace Monero.Test
 
         // Can create a wallet from a seed.
         [Fact]
-        public void TestCreateWalletFromSeed()
+        public virtual void TestCreateWalletFromSeed()
         {
             Assert.True(TEST_NON_RELAYS);
             Exception? e1 = null;  // emulating Java "finally" but compatible with other languages
@@ -174,7 +245,7 @@ namespace Monero.Test
 
         // Can create a wallet from a seed with a seed offset
         [Fact]
-        public void TestCreateWalletFromSeedWithOffset()
+        public virtual void TestCreateWalletFromSeedWithOffset()
         {
             Assert.True(TEST_NON_RELAYS);
             Exception e1 = null;  // emulating Java "finally" but compatible with other languages
@@ -209,7 +280,7 @@ namespace Monero.Test
 
         // Can create a wallet from keys
         [Fact]
-        public void TestCreateWalletFromKeys()
+        public virtual void TestCreateWalletFromKeys()
         {
             Assert.True(TEST_NON_RELAYS);
             Exception e1 = null; // emulating Java "finally" but compatible with other languages
@@ -292,7 +363,7 @@ namespace Monero.Test
 
         // Can create wallets with subaddress lookahead
         [Fact]
-        public void TestSubaddressLookahead()
+        public virtual void TestSubaddressLookahead()
         {
             Assert.True(TEST_NON_RELAYS);
             Exception? e1 = null;  // emulating Java "finally" but compatible with other languages
@@ -325,7 +396,7 @@ namespace Monero.Test
 
         // Can get the wallet's version
         [Fact]
-        public void TestGetVersion()
+        public virtual void TestGetVersion()
         {
             Assert.True(TEST_NON_RELAYS);
             MoneroVersion version = wallet.GetVersion();
@@ -336,7 +407,7 @@ namespace Monero.Test
 
         // Can get the wallet's path
         [Fact]
-        public void TestGetPath()
+        public virtual void TestGetPath()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -361,7 +432,7 @@ namespace Monero.Test
 
         // Can set the daemon connection
         [Fact]
-        public void TestSetDaemonConnection()
+        public virtual void TestSetDaemonConnection()
         {
             // create random wallet with default daemon connection
             MoneroWallet wallet = CreateWallet(new MoneroWalletConfig());
@@ -424,7 +495,7 @@ namespace Monero.Test
 
         // Can use a connection manager
         [Fact]
-        public void TestConnectionManager()
+        public virtual void TestConnectionManager()
         {
 
             // create connection manager with monerod connections
@@ -490,7 +561,7 @@ namespace Monero.Test
 
         // Can get the seed
         [Fact]
-        public void TestGetSeed()
+        public virtual void TestGetSeed()
         {
             Assert.True(TEST_NON_RELAYS);
             string seed = wallet.GetSeed();
@@ -500,7 +571,7 @@ namespace Monero.Test
 
         // Can get the language of the seed
         [Fact]
-        public void TestGetSeedLanguage()
+        public virtual void TestGetSeedLanguage()
         {
             Assert.True(TEST_NON_RELAYS);
             string language = wallet.GetSeedLanguage();
@@ -509,7 +580,7 @@ namespace Monero.Test
 
         // Can get a list of supported languages for the seed
         [Fact]
-        public void TestGetSeedLanguages()
+        public virtual void TestGetSeedLanguages()
         {
             Assert.True(TEST_NON_RELAYS);
             List<string> languages = GetSeedLanguages();
@@ -519,7 +590,7 @@ namespace Monero.Test
 
         // Can get the private view _key
         [Fact]
-        public void TestGetPrivateViewKey()
+        public virtual void TestGetPrivateViewKey()
         {
             Assert.True(TEST_NON_RELAYS);
             string privateViewKey = wallet.GetPrivateViewKey();
@@ -528,7 +599,7 @@ namespace Monero.Test
 
         // Can get the private spend _key
         [Fact]
-        public void TestGetPrivateSpendKey()
+        public virtual void TestGetPrivateSpendKey()
         {
             Assert.True(TEST_NON_RELAYS);
             string privateSpendKey = wallet.GetPrivateSpendKey();
@@ -537,7 +608,7 @@ namespace Monero.Test
 
         // Can get the public view _key
         [Fact]
-        public void TestGetPublicViewKey()
+        public virtual void TestGetPublicViewKey()
         {
             Assert.True(TEST_NON_RELAYS);
             string publicViewKey = wallet.GetPublicViewKey();
@@ -546,7 +617,7 @@ namespace Monero.Test
 
         // Can get the public view _key
         [Fact]
-        public void TestGetPublicSpendKey()
+        public virtual void TestGetPublicSpendKey()
         {
             Assert.True(TEST_NON_RELAYS);
             string publicSpendKey = wallet.GetPublicSpendKey();
@@ -555,7 +626,7 @@ namespace Monero.Test
 
         // Can get the primary address
         [Fact]
-        public void TestGetPrimaryAddress()
+        public virtual void TestGetPrimaryAddress()
         {
             Assert.True(TEST_NON_RELAYS);
             string primaryAddress = wallet.GetPrimaryAddress();
@@ -565,7 +636,7 @@ namespace Monero.Test
 
         // Can get the address of a subaddress at a specified account and subaddress index
         [Fact]
-        public void TestGetSubaddressAddress()
+        public virtual void TestGetSubaddressAddress()
         {
             Assert.True(TEST_NON_RELAYS);
             Assert.True(wallet.GetPrimaryAddress() == (wallet.GetSubaddress(0, 0)).GetAddress());
@@ -580,7 +651,7 @@ namespace Monero.Test
 
         // Can get addresses out of range of used accounts and subaddresses
         [Fact]
-        public void TestGetSubaddressAddressOutOfRange()
+        public virtual void TestGetSubaddressAddressOutOfRange()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts(true);
@@ -593,7 +664,7 @@ namespace Monero.Test
 
         // Can get the account and subaddress indices of an address
         [Fact]
-        public void TestGetAddressIndices()
+        public virtual void TestGetAddressIndices()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -640,7 +711,7 @@ namespace Monero.Test
 
         // Can get an integrated address given a payment id
         [Fact]
-        public void TestGetIntegratedAddress()
+        public virtual void TestGetIntegratedAddress()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -692,7 +763,7 @@ namespace Monero.Test
 
         // Can decode an integrated address
         [Fact]
-        public void TestDecodeIntegratedAddress()
+        public virtual void TestDecodeIntegratedAddress()
         {
             Assert.True(TEST_NON_RELAYS);
             MoneroIntegratedAddress integratedAddress = wallet.GetIntegratedAddress(null, "03284e41c342f036");
@@ -714,7 +785,7 @@ namespace Monero.Test
         // Can sync (without progress)
         // TODO: test syncing from start height
         [Fact]
-        public void TestSyncWithoutProgress()
+        public virtual void TestSyncWithoutProgress()
         {
             Assert.True(TEST_NON_RELAYS);
             ulong numBlocks = 100;
@@ -727,7 +798,7 @@ namespace Monero.Test
 
         // Is equal to a ground truth wallet according to on-chain data
         [Fact]
-        public void TestWalletEqualityGroundTruth()
+        public virtual void TestWalletEqualityGroundTruth()
         {
             Assert.True(TEST_NON_RELAYS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -744,7 +815,7 @@ namespace Monero.Test
 
         // Can get the current height that the wallet is synchronized to
         [Fact]
-        public void TestGetHeight()
+        public virtual void TestGetHeight()
         {
             Assert.True(TEST_NON_RELAYS);
             ulong height = wallet.GetHeight();
@@ -753,7 +824,7 @@ namespace Monero.Test
 
         // Can get a blockchain height by date
         [Fact]
-        public void TestGetHeightByDate()
+        public virtual void TestGetHeightByDate()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -795,7 +866,7 @@ namespace Monero.Test
 
         // Can get the locked and unlocked balances of the wallet, accounts, and subaddresses
         [Fact]
-        public void TestGetAllBalances()
+        public virtual void TestGetAllBalances()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -835,7 +906,7 @@ namespace Monero.Test
 
         // Can get accounts without subaddresses
         [Fact]
-        public void TestGetAccountsWithoutSubaddresses()
+        public virtual void TestGetAccountsWithoutSubaddresses()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts();
@@ -849,7 +920,7 @@ namespace Monero.Test
 
         // Can get accounts with subaddresses
         [Fact]
-        public void TestGetAccountsWithSubaddresses()
+        public virtual void TestGetAccountsWithSubaddresses()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts(true);
@@ -863,7 +934,7 @@ namespace Monero.Test
 
         // Can get an account at a specified index
         [Fact]
-        public void TestGetAccount()
+        public virtual void TestGetAccount()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts();
@@ -892,7 +963,7 @@ namespace Monero.Test
 
         // Can create a new account without a label
         [Fact]
-        public void TestCreateAccountWithoutLabel()
+        public virtual void TestCreateAccountWithoutLabel()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accountsBefore = wallet.GetAccounts();
@@ -903,7 +974,7 @@ namespace Monero.Test
 
         // Can create a new account with a label
         [Fact]
-        public void TestCreateAccountWithLabel()
+        public virtual void TestCreateAccountWithLabel()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -932,7 +1003,7 @@ namespace Monero.Test
 
         // Can set account labels
         [Fact]
-        public void TestSetAccountLabel()
+        public virtual void TestSetAccountLabel()
         {
             // create account
             if (wallet.GetAccounts().Count < 2)
@@ -948,7 +1019,7 @@ namespace Monero.Test
 
         // Can get subaddresses at a specified account index
         [Fact]
-        public void TestGetSubaddresses()
+        public virtual void TestGetSubaddresses()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts();
@@ -967,7 +1038,7 @@ namespace Monero.Test
 
         // Can get subaddresses at specified account and subaddress indices
         [Fact]
-        public void TestGetSubaddressesByIndices()
+        public virtual void TestGetSubaddressesByIndices()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts();
@@ -1001,7 +1072,7 @@ namespace Monero.Test
 
         // Can get a subaddress at a specified account and subaddress index
         [Fact]
-        public void TestGetSubaddressByIndex()
+        public virtual void TestGetSubaddressByIndex()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroAccount> accounts = wallet.GetAccounts();
@@ -1025,7 +1096,7 @@ namespace Monero.Test
 
         // Can create a subaddress with and without a label
         [Fact]
-        public void TestCreateSubaddress()
+        public virtual void TestCreateSubaddress()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1059,7 +1130,7 @@ namespace Monero.Test
 
         // Can set subaddress labels
         [Fact]
-        public void TestSetSubaddressLabel()
+        public virtual void TestSetSubaddressLabel()
         {
 
             // create subaddresses
@@ -1079,7 +1150,7 @@ namespace Monero.Test
 
         // Can get transactions in the wallet
         [Fact]
-        public void TestGetTxsWallet()
+        public virtual void TestGetTxsWallet()
         {
             Assert.True(TEST_NON_RELAYS);
             bool nonDefaultIncoming = false;
@@ -1133,7 +1204,7 @@ namespace Monero.Test
 
         // Can get transactions by hash
         [Fact]
-        public void TestGetTxsByHash()
+        public virtual void TestGetTxsByHash()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1183,7 +1254,7 @@ namespace Monero.Test
 
         // Can get transactions with additional configuration
         [Fact]
-        public void TestGetTxsWithQuery()
+        public virtual void TestGetTxsWithQuery()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1376,7 +1447,7 @@ namespace Monero.Test
 
         // Can get transactions by height
         [Fact]
-        public void TestGetTxsByHeight()
+        public virtual void TestGetTxsByHeight()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1453,7 +1524,7 @@ namespace Monero.Test
 
         // Can get transactions with payment id
         [Fact]
-        public void TestGetTxsWithPaymentIds()
+        public virtual void TestGetTxsWithPaymentIds()
         {
             Assert.True(TEST_NON_RELAYS && !LITE_MODE);
 
@@ -1487,7 +1558,7 @@ namespace Monero.Test
 
         // Returns all known fields of txs regardless of filtering
         [Fact]
-        public void TestGetTxsFieldsWithFiltering()
+        public virtual void TestGetTxsFieldsWithFiltering()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1532,7 +1603,7 @@ namespace Monero.Test
 
         // Validates inputs when getting transactions
         [Fact]
-        public void TestValidateInputsGetTxs()
+        public virtual void TestValidateInputsGetTxs()
         {
             Assert.True(TEST_NON_RELAYS && !LITE_MODE);
 
@@ -1582,7 +1653,7 @@ namespace Monero.Test
 
         // Can get transfers in the wallet, accounts, and subaddresses
         [Fact]
-        public void TestGetTransfers()
+        public virtual void TestGetTransfers()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1678,7 +1749,7 @@ namespace Monero.Test
 
         // Can get transfers with additional configuration
         [Fact]
-        public void TestGetTransfersWithQuery()
+        public virtual void TestGetTransfersWithQuery()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1774,7 +1845,7 @@ namespace Monero.Test
 
         // Validates inputs when getting transfers
         [Fact]
-        public void TestValidateInputsGetTransfers()
+        public virtual void TestValidateInputsGetTransfers()
         {
             Assert.True(TEST_NON_RELAYS && !LITE_MODE);
 
@@ -1796,7 +1867,7 @@ namespace Monero.Test
 
         // Can get incoming and outgoing transfers using convenience methods
         [Fact]
-        public void TestGetIncomingOutgoingTransfers()
+        public virtual void TestGetIncomingOutgoingTransfers()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1867,7 +1938,7 @@ namespace Monero.Test
 
         // Can get outputs in the wallet, accounts, and subaddresses
         [Fact]
-        public void TestGetOutputs()
+        public virtual void TestGetOutputs()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1921,7 +1992,7 @@ namespace Monero.Test
 
         // Can get outputs with additional configuration
         [Fact]
-        public void TestGetOutputsWithQuery()
+        public virtual void TestGetOutputsWithQuery()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -1994,7 +2065,7 @@ namespace Monero.Test
 
         // Validates inputs when getting wallet outputs
         [Fact]
-        public void TestValidateInputsGetOutputs()
+        public virtual void TestValidateInputsGetOutputs()
         {
             Assert.True(TEST_NON_RELAYS && !LITE_MODE);
 
@@ -2014,7 +2085,7 @@ namespace Monero.Test
 
         // Can export outputs in hex format
         [Fact]
-        public void TestExportOutputs()
+        public virtual void TestExportOutputs()
         {
             Assert.True(TEST_NON_RELAYS);
             string outputsHex = wallet.ExportOutputs();
@@ -2029,7 +2100,7 @@ namespace Monero.Test
 
         // Can import outputs in hex format
         [Fact]
-        public void TestImportOutputs()
+        public virtual void TestImportOutputs()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2046,7 +2117,7 @@ namespace Monero.Test
 
         // Has correct accounting across accounts, subaddresses, txs, transfers, and outputs
         [Fact]
-        public void TestAccounting()
+        public virtual void TestAccounting()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2111,7 +2182,7 @@ namespace Monero.Test
 
         // Can checkReserve a transfer using the transaction's secret key and the destination
         [Fact]
-        public void TestCheckTxKey()
+        public virtual void TestCheckTxKey()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2221,7 +2292,7 @@ namespace Monero.Test
 
         // Can prove a transaction by getting its sig
         [Fact]
-        public void TestCheckTxProof()
+        public virtual void TestCheckTxProof()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2320,7 +2391,7 @@ namespace Monero.Test
 
         // Can prove a spend using a generated signature and no destination public address
         [Fact]
-        public void TestCheckSpendProof()
+        public virtual void TestCheckSpendProof()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2378,7 +2449,7 @@ namespace Monero.Test
 
         // Can prove reserves in the wallet
         [Fact]
-        public void TestGetReserveProofWallet()
+        public virtual void TestGetReserveProofWallet()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2438,7 +2509,7 @@ namespace Monero.Test
 
         // Can prove reserves in an account
         [Fact]
-        public void TestGetReserveProofAccount()
+        public virtual void TestGetReserveProofAccount()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2549,7 +2620,7 @@ namespace Monero.Test
 
         // Can get and set a transaction note
         [Fact]
-        public void TestSetTxNote()
+        public virtual void TestSetTxNote()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroTxWallet> txs = GetRandomTransactions(wallet, null, 1, 5);
@@ -2571,7 +2642,7 @@ namespace Monero.Test
         // Can get and set multiple transaction notes
         // TODO: why does getting cached txs take 2 seconds when should already be cached?
         [Fact]
-        public void TestSetTxNotes()
+        public virtual void TestSetTxNotes()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2600,7 +2671,7 @@ namespace Monero.Test
 
         // Can export signed key images
         [Fact]
-        public void TestExportKeyImages()
+        public virtual void TestExportKeyImages()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroKeyImage> images = wallet.ExportKeyImages(true);
@@ -2620,7 +2691,7 @@ namespace Monero.Test
 
         // Can get new key images from the last import
         [Fact]
-        public void TestGetNewKeyImagesFromLastImport()
+        public virtual void TestGetNewKeyImagesFromLastImport()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2647,7 +2718,7 @@ namespace Monero.Test
         // Can import key images
         // TODO monero-project: importing key images can cause erasure of incoming transfers per wallet2.Cpp:11957
         [Fact]
-        public void TestImportKeyImages()
+        public virtual void TestImportKeyImages()
         {
             Assert.True(TEST_NON_RELAYS);
             List<MoneroKeyImage> images = wallet.ExportKeyImages();
@@ -2668,7 +2739,7 @@ namespace Monero.Test
 
         // Supports view-only and offline wallets to create, sign, and submit transactions
         [Fact]
-        public void TestViewOnlyAndOfflineWallets()
+        public virtual void TestViewOnlyAndOfflineWallets()
         {
             Assert.True(!LITE_MODE && (TEST_NON_RELAYS || TEST_RELAYS));
 
@@ -2693,7 +2764,7 @@ namespace Monero.Test
         // Can sign and verify messages
         // TODO: test with view-only wallet
         [Fact]
-        public void TestSignAndVerifyMessages()
+        public virtual void TestSignAndVerifyMessages()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2743,7 +2814,7 @@ namespace Monero.Test
 
         // Has an address book
         [Fact]
-        public void TestAddressBook()
+        public virtual void TestAddressBook()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2845,7 +2916,7 @@ namespace Monero.Test
 
         // Can get and set arbitrary key/value attributes
         [Fact]
-        public void TestSetAttributes()
+        public virtual void TestSetAttributes()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2871,7 +2942,7 @@ namespace Monero.Test
 
         // Can convert between a tx config and payment URI
         [Fact]
-        public void TestGetPaymentUri()
+        public virtual void TestGetPaymentUri()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -2919,7 +2990,7 @@ namespace Monero.Test
 
         // Can start and stop mining
         [Fact]
-        public void TestMining()
+        public virtual void TestMining()
         {
             Assert.True(TEST_NON_RELAYS);
             MoneroMiningStatus status = daemon.GetMiningStatus();
@@ -2930,7 +3001,7 @@ namespace Monero.Test
 
         // Can change the wallet password
         [Fact]
-        public void TestChangePassword()
+        public virtual void TestChangePassword()
         {
 
             // create random wallet
@@ -2981,7 +3052,7 @@ namespace Monero.Test
 
         // Can save and close the wallet in a single call
         [Fact]
-        public void TestSaveAndClose()
+        public virtual void TestSaveAndClose()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -3017,7 +3088,7 @@ namespace Monero.Test
 
         // Validates inputs when sending funds
         [Fact]
-        public void TestValidateInputsSendingFunds()
+        public virtual void TestValidateInputsSendingFunds()
         {
 
             // try sending with invalid address
@@ -3035,7 +3106,7 @@ namespace Monero.Test
         // Can sync with txs in the pool sent from/to the same account
         // TODO: this test fails because wallet does not recognize pool tx sent from/to same account
         [Fact]
-        public void TestSyncWithPoolSameAccounts() {
+        public virtual void TestSyncWithPoolSameAccounts() {
             Assert.True(TEST_NON_RELAYS);
             TestSyncWithPoolSubmit(new MoneroTxConfig()
                 .SetAccountIndex(0)
@@ -3046,7 +3117,7 @@ namespace Monero.Test
   
         // Can sync with txs submitted and discarded from the pool
         [Fact]
-        public void TestSyncWithPoolSubmitAndDiscard() {
+        public virtual void TestSyncWithPoolSubmitAndDiscard() {
             Assert.True(TEST_NON_RELAYS);
             TestSyncWithPoolSubmit(new MoneroTxConfig()
                 .SetAccountIndex(2)
@@ -3057,7 +3128,7 @@ namespace Monero.Test
   
         // Can sync with txs submitted and relayed from the pool
         [Fact]
-        public void TestSyncWithPoolSubmitAndRelay() {
+        public virtual void TestSyncWithPoolSubmitAndRelay() {
             Assert.True(TEST_RELAYS && !LITE_MODE);
             TestSyncWithPoolSubmit(new MoneroTxConfig()
                 .SetAccountIndex(2)
@@ -3068,7 +3139,7 @@ namespace Monero.Test
 
         // Can sync with txs relayed to the pool
         [Fact]
-        public void TestSyncWithPoolRelay()
+        public virtual void TestSyncWithPoolRelay()
         {
             Assert.True(TEST_RELAYS && !LITE_MODE);
 
@@ -3166,7 +3237,7 @@ namespace Monero.Test
 
         // Can send to self
         [Fact]
-        public void TestSendToSelf()
+        public virtual void TestSendToSelf()
         {
             Assert.True(TEST_RELAYS);
 
@@ -3213,7 +3284,7 @@ namespace Monero.Test
 
         // Can send to external wallet
         [Fact]
-        public void TestSendToExternal()
+        public virtual void TestSendToExternal()
         {
             Assert.True(TEST_RELAYS);
             MoneroWallet? recipient = null;
@@ -3258,7 +3329,7 @@ namespace Monero.Test
 
         // Can send from multiple subaddresses in a single transaction
         [Fact]
-        public void TestSendFromSubaddresses()
+        public virtual void TestSendFromSubaddresses()
         {
             Assert.True(TEST_RELAYS);
             TestSendFromMultiple(null);
@@ -3266,7 +3337,7 @@ namespace Monero.Test
 
         // Can send from multiple subaddresses in split transactions
         [Fact]
-        public void TestSendFromSubaddressesSplit()
+        public virtual void TestSendFromSubaddressesSplit()
         {
             Assert.True(TEST_RELAYS);
             TestSendFromMultiple(new MoneroTxConfig().SetCanSplit(true));
@@ -3274,7 +3345,7 @@ namespace Monero.Test
 
         // Can send to an address in a single transaction
         [Fact]
-        public void TestSend()
+        public virtual void TestSend()
         {
             Assert.True(TEST_RELAYS);
             TestSendToSingle(new MoneroTxConfig().SetCanSplit(false));
@@ -3283,7 +3354,7 @@ namespace Monero.Test
         // Can send to an address in a single transaction with a payment id
         // NOTE: this test will be invalid when payment hashes are fully removed
         [Fact]
-        public void TestSendWithPaymentId()
+        public virtual void TestSendWithPaymentId()
         {
             Assert.True(TEST_RELAYS);
             MoneroIntegratedAddress integratedAddress = wallet.GetIntegratedAddress();
@@ -3301,7 +3372,7 @@ namespace Monero.Test
 
         // Can send to an address with split transactions
         [Fact]
-        public void TestSendSplit()
+        public virtual void TestSendSplit()
         {
             Assert.True(TEST_RELAYS);
             TestSendToSingle(new MoneroTxConfig().SetCanSplit(true).SetRelay(true));
@@ -3309,7 +3380,7 @@ namespace Monero.Test
 
         // Can create then relay a transaction to send to a single address
         [Fact]
-        public void TestCreateThenRelay()
+        public virtual void TestCreateThenRelay()
         {
             Assert.True(TEST_RELAYS);
             TestSendToSingle(new MoneroTxConfig().SetCanSplit(false));
@@ -3317,7 +3388,7 @@ namespace Monero.Test
 
         // Can create then relay split transactions to send to a single address
         [Fact]
-        public void TestCreateThenRelaySplit()
+        public virtual void TestCreateThenRelaySplit()
         {
             Assert.True(TEST_RELAYS);
             TestSendToSingle(new MoneroTxConfig().SetCanSplit(true));
@@ -3325,7 +3396,7 @@ namespace Monero.Test
 
         // Can send to multiple addresses in a single transaction
         [Fact]
-        public void TestSendToMultiple()
+        public virtual void TestSendToMultiple()
         {
             Assert.True(TEST_RELAYS);
             SendToMultiple(5, 3, false);
@@ -3333,7 +3404,7 @@ namespace Monero.Test
 
         // Can send to multiple addresses in split transactions
         [Fact]
-        public void TestSendToMultipleSplit()
+        public virtual void TestSendToMultipleSplit()
         {
             Assert.True(TEST_RELAYS);
             SendToMultiple(3, 15, true);
@@ -3341,7 +3412,7 @@ namespace Monero.Test
 
         // Can send dust to multiple addresses in split transactions
         [Fact]
-        public void TestSendDustToMultipleSplit()
+        public virtual void TestSendDustToMultipleSplit()
         {
             Assert.True(TEST_RELAYS);
             var fee = daemon.GetFeeEstimate().GetFee();
@@ -3352,7 +3423,7 @@ namespace Monero.Test
 
         // Can subtract fees from destinations
         [Fact]
-        public void TestSubtractFeeFrom()
+        public virtual void TestSubtractFeeFrom()
         {
             Assert.True(TEST_RELAYS);
             SendToMultiple(5, 3, false, null, true);
@@ -3360,7 +3431,7 @@ namespace Monero.Test
 
         // Cannot subtract fees from destinations in split transactions
         [Fact]
-        public void TestSubtractFeeFromSplit()
+        public virtual void TestSubtractFeeFromSplit()
         {
             Assert.True(TEST_RELAYS);
             SendToMultiple(3, 15, true, null, true);
@@ -3368,7 +3439,7 @@ namespace Monero.Test
 
         // Can sweep individual outputs identified by their key images
         [Fact]
-        public void TestSweepOutputs()
+        public virtual void TestSweepOutputs()
         {
             Assert.True(TEST_RELAYS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -3427,7 +3498,7 @@ namespace Monero.Test
 
         // Can sweep dust without relaying
         [Fact]
-        public void TestSweepDustNoRelay()
+        public virtual void TestSweepDustNoRelay()
         {
             Assert.True(TEST_RELAYS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -3464,7 +3535,7 @@ namespace Monero.Test
 
         // Can sweep dust
         [Fact]
-        public void TestSweepDust()
+        public virtual void TestSweepDust()
         {
             Assert.True(TEST_RELAYS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -3487,7 +3558,7 @@ namespace Monero.Test
         // TODO: test sending to multiple accounts
         // Can update a locked tx sent from/to the same account as blocks are added to the chain
         [Fact]
-        public void TestUpdateLockedSameAccount()
+        public virtual void TestUpdateLockedSameAccount()
         {
             Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS);
             MoneroTxConfig config = new MoneroTxConfig()
@@ -3501,7 +3572,7 @@ namespace Monero.Test
 
         // Can update split locked txs sent from/to the same account as blocks are added to the chain
         [Fact]
-        public void TestUpdateLockedSameAccountSplit()
+        public virtual void TestUpdateLockedSameAccountSplit()
         {
             Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
             MoneroTxConfig config = new MoneroTxConfig()
@@ -3515,7 +3586,7 @@ namespace Monero.Test
 
         // Can update a locked tx sent from/to different accounts as blocks are added to the chain
         [Fact]
-        public void TestUpdateLockedDifferentAccounts()
+        public virtual void TestUpdateLockedDifferentAccounts()
         {
             Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
             MoneroTxConfig config = new MoneroTxConfig()
@@ -3529,7 +3600,7 @@ namespace Monero.Test
 
         // Can update locked, split txs sent from/to different accounts as blocks are added to the chain
         [Fact]
-        public void TestUpdateLockedDifferentAccountsSplit()
+        public virtual void TestUpdateLockedDifferentAccountsSplit()
         {
             Assert.True(TEST_RELAYS && TEST_NOTIFICATIONS && !LITE_MODE);
             MoneroTxConfig config = new MoneroTxConfig()
@@ -4293,7 +4364,7 @@ namespace Monero.Test
 
         // Can sweep subaddresses
         [Fact]
-        public void TestSweepSubaddresses()
+        public virtual void TestSweepSubaddresses()
         {
             Assert.True(TEST_RESETS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -4391,7 +4462,7 @@ namespace Monero.Test
 
         // Can sweep accounts
         [Fact]
-        public void TestSweepAccounts()
+        public virtual void TestSweepAccounts()
         {
             Assert.True(TEST_RESETS);
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -4474,7 +4545,7 @@ namespace Monero.Test
 
         // Can sweep the whole wallet by accounts
         [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
-        public void TestSweepWalletByAccounts()
+        public virtual void TestSweepWalletByAccounts()
         {
             Assert.True(TEST_RESETS);
             TestSweepWallet(null);
@@ -4482,7 +4553,7 @@ namespace Monero.Test
 
         // Can sweep the whole wallet by subaddresses
         [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
-        public void TestSweepWalletBySubaddresses()
+        public virtual void TestSweepWalletBySubaddresses()
         {
             Assert.True(TEST_RESETS);
             TestSweepWallet(true);
@@ -4556,7 +4627,7 @@ namespace Monero.Test
 
         // Can scan transactions by id
         [Fact]
-        public void TestScanTxs()
+        public virtual void TestScanTxs()
         {
 
             // get a few tx hashes
@@ -4589,7 +4660,7 @@ namespace Monero.Test
 
         // Can rescan the blockchain
         [Fact(Skip = "Disabled so tests don't delete local cache")]
-        public void TestRescanBlockchain()
+        public virtual void TestRescanBlockchain()
         {
             Assert.True(TEST_RESETS);
             wallet.RescanBlockchain();
@@ -4605,49 +4676,49 @@ namespace Monero.Test
 
         // Can generate notifications sending to different wallet
         [Fact]
-        public void TestNotificationsDifferentWallet()
+        public virtual void TestNotificationsDifferentWallet()
         {
             TestWalletNotifications("TestNotificationsDifferentWallet", false, false, false, false, 0);
         }
 
         // Can generate notifications sending to different wallet when relayed
         [Fact]
-        public void TestNotificationsDifferentWalletWhenRelayed()
+        public virtual void TestNotificationsDifferentWalletWhenRelayed()
         {
             TestWalletNotifications("TestNotificationsDifferentWalletWhenRelayed", false, false, false, true, 3);
         }
 
         // Can generate notifications sending to different account
         [Fact]
-        public void TestNotificationsDifferentAccounts()
+        public virtual void TestNotificationsDifferentAccounts()
         {
             TestWalletNotifications("TestNotificationsDifferentAccounts", true, false, false, false, 0);
         }
 
         // Can generate notifications sending to same account
         [Fact]
-        public void TestNotificationsSameAccount()
+        public virtual void TestNotificationsSameAccount()
         {
             TestWalletNotifications("TestNotificationsSameAccount", true, true, false, false, 0);
         }
 
         // Can generate notifications sweeping output to different account
         [Fact]
-        public void TestNotificationsDifferentAccountSweepOutput()
+        public virtual void TestNotificationsDifferentAccountSweepOutput()
         {
             TestWalletNotifications("TestNotificationsDifferentAccountSweepOutput", true, false, true, false, 0);
         }
 
         // Can generate notifications sweeping output to same account when relayed
         [Fact]
-        public void TestNotificationsSameAccountSweepOutputWhenRelayed()
+        public virtual void TestNotificationsSameAccountSweepOutputWhenRelayed()
         {
             TestWalletNotifications("TestNotificationsSameAccountSweepOutputWhenRelayed", true, true, true, true, 0);
         }
 
         // Can stop listening
         [Fact]
-        public void TestStopListening()
+        public virtual void TestStopListening()
         {
             // create wallet and start background synchronizing
             MoneroWallet wallet = CreateWallet(new MoneroWalletConfig());
@@ -4665,7 +4736,7 @@ namespace Monero.Test
 
         // Can be created and receive funds
         [Fact]
-        public void TestCreateAndReceive()
+        public virtual void TestCreateAndReceive()
         {
             Assert.True(TEST_NOTIFICATIONS);
 
@@ -4706,7 +4777,7 @@ namespace Monero.Test
 
         // Can freeze and thaw outputs
         [Fact]
-        public void TestFreezeOutputs()
+        public virtual void TestFreezeOutputs()
         {
             Assert.True(TEST_NON_RELAYS);
 
@@ -4794,7 +4865,7 @@ namespace Monero.Test
 
         // Provides key images of spent outputs
         [Fact]
-        public void TestInputKeyImages()
+        public virtual void TestInputKeyImages()
         {
             uint accountIndex = 0;
             uint subaddressIndex = (wallet.GetSubaddresses(0).Count > 1) ? (uint)1 : 0; // TODO: avoid subaddress 0 which is more likely to fail transaction sanity check
@@ -4860,7 +4931,7 @@ namespace Monero.Test
 
         // Can prove unrelayed
         [Fact]
-        public void TestProveUnrelayedTxs()
+        public virtual void TestProveUnrelayedTxs()
         {
             // create unrelayed tx to verify
             string address1 = TestUtils.GetExternalWalletAddress();
@@ -4907,7 +4978,7 @@ namespace Monero.Test
 
         // Can get the default fee priority
         [Fact]
-        public void TestGetDefaultFeePriority()
+        public virtual void TestGetDefaultFeePriority()
         {
             MoneroTxPriority defaultPriority = wallet.GetDefaultFeePriority();
             Assert.True(defaultPriority > 0);
@@ -5340,7 +5411,7 @@ namespace Monero.Test
 
         #region Helpers
 
-        protected void CheckViewOnlyAndOfflineWallets(MoneroWallet viewOnlyWallet, MoneroWallet offlineWallet)
+        protected virtual void CheckViewOnlyAndOfflineWallets(MoneroWallet viewOnlyWallet, MoneroWallet offlineWallet)
         {
             // wait for txs to confirm and for sufficient unlocked balance
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
@@ -5479,32 +5550,32 @@ namespace Monero.Test
             return outputs;
         }
 
-        protected void TestInvalidAddressError(MoneroError e)
+        protected virtual void TestInvalidAddressError(MoneroError e)
         {
             Assert.Equal("Invalid address", e.Message);
         }
 
-        protected void TestInvalidTxHashError(MoneroError e)
+        protected virtual void TestInvalidTxHashError(MoneroError e)
         {
             Assert.Equal("TX hash has invalid format", e.Message);
         }
 
-        protected void TestInvalidTxKeyError(MoneroError e)
+        protected virtual void TestInvalidTxKeyError(MoneroError e)
         {
             Assert.Equal("Tx _key has invalid format", e.Message);
         }
 
-        protected void TestInvalidSignatureError(MoneroError e)
+        protected virtual void TestInvalidSignatureError(MoneroError e)
         {
             Assert.Equal("Signature size mismatch with additional _tx pubkeys", e.Message);
         }
 
-        protected void TestNoSubaddressError(MoneroError e)
+        protected virtual void TestNoSubaddressError(MoneroError e)
         {
             Assert.Equal("Address must not be a subaddress", e.Message);
         }
 
-        protected void TestSignatureHeaderCheckError(MoneroError e)
+        protected virtual void TestSignatureHeaderCheckError(MoneroError e)
         {
             Assert.Equal("Signature header _check error", e.Message);
         }
@@ -5554,7 +5625,7 @@ namespace Monero.Test
             Assert.True(subaddress.GetNumBlocksToUnlock() >= 0);
         }
 
-        protected void TestTxsWallet(List<MoneroTxWallet> txs, TxContext ctx)
+        protected virtual void TestTxsWallet(List<MoneroTxWallet> txs, TxContext ctx)
         {
             // test each transaction
             Assert.True(txs.Count > 0);
@@ -5590,7 +5661,7 @@ namespace Monero.Test
             }
         }
 
-        protected void TestTxWallet(MoneroTxWallet tx, TxContext? ctx = null)
+        protected virtual void TestTxWallet(MoneroTxWallet tx, TxContext? ctx = null)
         {
 
             // validate / sanitize inputs

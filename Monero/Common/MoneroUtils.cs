@@ -370,6 +370,23 @@ namespace Monero.Common
             throw new NotImplementedException();
         }
 
+        public static Uri ParseUri(string uri)
+        {
+            if (!string.IsNullOrEmpty(uri) && !Regex.IsMatch(uri.ToLower(), @"^\w+://.+"))
+            {
+                uri = "http://" + uri; // assume http if protocol not given
+            }
+
+            try
+            {
+                return new Uri(uri);
+            }
+            catch (Exception e)
+            {
+                throw new MoneroError(e);
+            }
+        }
+
         private static bool IsValidAddressHash(string decodedAddrStr)
         {
             if (string.IsNullOrEmpty(decodedAddrStr) || decodedAddrStr.Length < 8)

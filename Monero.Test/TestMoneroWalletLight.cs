@@ -1,11 +1,45 @@
-﻿using Monero.Wallet;
+﻿using Monero.Daemon;
+using Monero.Test.Utils;
+using Monero.Wallet;
 using Monero.Wallet.Common;
 
 namespace Monero.Test
 {
-    public class TestMoneroWalletLight : TestMoneroWalletCommon
+    public class MoneroWalletLightFixture : MoneroWalletCommonFixture
     {
-        public TestMoneroWalletLight() {
+        public new MoneroWalletLight wallet;
+        public MoneroDaemonLws lws;
+
+        public MoneroWalletLightFixture(MoneroWalletLight wallet, MoneroDaemonRpc daemon, MoneroDaemonLws lws) : base(wallet, daemon)
+        {
+            // Before All
+            this.wallet = wallet;
+            this.lws = lws;
+        }
+
+        public override void Dispose(bool disposing)
+        {
+            // After All
+            if (disposing != true) return;
+            base.Dispose(true);
+
+            foreach (MoneroWalletRpc walletRpc in TestUtils.WALLET_PORT_OFFSETS.Keys)
+            {
+                try
+                {
+                    TestUtils.StopWalletRpcProcess(walletRpc);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("An error occurred while stopping monero wallet rpc process", e);
+                }
+            }
+        }
+    }
+
+    public class TestMoneroWalletLight : TestMoneroWalletCommon, IClassFixture<MoneroWalletLightFixture>
+    {
+        public TestMoneroWalletLight(MoneroWalletLightFixture walletLightFixture): base(walletLightFixture) {
         
         }
 
