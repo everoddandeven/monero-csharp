@@ -62,6 +62,7 @@ public class TestMoneroConnectionManager
             Assert.True(connectionManager.IsConnected());
             MoneroRpcConnection? connection = connectionManager.GetConnection();
             Assert.True(connection.IsOnline() == true);
+            // TODO manager doesn't seem to check all connections in time
             Assert.True(connection == walletRpcs[4].GetRpcConnection());
             Assert.True(++numExpectedChanges == listener.ChangedConnections.Count);
             Assert.True(listener.ChangedConnections[listener.ChangedConnections.Count - 1] == connection);
@@ -126,13 +127,13 @@ public class TestMoneroConnectionManager
             // test online and authentication status
             for (int i = 0; i < orderedConnections.Count; i++)
             {
-                bool? IsOnline = orderedConnections[i].IsOnline();
-                bool? IsAuthenticated = orderedConnections[i].IsAuthenticated();
-                if (i == 1 || i == 2) Assert.True(IsOnline);
-                else Assert.False(IsOnline);
-                if (i == 1) Assert.True(IsAuthenticated);
-                else if (i == 2) Assert.False(IsAuthenticated);
-                else Assert.Null(IsAuthenticated);
+                bool? isOnline = orderedConnections[i].IsOnline();
+                bool? isAuthenticated = orderedConnections[i].IsAuthenticated();
+                if (i == 1 || i == 2) Assert.True(isOnline);
+                else Assert.False(isOnline);
+                if (i == 1) Assert.True(isAuthenticated);
+                else if (i == 2) Assert.False(isAuthenticated);
+                else Assert.Null(isAuthenticated);
             }
 
             // test auto switch when disconnected
@@ -140,6 +141,7 @@ public class TestMoneroConnectionManager
             GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS + 100);
             Assert.True(connectionManager.IsConnected());
             connection = connectionManager.GetConnection();
+            Assert.NotNull(connection);
             Assert.True(connection.IsOnline());
             Assert.True(connection == walletRpcs[0].GetRpcConnection());
             Assert.True(++numExpectedChanges == listener.ChangedConnections.Count);

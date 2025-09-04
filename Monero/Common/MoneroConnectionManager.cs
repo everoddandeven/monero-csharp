@@ -82,11 +82,10 @@ namespace Monero.Common
 
         private MoneroRpcConnection? GetBestConnectionFromPrioritizedResponses(List<MoneroRpcConnection> responses)
         {
-
             // get best response
             MoneroRpcConnection? bestResponse = null;
 
-            foreach (MoneroRpcConnection connection in responses)
+            foreach (var connection in responses)
             {
                 if (connection.IsConnected() == true && (bestResponse == null || connection.GetResponseTime() < bestResponse.GetResponseTime())) bestResponse = connection;
             }
@@ -94,16 +93,16 @@ namespace Monero.Common
             // no update if no responses
             if (bestResponse == null) return null;
 
-            // use best response if disconnected
+            // use the best response if disconnected
             MoneroRpcConnection bestConnection = GetConnection();
             if (bestConnection == null || bestConnection.IsConnected() != true) return bestResponse;
 
             var priorityComparator = new ConnectionPriorityComparator();
 
-            // use best response if different priority (assumes being called in descending priority)
+            // use the best response if different priority (assumes being called in descending priority)
             if (priorityComparator.Compare(bestResponse.GetPriority(), bestConnection.GetPriority()) != 0) return bestResponse;
 
-            // keep best connection if not enough data
+            // keep the best connection if not enough data
             if (!_responseTimes.ContainsKey(bestConnection)) return bestConnection;
 
             // check if a connection is consistently better
@@ -166,8 +165,8 @@ namespace Monero.Common
 
         private List<List<MoneroRpcConnection>> GetConnectionsInAscendingPriority()
         {
-            lock(_connectionsLock) {
-                Dictionary<int, List<MoneroRpcConnection>> connectionPriorities = [];
+            lock (_connectionsLock) {
+                SortedDictionary<int, List<MoneroRpcConnection>> connectionPriorities = [];
 
                 foreach (MoneroRpcConnection connection in _connections)
                 {
@@ -202,8 +201,10 @@ namespace Monero.Common
                         tasks.Add(Task.Run(() =>
                         {
                             bool change = connection.CheckConnection(_timeoutMs);
-                            if (change && connection == GetConnection())
+                            if (change && connection == _currentConnection)
+                            {
                                 OnConnectionChanged(connection);
+                            }
                             return connection;
                         }));
                     }
@@ -214,6 +215,7 @@ namespace Monero.Common
                     while (tasks.Count > 0)
                     {
                         Task<MoneroRpcConnection> finishedTask = Task.WhenAny(tasks).Result;
+                        finishedTask.Wait();
                         tasks.Remove(finishedTask);
 
                         MoneroRpcConnection connection = finishedTask.Result;
@@ -221,7 +223,9 @@ namespace Monero.Common
                         {
                             hasConnection = true;
                             if (IsConnected() != true && _autoSwitch)
+                            {
                                 SetConnection(connection); // set first available connection if disconnected
+                            }
                         }
                     }
 
@@ -415,12 +419,9 @@ namespace Monero.Common
 
         public bool? IsConnected()
         {
-            lock (_connectionsLock)
-            {
-                if (_currentConnection == null) return false;
+            if (_currentConnection == null) return false;
                 
-                return _currentConnection.IsConnected();
-            }
+            return _currentConnection.IsConnected();
         }
 
         public MoneroConnectionManager AddConnection(MoneroRpcConnection connection)
@@ -486,6 +487,7 @@ namespace Monero.Common
 
         public MoneroRpcConnection? GetConnection()
         {
+            return _currentConnection;
             lock (_connectionsLock)
             {
                 return _currentConnection;
@@ -496,16 +498,16 @@ namespace Monero.Common
         {
             lock (_connectionsLock)
             {
-                return [.. _connections];
+                var comparer = new ConnectionComparator();
+                comparer.currentConnection = _currentConnection;
+                var sorted = _connections.OrderBy(x => x, comparer).ToList();
+                return sorted;
             }
         }
 
         public List<MoneroRpcConnection> GetRpcConnections()
         {
-            lock (_connectionsLock)
-            {
-                return _connections.OfType<MoneroRpcConnection>().ToList();
-            }
+            return GetConnections();
         }
 
         public MoneroConnectionManager RemoveConnection(MoneroRpcConnection connection)

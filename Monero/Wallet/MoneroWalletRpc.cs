@@ -294,7 +294,7 @@ namespace Monero.Wallet
 
         private static void HandleCreateWalletError(string name, MoneroRpcError e)
         {
-            if (e.Message.Equals("Cannot create wallet. Already exists.")) throw new MoneroRpcError("Wallet already exists: " + name, e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
+            if (e.Message.Equals("Cannot create wallet. Already exists.") || e.Message.Equals(("Wallet already exists."))) throw new MoneroRpcError("Wallet already exists: " + name, e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
             if (e.Message.Equals("Electrum-style word list failed verification")) throw new MoneroRpcError("Invalid mnemonic", e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
             throw e;
         }
@@ -310,27 +310,15 @@ namespace Monero.Wallet
 
             Clear();
 
-            if (force)
+            // TODO find a way to gracefully shutdown monero-wallet-rpc
+            
+            try
             {
-                try
-                {
-                    process.Kill(true);
-                }
-                catch (Exception e)
-                {
-                    throw new MoneroError(e);
-                }
+                process.Kill(true);
             }
-            else
+            catch (Exception e)
             {
-                try
-                {
-                    process.Close();
-                }
-                catch (Exception e)
-                {
-                    throw new MoneroError(e);
-                }
+                throw new MoneroError(e);
             }
 
             try
@@ -2851,20 +2839,26 @@ namespace Monero.Wallet
 
         private static void MergeTx(MoneroTxWallet tx, Dictionary<string, MoneroTxWallet> txMap, Dictionary<ulong, MoneroBlock> blockMap)
         {
-            if (tx.GetHash() == null) throw new MoneroError("Cannot merge transaction without hash");
-            if (tx.GetHeight() == null) throw new MoneroError("Cannot merge transaction without height");
-            var txHash = (string)tx.GetHash();
-            var txHeight = (ulong)tx.GetHeight();
+            var txHash = tx.GetHash();
+            var txHeight = tx.GetHeight();
+
+            if (txHash == null) throw new MoneroError("Cannot merge transaction without hash");
+
             // merge tx
-            MoneroTxWallet aTx = txMap[txHash];
+            MoneroTxWallet? aTx = txMap.GetValueOrDefault(txHash);
             if (aTx == null) txMap.Add(txHash, tx); // cache new tx
             else aTx.Merge(tx); // merge with existing tx
 
             // merge tx's block if confirmed
-            if (tx.GetHeight() != null)
+            if (txHeight != null)
             {
-                MoneroBlock aBlock = blockMap[txHeight];
-                if (aBlock == null) blockMap.Add(txHeight, tx.GetBlock()); // cache new block
+                MoneroBlock? aBlock = blockMap.GetValueOrDefault((ulong)txHeight);
+                if (aBlock == null)
+                {
+                    MoneroBlock? txBlock = tx.GetBlock();
+                    if (txBlock == null) throw new MoneroError("Cannot merge transaction block");
+                    blockMap.Add((ulong)txHeight, txBlock); // cache new block
+                }
                 else aBlock.Merge(tx.GetBlock()); // merge with existing block
             }
         }

@@ -5,18 +5,18 @@ namespace Monero.Wallet.Common
 {
     public class MoneroTxQuery : MoneroTxWallet
     {
-        private bool? isOutgoing;
-        private bool? isIncoming;
-        private List<string> hashes = [];
-        private bool? hasPaymentId;
-        private List<string> paymentIds = [];
-        private ulong? height;
-        private ulong? minHeight;
-        private ulong? maxHeight;
-        private bool? includeOutputs;
-        protected MoneroTransferQuery? transferQuery;
-        protected MoneroOutputQuery? inputQuery;
-        protected MoneroOutputQuery? outputQuery;
+        private bool? _isOutgoing;
+        private bool? _isIncoming;
+        private List<string>? _hashes;
+        private bool? _hasPaymentId;
+        private List<string>? _paymentIds;
+        private ulong? _height;
+        private ulong? _minHeight;
+        private ulong? _maxHeight;
+        private bool? _includeOutputs;
+        private MoneroTransferQuery? _transferQuery;
+        private MoneroOutputQuery? _inputQuery;
+        private MoneroOutputQuery? _outputQuery;
 
         public MoneroTxQuery()
         {
@@ -25,18 +25,18 @@ namespace Monero.Wallet.Common
 
         public MoneroTxQuery(MoneroTxQuery query) : base(query)
         {
-            this.isOutgoing = query.isOutgoing;
-            this.isIncoming = query.isIncoming;
-            if (query.hashes != null) this.hashes = new List<string>(query.hashes);
-            this.hasPaymentId = query.hasPaymentId;
-            if (query.paymentIds != null) this.paymentIds = new List<string>(query.paymentIds);
-            this.height = query.height;
-            this.minHeight = query.minHeight;
-            this.maxHeight = query.maxHeight;
-            this.includeOutputs = query.includeOutputs;
-            if (query.transferQuery != null) this.SetTransferQuery(new MoneroTransferQuery(query.transferQuery));
-            if (query.inputQuery != null) this.SetInputQuery(new MoneroOutputQuery(query.inputQuery));
-            if (query.outputQuery != null) this.SetOutputQuery(new MoneroOutputQuery(query.outputQuery));
+            this._isOutgoing = query._isOutgoing;
+            this._isIncoming = query._isIncoming;
+            if (query._hashes != null) this._hashes = new List<string>(query._hashes);
+            this._hasPaymentId = query._hasPaymentId;
+            if (query._paymentIds != null) this._paymentIds = new List<string>(query._paymentIds);
+            this._height = query._height;
+            this._minHeight = query._minHeight;
+            this._maxHeight = query._maxHeight;
+            this._includeOutputs = query._includeOutputs;
+            if (query._transferQuery != null) this.SetTransferQuery(new MoneroTransferQuery(query._transferQuery));
+            if (query._inputQuery != null) this.SetInputQuery(new MoneroOutputQuery(query._inputQuery));
+            if (query._outputQuery != null) this.SetOutputQuery(new MoneroOutputQuery(query._outputQuery));
         }
 
         public override MoneroTxQuery Clone()
@@ -44,9 +44,9 @@ namespace Monero.Wallet.Common
             return new MoneroTxQuery(this);
         }
 
-        public override MoneroTxQuery SetIsConfirmed(bool? IsConfirmed)
+        public override MoneroTxQuery SetIsConfirmed(bool? isConfirmed)
         {
-            base.SetIsConfirmed(IsConfirmed);
+            base.SetIsConfirmed(isConfirmed);
             return this;
         }
 
@@ -56,9 +56,9 @@ namespace Monero.Wallet.Common
             return this;
         }
 
-        public override MoneroTxQuery SetIsFailed(bool? IsFailed)
+        public override MoneroTxQuery SetIsFailed(bool? isFailed)
         {
-            base.SetIsFailed(IsFailed);
+            base.SetIsFailed(isFailed);
             return this;
         }
 
@@ -70,95 +70,99 @@ namespace Monero.Wallet.Common
 
         public override bool? IsOutgoing()
         {
-            return isOutgoing;
+            return _isOutgoing;
         }
 
         public override MoneroTxQuery SetIsOutgoing(bool? isOutgoing)
         {
-            this.isOutgoing = isOutgoing;
+            this._isOutgoing = isOutgoing;
             return this;
         }
 
         public override bool? IsIncoming()
         {
-            return isIncoming;
+            return _isIncoming;
         }
 
         public override MoneroTxQuery SetIsIncoming(bool? isIncoming)
         {
-            this.isIncoming = isIncoming;
+            this._isIncoming = isIncoming;
             return this;
         }
 
-        public override MoneroTxQuery SetHash(string hash)
+        public override MoneroTxQuery SetHash(string? hash)
         {
             base.SetHash(hash);
-            return SetHashes([hash]);
+            if (hash != null) SetHashes([hash]);
+            else SetHashes(null);
+            return this;
         }
 
-        public List<string> GetHashes()
+        public List<string>? GetHashes()
         {
-            return hashes;
+            return _hashes;
         }
 
-        public MoneroTxQuery SetHashes(List<string> hashes)
+        public MoneroTxQuery SetHashes(List<string>? hashes)
         {
-            this.hashes = hashes;
+            this._hashes = hashes;
             return this;
         }
 
         public bool? HasPaymentId()
         {
-            return hasPaymentId;
+            return _hasPaymentId;
         }
 
         public MoneroTxQuery SetHasPaymentId(bool hasPaymentId)
         {
-            this.hasPaymentId = hasPaymentId;
+            this._hasPaymentId = hasPaymentId;
             return this;
         }
 
-        public List<string> GetPaymentIds()
+        public List<string>? GetPaymentIds()
         {
-            return paymentIds;
+            return _paymentIds;
         }
 
-        public MoneroTxQuery SetPaymentIds(List<string> paymentIds)
+        public MoneroTxQuery SetPaymentIds(List<string>? paymentIds)
         {
-            this.paymentIds = paymentIds;
+            this._paymentIds = paymentIds;
             return this;
         }
 
-        public override MoneroTxQuery SetPaymentId(string paymentId)
+        public override MoneroTxQuery SetPaymentId(string? paymentId)
         {
-            return SetPaymentIds([paymentId]);
+            if (paymentId != null) SetPaymentIds([paymentId]);
+            else SetPaymentIds(null);
+            return this;
         }
 
         public MoneroTxQuery SetHeight(ulong? height)
         {
-            this.height = height;
+            this._height = height;
             return this;
         }
 
         public ulong? GetMinHeight()
         {
-            return minHeight;
+            return _minHeight;
         }
 
         public MoneroTxQuery SetMinHeight(ulong? minHeight)
         {
-            this.minHeight = minHeight;
+            this._minHeight = minHeight;
             return this;
         }
 
         public ulong? GetMaxHeight()
         {
-            return maxHeight;
+            return _maxHeight;
         }
 
         public MoneroTxQuery SetMaxHeight(ulong? maxHeight)
         {
-            this.maxHeight = maxHeight;
+            this._maxHeight = maxHeight;
             return this;
         }
 
@@ -170,59 +174,131 @@ namespace Monero.Wallet.Common
 
         public bool? GetIncludeOutputs()
         {
-            return includeOutputs;
+            return _includeOutputs;
         }
 
         public MoneroTxQuery SetIncludeOutputs(bool includeOutputs)
         {
-            this.includeOutputs = includeOutputs;
+            this._includeOutputs = includeOutputs;
             return this;
         }
 
         public MoneroTransferQuery? GetTransferQuery()
         {
-            return transferQuery;
+            return _transferQuery;
         }
 
-        public MoneroTxQuery SetTransferQuery(MoneroTransferQuery transferQuery)
+        public MoneroTxQuery SetTransferQuery(MoneroTransferQuery? transferQuery)
         {
-            this.transferQuery = transferQuery;
-            if (transferQuery != null) transferQuery.SetTxQuery(this);
+            this._transferQuery = transferQuery;
+            if (transferQuery != null) transferQuery.SetTxQuery(this, false);
             return this;
         }
 
         public MoneroOutputQuery? GetInputQuery()
         {
-            return inputQuery;
+            return _inputQuery;
         }
 
-        public MoneroTxQuery SetInputQuery(MoneroOutputQuery inputQuery)
+        public MoneroTxQuery SetInputQuery(MoneroOutputQuery? inputQuery)
         {
-            this.inputQuery = inputQuery;
+            this._inputQuery = inputQuery;
             if (inputQuery != null) inputQuery.SetTxQuery(this);
             return this;
         }
 
         public MoneroOutputQuery? GetOutputQuery()
         {
-            return outputQuery;
+            return _outputQuery;
         }
 
-        public MoneroTxQuery SetOutputQuery(MoneroOutputQuery outputQuery)
+        public MoneroTxQuery SetOutputQuery(MoneroOutputQuery? outputQuery)
         {
-            this.outputQuery = outputQuery;
+            this._outputQuery = outputQuery;
             if (outputQuery != null) outputQuery.SetTxQuery(this);
             return this;
         }
-
-        public bool MeetsCriteria(MoneroTx tx)
+        
+        public bool MeetsCriteria(MoneroTxWallet tx, bool queryChildren = true)
         {
-            throw new NotImplementedException("MoneroTxQuery.MeetsCriteria(MoneroTx tx) is not implemented yet. Please implement this method to filter transactions based on the query criteria.");
-        }
-
-        public bool MeetsCriteria(MoneroTxWallet tx)
-        {
-            throw new NotImplementedException("MoneroTxQuery.MeetsCriteria(MoneroTxWallet tx) is not implemented yet. Please implement this method to filter transactions based on the query criteria.");
+            if (tx == null) throw new MoneroError("No tx given to MoneroTxQuery.MeetsCriteria()");
+    
+            // filter on tx
+            if (GetHash() != null && !GetHash().Equals(tx.GetHash())) return false;
+            if (GetPaymentId() != null && !GetPaymentId().Equals(tx.GetPaymentId())) return false;
+            if (IsConfirmed() != null && IsConfirmed() != tx.IsConfirmed()) return false;
+            if (InTxPool() != null && InTxPool() != InTxPool()) return false;
+            if (GetRelay() != null && GetRelay() != tx.GetRelay()) return false;
+            if (IsRelayed() != null && IsRelayed() != tx.IsRelayed()) return false;
+            if (IsFailed() != null && IsFailed() != tx.IsFailed()) return false;
+            if (IsMinerTx() != null && IsMinerTx() != tx.IsMinerTx()) return false;
+            if (IsLocked() != null && IsLocked() != tx.IsLocked()) return false;
+            
+            // filter on having a payment id
+            if (HasPaymentId() != null) {
+              if (HasPaymentId() == true && tx.GetPaymentId() == null) return false;
+              if (HasPaymentId() != true && tx.GetPaymentId() != null) return false;
+            }
+            
+            // filter on incoming
+            if (IsIncoming() != null && IsIncoming() != (tx.IsIncoming() == true)) return false;
+            
+            // filter on outgoing
+            if (IsOutgoing() != null && IsOutgoing() != (tx.IsOutgoing() == true)) return false;
+            
+            // filter on remaining fields
+            ulong? txHeight = tx.GetBlock() == null ? null : tx.GetBlock().GetHeight();
+            if (GetHashes() != null && !GetHashes().Contains(tx.GetHash())) return false;
+            if (GetPaymentIds() != null && !GetPaymentIds().Contains(tx.GetPaymentId())) return false;
+            if (GetHeight() != null && !GetHeight().Equals(txHeight)) return false;
+            if (GetMinHeight() != null && txHeight != null && txHeight < GetMinHeight()) return false; // do not filter unconfirmed
+            if (GetMaxHeight() != null && (txHeight == null || txHeight > GetMaxHeight())) return false;
+            
+            // done if not querying transfers or outputs
+            if (!queryChildren) return true;
+            
+            // at least one transfer must meet transfer query if defined
+            if (GetTransferQuery() != null) {
+              bool matchFound = false;
+              if (tx.GetOutgoingTransfer() != null && GetTransferQuery().MeetsCriteria(tx.GetOutgoingTransfer(), false)) matchFound = true;
+              else if (tx.GetIncomingTransfers() != null) {
+                foreach (MoneroTransfer incomingTransfer in tx.GetIncomingTransfers()) {
+                  if (GetTransferQuery().MeetsCriteria(incomingTransfer, false)) {
+                    matchFound = true;
+                    break;
+                  }
+                }
+              }
+              if (!matchFound) return false;
+            }
+            
+            // at least one input must meet input query if defined
+            if (GetInputQuery() != null) {
+              if (tx.GetInputs() == null || tx.GetInputs().Count == 0) return false;
+              bool matchFound = false;
+              foreach (MoneroOutputWallet input in tx.GetInputsWallet()) {
+                if (GetInputQuery().MeetsCriteria(input, false)) {
+                  matchFound = true;
+                  break;
+                }
+              }
+              if (!matchFound) return false;
+            }
+            
+            // at least one output must meet output query if defined
+            if (GetOutputQuery() != null) {
+              if (tx.GetOutputs() == null || tx.GetOutputs().Count == 0) return false;
+              bool matchFound = false;
+              foreach (MoneroOutputWallet output in tx.GetOutputsWallet()) {
+                if (GetOutputQuery().MeetsCriteria(output, false)) {
+                  matchFound = true;
+                  break;
+                }
+              }
+              if (!matchFound) return false;
+            }
+            
+            return true;  // transaction meets query criteria
         }
     }
 }
