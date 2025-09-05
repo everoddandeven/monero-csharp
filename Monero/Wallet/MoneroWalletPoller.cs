@@ -5,32 +5,32 @@ namespace Monero.Wallet
 {
     internal class MoneroWalletPoller
     {
-        private MoneroWalletDefault wallet;
-        private bool isPolling = false;
-        private TaskLooper looper;
-        private int numPolling = 0;
-        private ulong prevHeight = 0;
-        private List<ulong> prevBalances = [];
-        private List<MoneroTxWallet> prevLockedTxs = [];
-        private HashSet<string> prevUnconfirmedNotifications = new(); // tx hashes of previous notifications
-        private HashSet<string> prevConfirmedNotifications = new(); // tx hashes of previously confirmed but not yet unlocked notifications
-        private ulong syncPeriodInMs = 5000; // default sync period in ms
+        private MoneroWalletDefault _wallet;
+        private bool _isPolling;
+        private TaskLooper _looper;
+        private int _numPolling;
+        private ulong _prevHeight;
+        private List<ulong>? _prevBalances;
+        private List<MoneroTxWallet> _prevLockedTxs = [];
+        private readonly HashSet<string> _prevUnconfirmedNotifications = new(); // tx hashes of previous notifications
+        private HashSet<string> _prevConfirmedNotifications = new(); // tx hashes of previously confirmed but not yet unlocked notifications
+        private ulong _syncPeriodInMs = 5000; // default sync period in ms
 
         public MoneroWalletPoller(MoneroWalletDefault wallet, ulong syncPeriodInMs) {
-            this.wallet = wallet;
-            this.looper = new TaskLooper(() => Poll());
-            this.syncPeriodInMs = syncPeriodInMs;
+            _wallet = wallet;
+            _looper = new TaskLooper(() => Poll());
+            _syncPeriodInMs = syncPeriodInMs;
         }
 
         // TODO: factor to common wallet rpc listener
         private bool CheckForChangedBalances()
         {
-            ulong balance = wallet.GetBalance();
-            ulong unlockedBalance = wallet.GetUnlockedBalance();
+            ulong balance = _wallet.GetBalance();
+            ulong unlockedBalance = _wallet.GetUnlockedBalance();
             List<ulong> balances = [balance, unlockedBalance];
-            if (balances[0] != prevBalances[0] || balances[1] != prevBalances[1])
+            if (balances[0] != _prevBalances![0] || balances[1] != _prevBalances[1])
             {
-                prevBalances = balances;
+                _prevBalances = balances;
                 AnnounceBalancesChanged(balances[0], balances[1]);
                 return true;
             }
@@ -39,26 +39,26 @@ namespace Monero.Wallet
 
         public void SetIsPolling(bool isPolling)
         {
-            this.isPolling = isPolling;
-            if (isPolling) looper.Start(syncPeriodInMs);
-            else looper.Stop();
+            _isPolling = isPolling;
+            if (isPolling) _looper.Start(_syncPeriodInMs);
+            else _looper.Stop();
         }
 
         public void SetPeriodInMs(ulong periodInMs)
         {
-            looper.SetPeriodInMs(periodInMs);
+            _looper.SetPeriodInMs(periodInMs);
         }
 
         public bool IsPolling()
         {
-            return isPolling;
+            return _isPolling;
         }
         
         public void Poll()
         {
             // skip if next poll is queued
-            if (numPolling > 1) return;
-            numPolling++;
+            if (_numPolling > 1) return;
+            _numPolling++;
 
             // synchronize polls
             lock(this) {
@@ -66,73 +66,73 @@ namespace Monero.Wallet
                 {
 
                     // skip if wallet is closed
-                    if (wallet.IsClosed())
+                    if (_wallet.IsClosed())
                     {
-                        numPolling--;
+                        _numPolling--;
                         return;
                     }
 
                     // take initial snapshot
-                    if (prevBalances == null)
+                    if (_prevBalances == null)
                     {
-                        prevHeight = wallet.GetHeight();
-                        prevLockedTxs = wallet.GetTxs(new MoneroTxQuery().SetIsLocked(true));
-                        prevBalances = GetBalances(null, null);
-                        numPolling--;
+                        _prevHeight = _wallet.GetHeight();
+                        _prevLockedTxs = _wallet.GetTxs(new MoneroTxQuery().SetIsLocked(true));
+                        _prevBalances = GetBalances(null, null);
+                        _numPolling--;
                         return;
                     }
 
                     // announce height changes
-                    ulong height = wallet.GetHeight();
-                    if (prevHeight != height)
+                    ulong height = _wallet.GetHeight();
+                    if (_prevHeight != height)
                     {
-                        for (ulong i = prevHeight; i < height; i++) OnNewBlock(i);
-                        prevHeight = height;
+                        for (ulong i = _prevHeight; i < height; i++) OnNewBlock(i);
+                        _prevHeight = height;
                     }
 
                     // get locked txs for comparison to previous
                     ulong minHeight = Math.Max(0, height - 70); // only monitor recent txs
-                    List<MoneroTxWallet> lockedTxs = wallet.GetTxs(new MoneroTxQuery().SetIsLocked(true).SetMinHeight(minHeight).SetIncludeOutputs(true));
+                    List<MoneroTxWallet> lockedTxs = _wallet.GetTxs(new MoneroTxQuery().SetIsLocked(true).SetMinHeight(minHeight).SetIncludeOutputs(true));
 
                     // collect hashes of txs no longer locked
                     List<String> noLongerLockedHashes = [];
-                    foreach (MoneroTxWallet prevLockedTx in prevLockedTxs)
+                    foreach (MoneroTxWallet prevLockedTx in _prevLockedTxs)
                     {
-                        if (GetTx(lockedTxs, prevLockedTx.GetHash()) == null)
+                        if (GetTx(lockedTxs, prevLockedTx.GetHash()!) == null)
                         {
-                            noLongerLockedHashes.Add(prevLockedTx.GetHash());
+                            noLongerLockedHashes.Add(prevLockedTx.GetHash()!);
                         }
                     }
 
                     // save locked txs for next comparison
-                    prevLockedTxs = lockedTxs;
+                    _prevLockedTxs = lockedTxs;
 
                     // fetch txs which are no longer locked
-                    List<MoneroTxWallet> unlockedTxs = noLongerLockedHashes.Count == 0 ? [] : wallet.GetTxs(new MoneroTxQuery().SetIsLocked(false).SetMinHeight(minHeight).SetHashes(noLongerLockedHashes).SetIncludeOutputs(true));
+                    List<MoneroTxWallet> unlockedTxs = noLongerLockedHashes.Count == 0 ? [] : _wallet.GetTxs(new MoneroTxQuery().SetIsLocked(false).SetMinHeight(minHeight).SetHashes(noLongerLockedHashes).SetIncludeOutputs(true));
 
                     // announce new unconfirmed and confirmed txs
                     foreach (MoneroTxWallet lockedTx in lockedTxs)
                     {
-                        bool unannounced = lockedTx.IsConfirmed() == true ? prevConfirmedNotifications.Add(lockedTx.GetHash()) : prevUnconfirmedNotifications.Add(lockedTx.GetHash());
+                        bool unannounced = lockedTx.IsConfirmed() == true ? _prevConfirmedNotifications.Add(lockedTx.GetHash()!) : _prevUnconfirmedNotifications.Add(lockedTx.GetHash()!);
                         if (unannounced) NotifyOutputs(lockedTx);
                     }
 
                     // announce new unlocked outputs
                     foreach (MoneroTxWallet unlockedTx in unlockedTxs)
                     {
-                        prevUnconfirmedNotifications.Remove(unlockedTx.GetHash()); // stop tracking tx notifications
-                        prevConfirmedNotifications.Remove(unlockedTx.GetHash());
+                        _prevUnconfirmedNotifications.Remove(unlockedTx.GetHash()!); // stop tracking tx notifications
+                        _prevConfirmedNotifications.Remove(unlockedTx.GetHash()!);
                         NotifyOutputs(unlockedTx);
                     }
 
                     // announce balance changes
                     CheckForChangedBalances();
-                    numPolling--;
+                    _numPolling--;
                 }
                 catch (Exception e)
                 {
-                    numPolling--;
-                    if (isPolling) MoneroUtils.Log(0, "Failed to background poll wallet '" + wallet.GetPath() + "': " + e.Message);
+                    _numPolling--;
+                    if (_isPolling) MoneroUtils.Log(0, "Failed to background poll wallet '" + _wallet.GetPath() + "': " + e.Message);
                 }
             }
         }
@@ -144,9 +144,9 @@ namespace Monero.Wallet
             {
                 if(tx.GetInputs() != null) throw new MoneroError("Expected null inputs");
                 MoneroOutputWallet output = new MoneroOutputWallet()
-                    .SetAmount(tx.GetOutgoingTransfer().GetAmount() + tx.GetFee())
-                    .SetAccountIndex(tx.GetOutgoingTransfer().GetAccountIndex())
-                    .SetSubaddressIndex(tx.GetOutgoingTransfer().GetSubaddressIndices().Count == 1 ? tx.GetOutgoingTransfer().GetSubaddressIndices()[0] : null) // initialize if transfer sourced from single subaddress
+                    .SetAmount(tx.GetOutgoingTransfer()!.GetAmount() + tx.GetFee())
+                    .SetAccountIndex(tx.GetOutgoingTransfer()!.GetAccountIndex())
+                    .SetSubaddressIndex(tx.GetOutgoingTransfer()!.GetSubaddressIndices()!.Count == 1 ? tx.GetOutgoingTransfer()!.GetSubaddressIndices()![0] : null) // initialize if transfer sourced from single subaddress
                     .SetTx(tx);
                 tx.SetInputsWallet([output]);
                 AnnounceOutputSpent(output);
@@ -155,7 +155,7 @@ namespace Monero.Wallet
             // notify received outputs
             if (tx.GetIncomingTransfers() != null)
             {
-                if (tx.GetOutputs() != null && tx.GetOutputs().Count > 0)
+                if (tx.GetOutputs() != null && tx.GetOutputs()!.Count > 0)
                 { // TODO (monero-project): outputs only returned for confirmed txs
                     foreach (MoneroOutputWallet output in tx.GetOutputsWallet())
                     {
@@ -165,7 +165,7 @@ namespace Monero.Wallet
                 else
                 { // TODO (monero-project): monero-wallet-rpc does not allow scrape of unconfirmed received outputs so using incoming transfer values
                     List<MoneroOutputWallet> outputs = [];
-                    foreach (MoneroIncomingTransfer transfer in tx.GetIncomingTransfers())
+                    foreach (MoneroIncomingTransfer transfer in tx.GetIncomingTransfers()!)
                     {
                         outputs.Add(new MoneroOutputWallet()
                             .SetAccountIndex(transfer.GetAccountIndex())
@@ -195,12 +195,12 @@ namespace Monero.Wallet
 
         private List<MoneroWalletListener> GetListeners()
         {
-            return wallet.GetListeners();
+            return _wallet.GetListeners();
         }
 
         public List<ulong> GetBalances(uint? accountIdx, uint? subaddressIdx) {
-            ulong balance = wallet.GetBalance(accountIdx, subaddressIdx);
-            ulong unlockedBalance = wallet.GetUnlockedBalance(accountIdx, subaddressIdx);
+            ulong balance = _wallet.GetBalance(accountIdx, subaddressIdx);
+            ulong unlockedBalance = _wallet.GetUnlockedBalance(accountIdx, subaddressIdx);
             return [balance, unlockedBalance];
         }
 

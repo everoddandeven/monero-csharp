@@ -127,7 +127,7 @@ namespace Monero.Common
                 ValidatePrivateViewKey(privateViewKey);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
@@ -140,7 +140,7 @@ namespace Monero.Common
                 ValidatePublicViewKey(publicViewKey);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
@@ -153,7 +153,7 @@ namespace Monero.Common
                 ValidatePrivateSpendKey(privateSpendKey);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
@@ -166,7 +166,7 @@ namespace Monero.Common
                 ValidatePublicSpendKey(publicSpendKey);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
@@ -199,7 +199,7 @@ namespace Monero.Common
                 ValidateAddress(address, networkType);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
@@ -296,7 +296,7 @@ namespace Monero.Common
         public static double AtomicUnitsToXmr(ulong amountAtomicUnits)
         {
             // Converti BigInteger in decimal per la divisione
-            decimal atomicDecimal = (decimal)amountAtomicUnits;
+            decimal atomicDecimal = amountAtomicUnits;
             decimal result = atomicDecimal / XMR_AU_MULTIPLIER;
 
             // Arrotonda a 12 cifre decimali come in Java
@@ -333,7 +333,7 @@ namespace Monero.Common
             // determine network and address types
             MoneroAddressType? addressType = null;
             MoneroNetwork? networkType = null;
-            foreach (MoneroNetwork aNetworkType in MoneroNetwork.Types)
+            foreach (MoneroNetwork aNetworkType in MoneroNetwork.TYPES)
             {
                 if (addressCode == aNetworkType.GetPrimaryAddressCode())
                 {
@@ -436,11 +436,11 @@ namespace Monero.Common
             int[] data = new int[dataSize];
             for (int i = 0; i < fullBlockCount; i++)
             {
-                data = DecodeBlock(GenUtils.Subarray(bin, i * FULL_ENCODED_BLOCK_SIZE, i * FULL_ENCODED_BLOCK_SIZE + FULL_ENCODED_BLOCK_SIZE), data, i * FULL_BLOCK_SIZE);
+                data = DecodeBlock(GenUtils.Subarray(bin, i * FULL_ENCODED_BLOCK_SIZE, i * FULL_ENCODED_BLOCK_SIZE + FULL_ENCODED_BLOCK_SIZE)!, data, i * FULL_BLOCK_SIZE)!;
             }
             if (lastBlockSize > 0)
             {
-                int[] subarray = GenUtils.Subarray(bin, fullBlockCount * FULL_ENCODED_BLOCK_SIZE, fullBlockCount * FULL_ENCODED_BLOCK_SIZE + FULL_BLOCK_SIZE);
+                int[] subarray = GenUtils.Subarray(bin, fullBlockCount * FULL_ENCODED_BLOCK_SIZE, fullBlockCount * FULL_ENCODED_BLOCK_SIZE + FULL_BLOCK_SIZE)!;
                 data = DecodeBlock(subarray, data, fullBlockCount * FULL_BLOCK_SIZE);
             }
 
@@ -483,7 +483,7 @@ namespace Monero.Common
                 throw new MoneroError("Overflow 2");
             }
 
-            int[] tmpBuf = Uint64To8be(resNum, resSize);
+            int[] tmpBuf = Uint64To8Be(resNum, resSize);
             for (int j = 0; j < tmpBuf.Length; j++)
             {
                 buf[j + index] = tmpBuf[j];
@@ -492,7 +492,7 @@ namespace Monero.Common
             return buf;
         }
 
-        private static int[] Uint64To8be(BigInteger num, int size)
+        private static int[] Uint64To8Be(BigInteger num, int size)
         {
             int[] res = new int[size];
             if (size < 1 || size > 8)
@@ -543,7 +543,7 @@ namespace Monero.Common
         {
             foreach (MoneroTx aTx in txs)
             {
-                if (aTx.GetHash().Equals(tx.GetHash()))
+                if (aTx.GetHash()!.Equals(tx.GetHash()))
                 {
                     aTx.Merge(tx);
                     return;
@@ -556,7 +556,7 @@ namespace Monero.Common
         {
             foreach (MoneroTx aTx in txs)
             {
-                if (aTx.GetHash().Equals(tx.GetHash()))
+                if (aTx.GetHash()!.Equals(tx.GetHash()))
                 {
                     aTx.Merge(tx);
                     return;

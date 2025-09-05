@@ -5,19 +5,19 @@ namespace Monero.Wallet.Common
 {
     public class MoneroTxSet
     {
-        private List<MoneroTxWallet> _txs = [];
+        private List<MoneroTxWallet>? _txs;
         private string? _multisigTxHex;
         private string? _unsignedTxHex;
         private string? _signedTxHex;
 
-        public List<MoneroTxWallet> GetTxs()
+        public List<MoneroTxWallet>? GetTxs()
         {
             return _txs;
         }
 
-        public MoneroTxSet SetTxs(List<MoneroTxWallet> txs)
+        public MoneroTxSet SetTxs(List<MoneroTxWallet>? txs)
         {
-            _txs = txs ?? [];
+            _txs = txs;
             return this;
         }
 
@@ -60,17 +60,17 @@ namespace Monero.Wallet.Common
             if (this == txSet) return this;
 
             // merge sets
-            this.SetMultisigTxHex(GenUtils.Reconcile(this.GetMultisigTxHex(), txSet.GetMultisigTxHex()));
-            this.SetUnsignedTxHex(GenUtils.Reconcile(this.GetUnsignedTxHex(), txSet.GetUnsignedTxHex()));
-            this.SetSignedTxHex(GenUtils.Reconcile(this.GetSignedTxHex(), txSet.GetSignedTxHex()));
+            SetMultisigTxHex(GenUtils.Reconcile(GetMultisigTxHex(), txSet.GetMultisigTxHex()));
+            SetUnsignedTxHex(GenUtils.Reconcile(GetUnsignedTxHex(), txSet.GetUnsignedTxHex()));
+            SetSignedTxHex(GenUtils.Reconcile(GetSignedTxHex(), txSet.GetSignedTxHex()));
 
             // merge txs
             if (txSet.GetTxs() != null)
             {
-                foreach (MoneroTxWallet tx in txSet.GetTxs())
+                foreach (MoneroTxWallet tx in txSet.GetTxs()!)
                 {
                     tx.SetTxSet(this);
-                    MoneroUtils.MergeTx(_txs, tx);
+                    MoneroUtils.MergeTx(_txs!, tx);
                 }
             }
 

@@ -3,9 +3,9 @@ namespace Monero.Wallet.Common
 {
     public class MoneroOutgoingTransfer : MoneroTransfer
     {
-        private List<uint> subaddressIndices;
-        private List<string> addresses;
-        private List<MoneroDestination> destinations;
+        private List<uint>? _subaddressIndices;
+        private List<string>? _addresses;
+        private List<MoneroDestination>? _destinations;
 
         public MoneroOutgoingTransfer()
         {
@@ -14,14 +14,14 @@ namespace Monero.Wallet.Common
 
         public MoneroOutgoingTransfer(MoneroOutgoingTransfer transfer) : base(transfer)
         {
-            if (transfer.subaddressIndices != null) this.subaddressIndices = new List<uint>(transfer.subaddressIndices);
-            if (transfer.addresses != null) this.addresses = new List<string>(transfer.addresses);
-            if (transfer.destinations != null)
+            if (transfer._subaddressIndices != null) _subaddressIndices = [..transfer._subaddressIndices];
+            if (transfer._addresses != null) _addresses = [..transfer._addresses];
+            if (transfer._destinations != null)
             {
-                this.destinations = new List<MoneroDestination>();
-                foreach (MoneroDestination destination in transfer.GetDestinations())
+                _destinations = new List<MoneroDestination>();
+                foreach (MoneroDestination destination in transfer.GetDestinations()!)
                 {
-                    this.destinations.Add(destination.Clone());
+                    _destinations.Add(destination.Clone());
                 }
             }
         }
@@ -31,9 +31,9 @@ namespace Monero.Wallet.Common
             return new MoneroOutgoingTransfer(this);
         }
 
-        public override MoneroOutgoingTransfer SetTx(MoneroTxWallet tx)
+        public override MoneroOutgoingTransfer SetTx(MoneroTxWallet? tx)
         {
-            _tx = tx;
+            base.SetTx(tx);
             return this;
         }
 
@@ -42,36 +42,36 @@ namespace Monero.Wallet.Common
             return false;
         }
 
-        public List<uint> GetSubaddressIndices()
+        public List<uint>? GetSubaddressIndices()
         {
-            return subaddressIndices;
+            return _subaddressIndices;
         }
 
-        public MoneroOutgoingTransfer SetSubaddressIndices(List<uint> subaddressIndices)
+        public MoneroOutgoingTransfer SetSubaddressIndices(List<uint>? subaddressIndices)
         {
-            this.subaddressIndices = subaddressIndices;
+            _subaddressIndices = subaddressIndices;
             return this;
         }
 
-        public List<string> GetAddresses()
+        public List<string>? GetAddresses()
         {
-            return addresses;
+            return _addresses;
         }
 
-        public MoneroOutgoingTransfer SetAddresses(List<string> addresses)
+        public MoneroOutgoingTransfer SetAddresses(List<string>? addresses)
         {
-            this.addresses = addresses;
+            _addresses = addresses;
             return this;
         }
 
-        public List<MoneroDestination> GetDestinations()
+        public List<MoneroDestination>? GetDestinations()
         {
-            return destinations;
+            return _destinations;
         }
 
         public MoneroOutgoingTransfer SetDestinations(List<MoneroDestination> destinations)
         {
-            this.destinations = destinations;
+            _destinations = destinations;
             return this;
         }
 

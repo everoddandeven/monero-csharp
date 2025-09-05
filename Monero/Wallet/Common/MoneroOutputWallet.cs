@@ -98,7 +98,7 @@ namespace Monero.Wallet.Common
         public bool? IsLocked()
         {
             if (GetTx() == null) return null;
-            return GetTx().IsLocked();
+            return GetTx()!.IsLocked();
         }
     }
 }

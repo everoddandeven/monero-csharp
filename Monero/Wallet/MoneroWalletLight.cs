@@ -187,7 +187,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
 
-        public override string? GetPath()
+        public override string GetPath()
         {
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
@@ -382,7 +382,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
 
-        public override void SetSubaddressLabel(uint accountIdx, uint subaddressIdx, string label)
+        public override void SetSubaddressLabel(uint accountIdx, uint subaddressIdx, string? label)
         {
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
@@ -412,7 +412,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
 
-        public override void StartSyncing(ulong? SyncPeriodInMs = null)
+        public override void StartSyncing(ulong? syncPeriodInMs = null)
         {
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }

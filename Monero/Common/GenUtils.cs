@@ -2,9 +2,9 @@
 
 namespace Monero.Common
 {
-    public class GenUtils
+    public abstract class GenUtils
     {
-        public static string GetUUID()
+        public static string GetGuid()
         {
             return Guid.NewGuid().ToString();
         }
@@ -12,7 +12,7 @@ namespace Monero.Common
         public static T? Reconcile<T>(T? val1, T? val2, bool? resolveDefined = null, bool? resolveTrue = null, bool? resolveMax = null)
         {
             // check for same reference
-            if (object.ReferenceEquals(val1, val2)) return val1;
+            if (ReferenceEquals(val1, val2)) return val1;
 
             int? comparison = null;
 
@@ -27,7 +27,7 @@ namespace Monero.Common
             if (val1 == null || val2 == null)
             {
                 if (resolveDefined == false) return default!;
-                return val1 == null ? val2 : val1!;
+                return val1 == null ? val2 : val1;
             }
 
             // resolve different booleans
@@ -68,7 +68,7 @@ namespace Monero.Common
             return val1;
         }
 
-        public static byte[] ReconcileByteArrays(byte[] arr1, byte[] arr2)
+        public static byte[]? ReconcileByteArrays(byte[]? arr1, byte[]? arr2)
         {
 
             // check for same reference or null
@@ -93,7 +93,7 @@ namespace Monero.Common
             return bytes;
         }
 
-        public static int[] Subarray(int[] array, int startIndexInclusive, int endIndexExclusive)
+        public static int[]? Subarray(int[]? array, int startIndexInclusive, int endIndexExclusive)
         {
             if (array == null) return null;
             if (startIndexInclusive < 0) startIndexInclusive = 0;
@@ -116,7 +116,7 @@ namespace Monero.Common
             try
             {
                 // brutto, non mi piace
-                Thread.Sleep((int)durationMs);
+                Thread.Sleep(durationMs);
             }
             catch (ThreadInterruptedException)
             {

@@ -647,7 +647,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by keys only wallet");
         }
 
-        public override void StartSyncing(ulong? SyncPeriodInMs = null)
+        public override void StartSyncing(ulong? syncPeriodInMs = null)
         {
             throw new NotImplementedException("Not supported by keys only wallet");
         }

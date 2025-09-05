@@ -3,93 +3,93 @@ namespace Monero.Daemon.Common
 {
     public class MoneroDaemonSyncInfo
     {
-        private ulong? height;
-        private List<MoneroPeer>? peers;
-        private List<MoneroConnectionSpan>? spans;
-        private ulong? targetHeight;
-        private uint? nextNeededPruningSeed;
-        private string? overview;
-        private ulong? credits;
-        private string? topBlockHash;
+        private ulong? _height;
+        private List<MoneroPeer>? _peers;
+        private List<MoneroConnectionSpan>? _spans;
+        private ulong? _targetHeight;
+        private uint? _nextNeededPruningSeed;
+        private string? _overview;
+        private ulong? _credits;
+        private string? _topBlockHash;
 
         public ulong? GetHeight()
         {
-            return height;
+            return _height;
         }
 
         public void SetHeight(ulong? height)
         {
-            this.height = height;
+            _height = height;
         }
 
         public List<MoneroPeer>? GetPeers()
         {
-            return peers;
+            return _peers;
         }
 
         public void SetPeers(List<MoneroPeer>? peers)
         {
-            this.peers = peers;
+            _peers = peers;
         }
 
         public List<MoneroConnectionSpan>? GetSpans()
         {
-            return spans;
+            return _spans;
         }
 
         public void SetSpans(List<MoneroConnectionSpan>? spans)
         {
-            this.spans = spans;
+            _spans = spans;
         }
 
         public ulong? GetTargetHeight()
         {
-            return targetHeight;
+            return _targetHeight;
         }
 
         public void SetTargetHeight(ulong? targetHeight)
         {
-            this.targetHeight = targetHeight;
+            _targetHeight = targetHeight;
         }
 
         public uint? GetNextNeededPruningSeed()
         {
-            return nextNeededPruningSeed;
+            return _nextNeededPruningSeed;
         }
 
         public void SetNextNeededPruningSeed(uint? nextNeededPruningSeed)
         {
-            this.nextNeededPruningSeed = nextNeededPruningSeed;
+            _nextNeededPruningSeed = nextNeededPruningSeed;
         }
 
         public string? GetOverview()
         {
-            return overview;
+            return _overview;
         }
 
         public void SetOverview(string? overview)
         {
-            this.overview = overview;
+            _overview = overview;
         }
 
         public ulong? GetCredits()
         {
-            return credits;
+            return _credits;
         }
 
         public void SetCredits(ulong? credits)
         {
-            this.credits = credits;
+            _credits = credits;
         }
 
         public string? GetTopBlockHash()
         {
-            return topBlockHash;
+            return _topBlockHash;
         }
 
         public void SetTopBlockHash(string? topBlockHash)
         {
-            this.topBlockHash = topBlockHash;
+            _topBlockHash = topBlockHash;
         }
     }
 }

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Monero.Common
+﻿namespace Monero.Common
 {
     public class TaskLooper
     {
         private readonly Action _task;
         private ulong _periodInMs;
-        private CancellationTokenSource _cts;
-        private Task _loopTask;
+        private CancellationTokenSource? _cts;
+        private Task? _loopTask;
         private readonly object _lock = new object();
 
         public TaskLooper(Action task)

@@ -3,61 +3,61 @@ namespace Monero.Wallet.Common
 {
     public class MoneroAddressBookEntry
     {
-        private uint? index;
-        private string? address;
-        private string? paymentId;
-        private string? description;
+        private uint? _index;
+        private string? _address;
+        private string? _paymentId;
+        private string? _description;
 
         public MoneroAddressBookEntry(uint? index = null, string? address = null, string? description = null, string? paymentId = null)
         {
-            this.index = index;
-            this.address = address;
-            this.paymentId = paymentId;
-            this.description = description;
+            _index = index;
+            _address = address;
+            _paymentId = paymentId;
+            _description = description;
         }
 
 
         public uint? GetIndex()
         {
-            return index;
+            return _index;
         }
 
         public MoneroAddressBookEntry SetIndex(uint? index)
         {
-            this.index = index;
+            _index = index;
             return this;
         }
 
         public string? GetAddress()
         {
-            return address;
+            return _address;
         }
 
         public MoneroAddressBookEntry SetAddress(string? address)
         {
-            this.address = address;
+            _address = address;
             return this;
         }
 
         public string? GetPaymentId()
         {
-            return paymentId;
+            return _paymentId;
         }
 
         public MoneroAddressBookEntry SetPaymentId(string? paymentId)
         {
-            this.paymentId = paymentId;
+            _paymentId = paymentId;
             return this;
         }
 
         public string? GetDescription()
         {
-            return description;
+            return _description;
         }
 
         public MoneroAddressBookEntry SetDescription(string? description)
         {
-            this.description = description;
+            _description = description;
             return this;
         }
 

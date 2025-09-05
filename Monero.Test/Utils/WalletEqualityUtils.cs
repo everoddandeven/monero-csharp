@@ -53,7 +53,7 @@ namespace Monero.Test.Utils
                 {
                     for (int j = i; j < accounts2.Count; j++)
                     {
-                        Assert.Equal(BigInteger.Zero, accounts2[j].GetBalance());
+                        Assert.Equal((ulong)0, accounts2[j].GetBalance()!);
                         Assert.True(accounts2[j].GetSubaddresses().Count >= 1);
                         foreach (MoneroSubaddress subaddress in accounts2[j].GetSubaddresses()) Assert.False(subaddress.IsUsed());
                     }
@@ -63,7 +63,7 @@ namespace Monero.Test.Utils
                 {
                     for (int j = i; j < accounts1.Count; j++)
                     {
-                        Assert.Equal(BigInteger.Zero, accounts1[j].GetBalance());
+                        Assert.Equal((ulong)0, accounts1[j].GetBalance()!);
                         Assert.True(accounts1[j].GetSubaddresses().Count >= 1);
                         foreach (MoneroSubaddress subaddress in accounts1[j].GetSubaddresses()) Assert.False(subaddress.IsUsed());
                     }

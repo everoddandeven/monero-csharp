@@ -1280,7 +1280,7 @@ namespace Monero.Daemon
                 else if (key.Equals("bytes_med")) stats.SetBytesMed(Convert.ToUInt64(val));
                 else if (key.Equals("bytes_min")) stats.SetBytesMin(Convert.ToUInt64(val));
                 else if (key.Equals("bytes_total")) stats.SetBytesTotal(Convert.ToUInt64(val));
-                else if (key.Equals("histo_98pc")) stats.SetHisto98pc(Convert.ToUInt64(val));
+                else if (key.Equals("histo_98pc")) stats.SetHisto98Pc(Convert.ToUInt64(val));
                 else if (key.Equals("num_10m")) stats.SetNum10m(Convert.ToInt32(val));
                 else if (key.Equals("num_double_spends")) stats.SetNumDoubleSpends(Convert.ToInt32(val));
                 else if (key.Equals("num_failing")) stats.SetNumFailing(Convert.ToInt32(val));
@@ -1300,13 +1300,13 @@ namespace Monero.Daemon
             }
 
             // uninitialize some stats if not applicable
-            if (stats.GetHisto98pc() == 0) stats.SetHisto98pc(null);
+            if (stats.GetHisto98Pc() == 0) stats.SetHisto98Pc(null);
             if (stats.GetNumTxs() == 0)
             {
                 stats.SetBytesMin(null);
                 stats.SetBytesMed(null);
                 stats.SetBytesMax(null);
-                stats.SetHisto98pc(null);
+                stats.SetHisto98Pc(null);
                 stats.SetOldestTimestamp(null);
             }
             return stats;

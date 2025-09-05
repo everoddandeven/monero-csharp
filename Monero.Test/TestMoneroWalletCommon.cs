@@ -4,15 +4,7 @@ using Monero.Daemon.Common;
 using Monero.Test.Utils;
 using Monero.Wallet;
 using Monero.Wallet.Common;
-using Org.BouncyCastle.Bcpg;
-using Org.BouncyCastle.Tls;
-using Org.BouncyCastle.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace Monero.Test
@@ -91,7 +83,9 @@ namespace Monero.Test
             // stop mining
             if (daemon != null)
             {
-                MoneroMiningStatus status = daemon.GetMiningStatus();
+                MoneroMiningStatus status = new();
+                try { status = daemon.GetMiningStatus(); }
+                catch (Exception ex) { }
                 if (status.IsActive() == true && wallet != null) wallet.StopMining();
                 else if (wallet == null) Console.WriteLine("WARNING: wallet is null");
             }
@@ -113,11 +107,19 @@ namespace Monero.Test
 
             if (disposing != true) return;
 
-            if (daemon.GetMiningStatus().IsActive() == true)
+            try
             {
-                Console.WriteLine("WARNING: Mining is still active after tests");
-                daemon.StopMining();
+                if (daemon.GetMiningStatus().IsActive() == true)
+                {
+                    Console.WriteLine("WARNING: Mining is still active after tests");
+                    daemon.StopMining();
+                }
             }
+            catch (Exception ex)
+            {
+                
+            }
+            
         }
 
         #region Begin Tests
@@ -415,7 +417,7 @@ namespace Monero.Test
             MoneroWallet wallet = CreateWallet(new MoneroWalletConfig());
 
             // set a random attribute
-            string uuid = GenUtils.GetUUID();
+            string uuid = GenUtils.GetGuid();
             wallet.SetAttribute("uuid", uuid);
 
             // record the wallet's path then save and close
@@ -797,7 +799,7 @@ namespace Monero.Test
         }
 
         // Is equal to a ground truth wallet according to on-chain data
-        [Fact]
+        [Fact(Skip = "Full wallet not implemented")]
         public virtual void TestWalletEqualityGroundTruth()
         {
             Assert.True(TEST_NON_RELAYS);
@@ -878,8 +880,8 @@ namespace Monero.Test
             ulong accountsUnlockedBalance = 0;
             foreach (MoneroAccount account in accounts)
             {
-                accountsBalance += account.GetBalance();
-                accountsUnlockedBalance += account.GetUnlockedBalance();
+                accountsBalance += (ulong)account.GetBalance()!;
+                accountsUnlockedBalance += (ulong)account.GetUnlockedBalance()!;
 
                 // test that balances add up between subaddresses and accounts
                 ulong subaddressesBalance = 0;
@@ -1012,7 +1014,7 @@ namespace Monero.Test
             }
 
             // set account label
-            string label = GenUtils.GetUUID();
+            string label = GenUtils.GetGuid();
             wallet.SetAccountLabel(1, label);
             Assert.Equal(label, wallet.GetSubaddress(1, 0).GetLabel());
         }
@@ -1118,7 +1120,7 @@ namespace Monero.Test
 
                 // create subaddress with label
                 subaddresses = wallet.GetSubaddresses(accountIdx);
-                string uuid = GenUtils.GetUUID();
+                string uuid = GenUtils.GetGuid();
                 subaddress = wallet.CreateSubaddress(accountIdx, uuid);
                 Assert.Equal(uuid, subaddress.GetLabel());
                 TestSubaddress(subaddress);
@@ -1142,7 +1144,7 @@ namespace Monero.Test
             // set subaddress labels
             for (uint subaddressIdx = 0; subaddressIdx < wallet.GetSubaddresses(0).Count; subaddressIdx++)
             {
-                string label = GenUtils.GetUUID();
+                string label = GenUtils.GetGuid();
                 wallet.SetSubaddressLabel(0, subaddressIdx, label);
                 Assert.Equal(label, wallet.GetSubaddress(0, subaddressIdx).GetLabel());
             }
@@ -2137,8 +2139,8 @@ namespace Monero.Test
             foreach (MoneroAccount account in accounts)
             {
                 TestAccount(account); // test that account balance equals sum of subaddress balances
-                accountsBalance += account.GetBalance();
-                accountsUnlockedBalance += account.GetUnlockedBalance();
+                accountsBalance += (ulong)account.GetBalance()!;
+                accountsUnlockedBalance += (ulong)account.GetUnlockedBalance()!;
             }
             Assert.Equal(walletBalance, accountsBalance);
             Assert.Equal(walletUnlockedBalance, accountsUnlockedBalance);
@@ -2154,7 +2156,6 @@ namespace Monero.Test
             foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount();
             if (!walletBalance.Equals(walletSum))
             {
-
                 // txs may have changed in between calls so retry test
                 walletSum = 0;
                 foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount();
@@ -2522,8 +2523,8 @@ namespace Monero.Test
             {
                 if (account.GetBalance() > 0)
                 {
-                    ulong checkAmount = (account.GetBalance()) / 2;
-                    signature = wallet.GetReserveProofAccount((uint)account.GetIndex(), checkAmount, msg);
+                    ulong checkAmount = ((ulong)account.GetBalance()!) / 2;
+                    signature = wallet.GetReserveProofAccount((uint)account.GetIndex()!, checkAmount, msg);
                     MoneroCheckReserve checkReserve = wallet.CheckReserveProof(wallet.GetPrimaryAddress(), msg, signature);
                     Assert.True(checkReserve.IsGood());
                     TestCheckReserve(checkReserve);
@@ -2534,7 +2535,7 @@ namespace Monero.Test
                 {
                     try
                     {
-                        wallet.GetReserveProofAccount((uint)account.GetIndex(), account.GetBalance(), msg);
+                        wallet.GetReserveProofAccount((uint)account.GetIndex(), (ulong)account.GetBalance(), msg);
                         throw new Exception("Should have thrown exception");
                     }
                     catch (MoneroError e)
@@ -2557,13 +2558,13 @@ namespace Monero.Test
             // Test error when not enough balance foreach requested minimum reserve amount
             try
             {
-                string proof = wallet.GetReserveProofAccount(0, accounts[0].GetBalance() + TestUtils.MAX_FEE, "Test message");
+                string proof = wallet.GetReserveProofAccount(0, (ulong)accounts[0].GetBalance() + TestUtils.MAX_FEE, "Test message");
                 Console.WriteLine("Account balance: " + wallet.GetBalance(0));
                 Console.WriteLine("accounts[0] balance: " + accounts[0].GetBalance());
                 MoneroCheckReserve reserve = wallet.CheckReserveProof(wallet.GetPrimaryAddress(), "Test message", proof);
                 try
                 {
-                    wallet.GetReserveProofAccount(0, accounts[0].GetBalance() + TestUtils.MAX_FEE, "Test message");
+                    wallet.GetReserveProofAccount(0, (ulong)accounts[0].GetBalance() + TestUtils.MAX_FEE, "Test message");
                     throw new Exception("expecting this to succeed");
                 }
                 catch (Exception e)
@@ -2626,7 +2627,7 @@ namespace Monero.Test
             List<MoneroTxWallet> txs = GetRandomTransactions(wallet, null, 1, 5);
 
             // set notes
-            string uuid = GenUtils.GetUUID();
+            string uuid = GenUtils.GetGuid();
             for (int i = 0; i < txs.Count; i++)
             {
                 wallet.SetTxNote(txs[i].GetHash(), uuid + i);
@@ -2647,7 +2648,7 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
 
             // set tx notes
-            string uuid = GenUtils.GetUUID();
+            string uuid = GenUtils.GetGuid();
             List<MoneroTxWallet> txs = wallet.GetTxs();
             Assert.True(txs.Count >= 3, "Test requires 3 or more wallet transactions; run send tests");
             List<string> txHashes = new List<string>();
@@ -2878,7 +2879,7 @@ namespace Monero.Test
             for (int i = 0; i < NUM_ENTRIES; i++)
             {
                 MoneroIntegratedAddress integratedAddress = wallet.GetIntegratedAddress(null, paymentId + i); // create unique integrated address
-                string uuid = GenUtils.GetUUID();
+                string uuid = GenUtils.GetGuid();
                 uint idx = wallet.AddAddressBookEntry(integratedAddress.ToString(), uuid);
                 indices.Add(idx);
                 integratedAddresses.Add(idx, integratedAddress);
@@ -2925,7 +2926,7 @@ namespace Monero.Test
             for (int i = 0; i < 5; i++)
             {
                 string key = "attr" + i;
-                string val = GenUtils.GetUUID();
+                string val = GenUtils.GetGuid();
                 attrs.Add(key, val);
                 wallet.SetAttribute(key, val);
             }
@@ -3062,7 +3063,7 @@ namespace Monero.Test
             string path = wallet.GetPath();
 
             // set an attribute
-            string uuid = GenUtils.GetUUID();
+            string uuid = GenUtils.GetGuid();
             wallet.SetAttribute("id", uuid);
 
             // close the wallet without saving
@@ -4045,8 +4046,8 @@ namespace Monero.Test
             bool hasBalance = false;
             foreach (MoneroAccount walletAccount in wallet.GetAccounts())
             {
-                if (walletAccount.GetBalance().CompareTo(minAccountAmount) > 0) hasBalance = true;
-                if (walletAccount.GetUnlockedBalance().CompareTo(minAccountAmount) > 0)
+                if (walletAccount.GetBalance()! > minAccountAmount) hasBalance = true;
+                if (walletAccount.GetUnlockedBalance()! > minAccountAmount)
                 {
                     srcAccount = walletAccount;
                     break;
@@ -4054,8 +4055,8 @@ namespace Monero.Test
             }
             Assert.True(hasBalance, "Wallet does not have enough balance; load '" + TestUtils.WALLET_NAME + "' with XMR in order to test sending");
             if (srcAccount == null) throw new Exception("Wallet is waiting on unlocked funds");
-            ulong balance = srcAccount.GetBalance();
-            ulong unlockedBalance = srcAccount.GetUnlockedBalance();
+            ulong balance = (ulong)srcAccount.GetBalance()!;
+            ulong unlockedBalance = (ulong)srcAccount.GetUnlockedBalance()!;
 
             // get amount to send total and per subaddress
             ulong? sendAmount = null;
@@ -4131,8 +4132,8 @@ namespace Monero.Test
 
             // test that wallet balance decreased
             MoneroAccount account = wallet.GetAccount((uint)srcAccount.GetIndex());
-            Assert.True(account.GetBalance().CompareTo(balance) < 0);
-            Assert.True(account.GetUnlockedBalance().CompareTo(unlockedBalance) < 0);
+            Assert.True(account.GetBalance()! < balance);
+            Assert.True(account.GetUnlockedBalance()! < unlockedBalance);
 
             // build test context
             config.SetCanSplit(canSplit);
@@ -4476,8 +4477,8 @@ namespace Monero.Test
             foreach (MoneroAccount account in accounts)
             {
                 if (account.GetIndex() == 0) continue;  // skip default account
-                if (account.GetBalance().CompareTo(TestUtils.MAX_FEE) > 0) accountsBalance.Add(account);
-                if (account.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) > 0) accountsUnlocked.Add(account);
+                if (account.GetBalance() > TestUtils.MAX_FEE) accountsBalance.Add(account);
+                if (account.GetUnlockedBalance() > TestUtils.MAX_FEE) accountsUnlocked.Add(account);
             }
 
             // test requires at least one more accounts than the number being swept to verify it does not change
@@ -4509,7 +4510,7 @@ namespace Monero.Test
 
                 // Assert. unlocked account balance less than max fee
                 MoneroAccount account = wallet.GetAccount((uint)unlockedAccount.GetIndex());
-                Assert.True(account.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) < 0);
+                Assert.True(account.GetUnlockedBalance()! < TestUtils.MAX_FEE);
             }
 
             // test accounts after sweeping
@@ -4534,11 +4535,11 @@ namespace Monero.Test
                 // Assert. unlocked balance is less than max fee if swept, unchanged otherwise
                 if (swept)
                 {
-                    Assert.True(accountAfter.GetUnlockedBalance().CompareTo(TestUtils.MAX_FEE) < 0);
+                    Assert.True(accountAfter.GetUnlockedBalance()! < TestUtils.MAX_FEE);
                 }
                 else
                 {
-                    Assert.True(accountBefore.GetUnlockedBalance().CompareTo(accountAfter.GetUnlockedBalance()) == 0);
+                    Assert.True(accountBefore.GetUnlockedBalance() == accountAfter.GetUnlockedBalance());
                 }
             }
         }
@@ -4962,7 +4963,8 @@ namespace Monero.Test
             Assert.True(check.IsGood());
             Assert.True(check.InTxPool());
             Assert.True(0 == check.GetNumConfirmations());
-            Assert.True(check.GetReceivedAmount().CompareTo(TestUtils.MAX_FEE * 2) >= 0); // + change amount
+            Assert.NotNull(check.GetReceivedAmount());
+            Assert.True(((ulong)check.GetReceivedAmount()).CompareTo(TestUtils.MAX_FEE * 2) >= 0); // + change amount
 
             // verify transfer 3
             check = verifyingWallet.CheckTxKey(tx.GetHash(), tx.GetKey(), address3);
@@ -6165,7 +6167,7 @@ namespace Monero.Test
                 Assert.True(check.GetNumConfirmations() >= 0);
                 Assert.NotNull(check.InTxPool());
                 TestUtils.TestUnsignedBigInteger(check.GetReceivedAmount());
-                if (check.InTxPool()) Assert.True(0 == check.GetNumConfirmations());
+                if (check.InTxPool() == true) Assert.True(0 == check.GetNumConfirmations());
                 else Assert.True(check.GetNumConfirmations() > 0); // TODO (monero-wall-rpc) this fails (confirmations is 0) for (at least one) transaction that has 1 confirmation on testCheckTxKey()
             }
             else

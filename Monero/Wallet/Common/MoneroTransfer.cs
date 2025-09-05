@@ -5,9 +5,9 @@ namespace Monero.Wallet.Common
 {
     public abstract class MoneroTransfer
     {
-        protected MoneroTxWallet _tx;
-        protected ulong? _amount;
-        protected uint? _accountIndex;
+        private MoneroTxWallet? _tx;
+        private ulong? _amount;
+        private uint? _accountIndex;
 
         public MoneroTransfer() { }
 
@@ -20,11 +20,11 @@ namespace Monero.Wallet.Common
 
         public abstract MoneroTransfer Clone();
 
-        public MoneroTxWallet GetTx() {
+        public MoneroTxWallet? GetTx() {
             return _tx;
         }
 
-        public virtual MoneroTransfer SetTx(MoneroTxWallet tx) {
+        public virtual MoneroTransfer SetTx(MoneroTxWallet? tx) {
             _tx = tx;
             return this;
         }
@@ -60,7 +60,7 @@ namespace Monero.Wallet.Common
             // merge txs if they're different which comes back to merging transfers
             if (this.GetTx() != transfer.GetTx())
             {
-                this.GetTx().Merge(transfer.GetTx());
+                this.GetTx()!.Merge(transfer.GetTx()!);
                 return this;
             }
 

@@ -4,12 +4,12 @@ namespace Monero.Wallet.Common
 {
     internal class MoneroOutputComparer : Comparer<MoneroOutput>
     {
-        private static readonly MoneroTxHeightComparer TX_HEIGHT_COMPARATOR = new MoneroTxHeightComparer();
+        private static readonly MoneroTxHeightComparer TX_HEIGHT_COMPARATOR = new ();
 
         public override int Compare(MoneroOutput? o1, MoneroOutput? o2)
         {
-            MoneroOutputWallet ow1 = (MoneroOutputWallet)o1;
-            MoneroOutputWallet ow2 = (MoneroOutputWallet)o2;
+            MoneroOutputWallet? ow1 = (MoneroOutputWallet?)o1;
+            MoneroOutputWallet? ow2 = (MoneroOutputWallet?)o2;
 
             if (ow1 == null && ow2 == null) return 0;
             if (ow1 == null) return -1; // nulls are less than non-nulls
@@ -51,8 +51,8 @@ namespace Monero.Wallet.Common
             if (compare != 0) return compare;
 
             // finally compare by key image hex
-            MoneroKeyImage ow1KeyImage = ow1.GetKeyImage();
-            MoneroKeyImage ow2KeyImage = ow2.GetKeyImage();
+            MoneroKeyImage? ow1KeyImage = ow1.GetKeyImage();
+            MoneroKeyImage? ow2KeyImage = ow2.GetKeyImage();
 
             if (ow1KeyImage == null && ow2KeyImage == null) return 0; // both outputs have no key image
 
@@ -65,7 +65,7 @@ namespace Monero.Wallet.Common
             if (ow1KeyImageHex == null && ow2KeyImageHex == null) return 0; // both outputs have no key image hex
             if (ow1KeyImageHex == null) return -1; // output 1 has no key image hex
             if (ow2KeyImageHex == null) return 1; // output 2 has no key image hex
-            return ow1KeyImageHex.CompareTo(ow2KeyImageHex);
+            return String.Compare(ow1KeyImageHex, ow2KeyImageHex, StringComparison.Ordinal);
         }
     }
 }

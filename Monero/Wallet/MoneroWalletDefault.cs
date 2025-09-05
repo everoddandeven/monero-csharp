@@ -300,7 +300,7 @@ namespace Monero.Wallet
 
         public virtual bool IsMultisig()
         {
-            return GetMultisigInfo().IsMultisig() == true;
+            return GetMultisigInfo().IsMultisig();
         }
 
         public abstract bool IsMultisigImportNeeded();
@@ -324,7 +324,7 @@ namespace Monero.Wallet
 
         public virtual string RelayTx(MoneroTxWallet tx)
         {
-            return RelayTx(tx.GetMetadata());
+            return RelayTx(tx.GetMetadata()!);
         }
 
         public abstract List<string> RelayTxs(List<string> txMetadatas);
@@ -335,7 +335,7 @@ namespace Monero.Wallet
 
             foreach (MoneroTxWallet tx in txs)
             {
-                txMetadatas.Add(tx.GetMetadata());
+                txMetadatas.Add(tx.GetMetadata()!);
             }
 
             return RelayTxs(txMetadatas);
@@ -383,7 +383,7 @@ namespace Monero.Wallet
 
         public virtual void SetDaemonConnection(string? uri, string? username = null, string? password = null)
         {
-            if (uri == null) SetDaemonConnection((MoneroRpcConnection?)null);
+            if (uri == null) SetDaemonConnection(null);
             else SetDaemonConnection(new MoneroRpcConnection(uri, username, password));
         }
 
@@ -408,7 +408,7 @@ namespace Monero.Wallet
 
         public abstract void StartMining(ulong numThreads, bool backgroundMining, bool ignoreBattery);
 
-        public abstract void StartSyncing(ulong? SyncPeriodInMs = null);
+        public abstract void StartSyncing(ulong? syncPeriodInMs = null);
 
         public abstract void StopMining();
 
@@ -439,7 +439,7 @@ namespace Monero.Wallet
 
         public abstract MoneroMessageSignatureResult VerifyMessage(string message, string address, string signature);
 
-        protected static MoneroTransferQuery NormalizeTransferQuery(MoneroTransferQuery query)
+        protected static MoneroTransferQuery NormalizeTransferQuery(MoneroTransferQuery? query)
         {
             if (query == null) query = new MoneroTransferQuery();
             else
@@ -447,34 +447,34 @@ namespace Monero.Wallet
                 if (query.GetTxQuery() == null) query = query.Clone();
                 else
                 {
-                    MoneroTxQuery txQuery = query.GetTxQuery().Clone();
-                    if (query.GetTxQuery().GetTransferQuery() == query) query = txQuery.GetTransferQuery();
+                    MoneroTxQuery txQuery = query.GetTxQuery()!.Clone();
+                    if (query.GetTxQuery()!.GetTransferQuery() == query) query = txQuery.GetTransferQuery();
                     else
                     {
-                        if (null != query.GetTxQuery().GetTransferQuery()) throw new MoneroError("Transfer query's tx query must be circular reference or null");
+                        if (null != query.GetTxQuery()!.GetTransferQuery()) throw new MoneroError("Transfer query's tx query must be circular reference or null");
                         query = query.Clone();
                         query.SetTxQuery(txQuery);
                     }
                 }
             }
-            if (query.GetTxQuery() == null) query.SetTxQuery(new MoneroTxQuery());
-            query.GetTxQuery().SetTransferQuery(query);
-            if (query.GetTxQuery().GetBlock() == null) query.GetTxQuery().SetBlock(new MoneroBlock().SetTxs([query.GetTxQuery()]));
+            if (query!.GetTxQuery() == null) query.SetTxQuery(new MoneroTxQuery());
+            query.GetTxQuery()!.SetTransferQuery(query);
+            if (query.GetTxQuery()!.GetBlock() == null) query.GetTxQuery()!.SetBlock(new MoneroBlock().SetTxs([query.GetTxQuery()!]));
             return query;
         }
     }
 
     internal class MoneroWalletConnectionManagerListener : MoneroConnectionManagerListener
     {
-        private readonly MoneroWalletDefault wallet;
+        private readonly MoneroWalletDefault _wallet;
         public MoneroWalletConnectionManagerListener(MoneroWalletDefault wallet)
         {
-            this.wallet = wallet;
+            _wallet = wallet;
         }
 
         public void OnConnectionChanged(MoneroRpcConnection? connection)
         {
-            wallet.SetDaemonConnection(connection);
+            _wallet.SetDaemonConnection(connection);
         }
     }
 }

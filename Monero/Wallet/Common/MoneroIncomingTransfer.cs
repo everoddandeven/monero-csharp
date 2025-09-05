@@ -3,9 +3,9 @@ namespace Monero.Wallet.Common
 {
     public class MoneroIncomingTransfer : MoneroTransfer
     {
-        private uint? subaddressIndex;
-        private string address;
-        private ulong numSuggestedConfirmations;
+        private uint? _subaddressIndex;
+        private string? _address;
+        private ulong _numSuggestedConfirmations;
 
         public MoneroIncomingTransfer()
         {
@@ -14,9 +14,9 @@ namespace Monero.Wallet.Common
 
         public MoneroIncomingTransfer(MoneroIncomingTransfer transfer) : base(transfer)
         {
-            subaddressIndex = transfer.subaddressIndex;
-            address = transfer.address;
-            numSuggestedConfirmations = transfer.numSuggestedConfirmations;
+            _subaddressIndex = transfer._subaddressIndex;
+            _address = transfer._address;
+            _numSuggestedConfirmations = transfer._numSuggestedConfirmations;
         }
 
         public override MoneroIncomingTransfer Clone()
@@ -24,9 +24,9 @@ namespace Monero.Wallet.Common
             return new MoneroIncomingTransfer(this);
         }
 
-        public override MoneroIncomingTransfer SetTx(MoneroTxWallet tx)
+        public override MoneroIncomingTransfer SetTx(MoneroTxWallet? tx)
         {
-            _tx = tx;
+            base.SetTx(tx);
             return this;
         }
 
@@ -37,34 +37,34 @@ namespace Monero.Wallet.Common
 
         public uint? GetSubaddressIndex()
         {
-            return subaddressIndex;
+            return _subaddressIndex;
         }
 
         public MoneroIncomingTransfer SetSubaddressIndex(uint? subaddressIndex)
         {
-            this.subaddressIndex = subaddressIndex;
+            _subaddressIndex = subaddressIndex;
             return this;
         }
 
-        public string GetAddress()
+        public string? GetAddress()
         {
-            return address;
+            return _address;
         }
 
-        public MoneroIncomingTransfer SetAddress(string address)
+        public MoneroIncomingTransfer SetAddress(string? address)
         {
-            this.address = address;
+            _address = address;
             return this;
         }
 
         public ulong GetNumSuggestedConfirmations()
         {
-            return numSuggestedConfirmations;
+            return _numSuggestedConfirmations;
         }
 
         public MoneroIncomingTransfer SetNumSuggestedConfirmations(ulong numSuggestedConfirmations)
         {
-            this.numSuggestedConfirmations = numSuggestedConfirmations;
+            _numSuggestedConfirmations = numSuggestedConfirmations;
             return this;
         }
     }

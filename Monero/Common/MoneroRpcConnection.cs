@@ -1,7 +1,6 @@
 ﻿
 using Newtonsoft.Json;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 
 namespace Monero.Common
@@ -13,9 +12,9 @@ namespace Monero.Common
         private string? _zmqUri;
         private bool? _isAuthenticated;
         
-        private bool _printStackTrace = false;
+        private bool _printStackTrace;
 
-        private HttpClient? httpClient = null;
+        private HttpClient? _httpClient;
         
         public MoneroRpcConnection(string? uri = null, string? username = null, string? password = null, string? zmqUri = null, int priority = 0) : base(uri, null, priority)
         {
@@ -46,7 +45,7 @@ namespace Monero.Common
             }
         }
 
-        public bool IsI2p()
+        public bool IsI2P()
         {
             try
             {
@@ -61,7 +60,7 @@ namespace Monero.Common
 
         public bool IsClearnet() {
             if (string.IsNullOrEmpty(_uri)) return false;
-            return !IsOnion() && !IsI2p();
+            return !IsOnion() && !IsI2P();
         }
 
         public bool Equals(MoneroRpcConnection? other)
@@ -96,7 +95,7 @@ namespace Monero.Common
                     message += $": {content}";
                 }
 
-                throw new MoneroRpcError(message, code, null, null);
+                throw new MoneroRpcError(message, code,"");
             }
         }
 
@@ -122,18 +121,18 @@ namespace Monero.Common
             }
         }
 
-        private void ValidateRpcResponse(Dictionary<string, object>? rpcResponse, string method, object? parameters)
+        private void ValidateRpcResponse(Dictionary<string, object?>? rpcResponse, string method, object? parameters)
         {
             if (rpcResponse == null)
             {
                 throw new MoneroRpcError($"Received null RPC response from RPC request with method '{method}' to {_uri}", -1, method, parameters);
             }
 
-            var error = (Dictionary<string, object>?)rpcResponse.GetValueOrDefault("error");
+            var error = (Dictionary<string, object?>?)rpcResponse.GetValueOrDefault("error");
 
             if (error != null)
             {
-                var message = error.ContainsKey("message") ? error["message"].ToString() : "";
+                var message = error.ContainsKey("message") ? error["message"]!.ToString() : "";
                 int code = error.ContainsKey("code") ? Convert.ToInt32(error["code"]) : -1;
 
                 if (string.IsNullOrEmpty(message))
@@ -205,7 +204,7 @@ namespace Monero.Common
                     }
                 }
                 var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                if (_isOnline == true) _responseTime = now - (ulong)startTime;
+                if (_isOnline == true) _responseTime = now - startTime;
                 return isOnlineBefore != _isOnline || isAuthenticatedBefore != _isAuthenticated;
             }
         }
@@ -249,7 +248,7 @@ namespace Monero.Common
         {
             try
             {
-                if (httpClient != null) httpClient.Dispose();
+                if (_httpClient != null) _httpClient.Dispose();
             }
             catch (Exception e)
             {
@@ -281,7 +280,7 @@ namespace Monero.Common
                     handler.Proxy = new WebProxy(_proxyUri, true);
                     handler.UseProxy = true;
                 }
-                httpClient = new HttpClient(handler);
+                _httpClient = new HttpClient(handler);
             }
             else
             {
@@ -291,7 +290,7 @@ namespace Monero.Common
                     handler.Proxy = new WebProxy(_proxyUri, true);
                     handler.UseProxy = true;
                 }
-                httpClient = new HttpClient(handler);
+                _httpClient = new HttpClient(handler);
             }
 
             if (_username != username || _password != password)
@@ -324,7 +323,7 @@ namespace Monero.Common
 
         public MoneroJsonRpcResponse SendJsonRequest(MoneroJsonRpcRequest rpcRequest, ulong timeoutMs = 20000)
         {
-            if (httpClient == null) throw new MoneroError("Http client is null");
+            if (_httpClient == null) throw new MoneroError("Http client is null");
 
             try
             {
@@ -350,7 +349,7 @@ namespace Monero.Common
 
                 var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
-                var httpResponse = httpClient.PostAsync(new Uri(_uri + "/json_rpc"), content, cts.Token).GetAwaiter().GetResult();
+                var httpResponse = _httpClient.PostAsync(new Uri(_uri + "/json_rpc"), content, cts.Token).GetAwaiter().GetResult();
                 
                 ValidateHttpResponse(httpResponse);
 
@@ -365,7 +364,7 @@ namespace Monero.Common
 
                 ValidateRpcResponse(rpcResponse, method, rpcRequest.Params);
 
-                return rpcResponse;
+                return rpcResponse!;
             }
             catch (MoneroRpcError)
             {
@@ -377,7 +376,7 @@ namespace Monero.Common
             }
         }
 
-        public MoneroJsonRpcResponse SendJsonRequest(string method, Dictionary<string, object>? parameters = null, ulong timeoutMs = 20000)
+        public MoneroJsonRpcResponse SendJsonRequest(string method, Dictionary<string, object?>? parameters = null, ulong timeoutMs = 20000)
         {
             return SendJsonRequest(new MoneroJsonRpcRequest(method, parameters), timeoutMs);
         }
@@ -389,7 +388,7 @@ namespace Monero.Common
 
         public MoneroJsonRpcStringResponse SendJsonStringRequest(string method, List<ulong> parameters, ulong timeoutMs = 20000)
         {
-            if (httpClient == null) throw new MoneroError("Http client is null");
+            if (_httpClient == null) throw new MoneroError("Http client is null");
 
             try
             {
@@ -415,7 +414,7 @@ namespace Monero.Common
 
                 var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
-                var httpResponse = httpClient.PostAsync(new Uri(_uri + "/json_rpc"), content, cts.Token).GetAwaiter().GetResult();
+                var httpResponse = _httpClient.PostAsync(new Uri(_uri + "/json_rpc"), content, cts.Token).GetAwaiter().GetResult();
                 
                 ValidateHttpResponse(httpResponse);
                 
@@ -428,7 +427,7 @@ namespace Monero.Common
                     MoneroUtils.Log(3, $"Received JSON response from method='{method}', response={shortResp}, uri={_uri}");
                 }
                 
-                return rpcResponse;
+                return rpcResponse!;
             }
             catch (MoneroRpcError)
             {
@@ -440,9 +439,9 @@ namespace Monero.Common
             }
         }
 
-        public Dictionary<string, object> SendPathRequest(string path, Dictionary<string, object>? parameters = null, ulong? timeoutMs = null)
+        public Dictionary<string, object> SendPathRequest(string path, Dictionary<string, object?>? parameters = null, ulong? timeoutMs = null)
         {
-            if (httpClient == null) throw new MoneroError("Http client is null");
+            if (_httpClient == null) throw new MoneroError("Http client is null");
             
             try
             {
@@ -456,7 +455,7 @@ namespace Monero.Common
                 var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs ?? _timeoutMs));
                 
-                var httpResponse = httpClient.PostAsync(new Uri($"{_uri}/{path}"), content, cts.Token).GetAwaiter().GetResult();
+                var httpResponse = _httpClient.PostAsync(new Uri($"{_uri}/{path}"), content, cts.Token).GetAwaiter().GetResult();
 
                 if (MoneroUtils.GetLogLevel() >= 2)
                 {
@@ -465,14 +464,15 @@ namespace Monero.Common
                 
                 ValidateHttpResponse(httpResponse);
 
+                var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 string responseText = httpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                var respMap = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseText);
+                var respMap = JsonConvert.DeserializeObject<Dictionary<string, object?>>(responseText);
 
                 if (MoneroUtils.GetLogLevel() >= 3)
                 {
                     string respStr = JsonConvert.SerializeObject(respMap);
                     if (respStr.Length > 10000) respStr = respStr.Substring(0, 10000);
-                    //MoneroUtils.Log(3, $"Received path response from path='{path}', response={respStr}, uri={_uri} ({DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime} ms)");
+                    MoneroUtils.Log(3, $"Received path response from path='{path}', response={respStr}, uri={_uri} ({DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime} ms)");
                 }
 
                 ValidateRpcResponse(respMap, path, parameters);
@@ -488,7 +488,7 @@ namespace Monero.Common
             }
         }
 
-        public byte[] SendBinaryRequest(string method, Dictionary<string, object>? parameters = null, ulong timeoutMs = 20000)
+        public byte[] SendBinaryRequest(string method, Dictionary<string, object?>? parameters = null, ulong timeoutMs = 20000)
         {
             throw new NotImplementedException("SendBinaryRequest(): not implemented");
         }

@@ -4,300 +4,300 @@ namespace Monero.Daemon.Common
 {
     public class MoneroPeer
     {
-        private string? id;
-        private string? address;
-        private string? host;
-        private int? port;
-        private bool isOnline;
-        private ulong? lastSeenTimestamp;
-        private int? pruningSeed;
-        private int? rpcPort;
-        private ulong? rpcCreditsPerHash;
-        private string? hash;
-        private ulong? avgDownload;
-        private ulong? avgUpload;
-        private ulong? currentDownload;
-        private ulong? currentUpload;
-        private ulong? height;
-        private bool isIncoming;
-        private ulong? liveTime;
-        private bool isLocalIp;
-        private bool isLocalHost;
-        private int? numReceives;
-        private int? numSends;
-        private ulong? receiveIdleTime;
-        private ulong? sendIdleTime;
-        private string? state;
-        private int? numSupportFlags;
-        private MoneroConnectionType? type;
+        private string? _id;
+        private string? _address;
+        private string? _host;
+        private int? _port;
+        private bool _isOnline;
+        private ulong? _lastSeenTimestamp;
+        private int? _pruningSeed;
+        private int? _rpcPort;
+        private ulong? _rpcCreditsPerHash;
+        private string? _hash;
+        private ulong? _avgDownload;
+        private ulong? _avgUpload;
+        private ulong? _currentDownload;
+        private ulong? _currentUpload;
+        private ulong? _height;
+        private bool _isIncoming;
+        private ulong? _liveTime;
+        private bool _isLocalIp;
+        private bool _isLocalHost;
+        private int? _numReceives;
+        private int? _numSends;
+        private ulong? _receiveIdleTime;
+        private ulong? _sendIdleTime;
+        private string? _state;
+        private int? _numSupportFlags;
+        private MoneroConnectionType? _type;
 
         public string? GetId()
         {
-            return id;
+            return _id;
         }
 
         public MoneroPeer SetId(string? id)
         {
-            this.id = id;
+            _id = id;
             return this;
         }
 
         public string? GetAddress()
         {
-            return address;
+            return _address;
         }
 
         public MoneroPeer SetAddress(string? address)
         {
-            this.address = address;
+            _address = address;
             return this;
         }
 
         public string? GetHost()
         {
-            return host;
+            return _host;
         }
 
         public MoneroPeer SetHost(string? host)
         {
-            this.host = host;
+            _host = host;
             return this;
         }
 
         public int? GetPort()
         {
-            return port;
+            return _port;
         }
 
         public MoneroPeer SetPort(int? port)
         {
-            this.port = port;
+            _port = port;
             return this;
         }
 
         public bool IsOnline()
         {
-            return isOnline;
+            return _isOnline;
         }
 
         public MoneroPeer SetIsOnline(bool isOnline)
         {
-            this.isOnline = isOnline;
+            _isOnline = isOnline;
             return this;
         }
 
         public ulong? GetLastSeenTimestamp()
         {
-            return lastSeenTimestamp;
+            return _lastSeenTimestamp;
         }
 
         public MoneroPeer SetLastSeenTimestamp(ulong? lastSeenTimestamp)
         {
-            this.lastSeenTimestamp = lastSeenTimestamp;
+            _lastSeenTimestamp = lastSeenTimestamp;
             return this;
         }
 
         public int? GetPruningSeed()
         {
-            return pruningSeed;
+            return _pruningSeed;
         }
 
         public MoneroPeer SetPruningSeed(int? pruningSeed)
         {
-            this.pruningSeed = pruningSeed;
+            _pruningSeed = pruningSeed;
             return this;
         }
 
         public int? GetRpcPort()
         {
-            return rpcPort;
+            return _rpcPort;
         }
 
         public MoneroPeer SetRpcPort(int? rpcPort)
         {
-            this.rpcPort = rpcPort;
+            _rpcPort = rpcPort;
             return this;
         }
 
         public ulong? GetRpcCreditsPerHash()
         {
-            return this.rpcCreditsPerHash;
+            return _rpcCreditsPerHash;
         }
 
         public MoneroPeer SetRpcCreditsPerHash(ulong? rpcCreditsPerHash)
         {
-            this.rpcCreditsPerHash = rpcCreditsPerHash;
+            _rpcCreditsPerHash = rpcCreditsPerHash;
             return this;
         }
 
         public string? GetHash()
         {
-            return hash;
+            return _hash;
         }
 
         public void SetHash(string? hash)
         {
-            this.hash = hash;
+            _hash = hash;
         }
 
         public ulong? GetAvgDownload()
         {
-            return avgDownload;
+            return _avgDownload;
         }
 
         public void SetAvgDownload(ulong? avgDownload)
         {
-            this.avgDownload = avgDownload;
+            _avgDownload = avgDownload;
         }
 
         public ulong? GetAvgUpload()
         {
-            return avgUpload;
+            return _avgUpload;
         }
 
         public void SetAvgUpload(ulong? avgUpload)
         {
-            this.avgUpload = avgUpload;
+            _avgUpload = avgUpload;
         }
 
         public ulong? GetCurrentDownload()
         {
-            return currentDownload;
+            return _currentDownload;
         }
 
         public void SetCurrentDownload(ulong? currentDownload)
         {
-            this.currentDownload = currentDownload;
+            _currentDownload = currentDownload;
         }
 
         public ulong? GetCurrentUpload()
         {
-            return currentUpload;
+            return _currentUpload;
         }
 
         public void SetCurrentUpload(ulong? currentUpload)
         {
-            this.currentUpload = currentUpload;
+            _currentUpload = currentUpload;
         }
 
         public ulong? GetHeight()
         {
-            return height;
+            return _height;
         }
 
         public void SetHeight(ulong? height)
         {
-            this.height = height;
+            _height = height;
         }
 
         public bool IsIncoming()
         {
-            return isIncoming;
+            return _isIncoming;
         }
 
         public void SetIsIncoming(bool isIncoming)
         {
-            this.isIncoming = isIncoming;
+            _isIncoming = isIncoming;
         }
 
         public ulong? GetLiveTime()
         {
-            return liveTime;
+            return _liveTime;
         }
 
         public void SetLiveTime(ulong? liveTime)
         {
-            this.liveTime = liveTime;
+            _liveTime = liveTime;
         }
 
         public bool IsLocalIp()
         {
-            return isLocalIp;
+            return _isLocalIp;
         }
 
         public void SetIsLocalIp(bool isLocalIp)
         {
-            this.isLocalIp = isLocalIp;
+            _isLocalIp = isLocalIp;
         }
 
         public bool IsLocalHost()
         {
-            return isLocalHost;
+            return _isLocalHost;
         }
 
         public void SetIsLocalHost(bool isLocalHost)
         {
-            this.isLocalHost = isLocalHost;
+            _isLocalHost = isLocalHost;
         }
 
         public int? GetNumReceives()
         {
-            return numReceives;
+            return _numReceives;
         }
 
         public void SetNumReceives(int? numReceives)
         {
-            this.numReceives = numReceives;
+            _numReceives = numReceives;
         }
 
         public int? GetNumSends()
         {
-            return numSends;
+            return _numSends;
         }
 
         public void SetNumSends(int? numSends)
         {
-            this.numSends = numSends;
+            _numSends = numSends;
         }
 
         public ulong? GetReceiveIdleTime()
         {
-            return receiveIdleTime;
+            return _receiveIdleTime;
         }
 
         public void SetReceiveIdleTime(ulong? receiveIdleTime)
         {
-            this.receiveIdleTime = receiveIdleTime;
+            _receiveIdleTime = receiveIdleTime;
         }
 
         public ulong? GetSendIdleTime()
         {
-            return sendIdleTime;
+            return _sendIdleTime;
         }
 
         public void SetSendIdleTime(ulong? sendIdleTime)
         {
-            this.sendIdleTime = sendIdleTime;
+            _sendIdleTime = sendIdleTime;
         }
 
         public string? GetState()
         {
-            return state;
+            return _state;
         }
 
         public void SetState(string? state)
         {
-            this.state = state;
+            _state = state;
         }
 
         public int? GetNumSupportFlags()
         {
-            return numSupportFlags;
+            return _numSupportFlags;
         }
 
         public void SetNumSupportFlags(int? numSupportFlags)
         {
-            this.numSupportFlags = numSupportFlags;
+            _numSupportFlags = numSupportFlags;
         }
 
-        public MoneroConnectionType? GetType()
+        public MoneroConnectionType? GetConnectionType()
         {
-            return type;
+            return _type;
         }
 
         public void SetType(MoneroConnectionType? type)
         {
-            this.type = type;
+            _type = type;
         }
     }
 }

@@ -62,7 +62,7 @@ namespace Monero.Wallet.Common
 
         public MoneroOutputQuery SetMinAmount(ulong minAmount)
         {
-            this._minAmount = minAmount;
+            _minAmount = minAmount;
             return this;
         }
 
@@ -73,7 +73,7 @@ namespace Monero.Wallet.Common
 
         public MoneroOutputQuery SetMaxAmount(ulong maxAmount)
         {
-            this._maxAmount = maxAmount;
+            _maxAmount = maxAmount;
             return this;
         }
 
@@ -82,10 +82,10 @@ namespace Monero.Wallet.Common
             return _txQuery;
         }
 
-        public MoneroOutputQuery SetTxQuery(MoneroTxQuery? txQuery)
+        public MoneroOutputQuery SetTxQuery(MoneroTxQuery? txQuery, bool setOutputQuery = true)
         {
-            this._txQuery = txQuery;
-            if (txQuery != null) txQuery.SetOutputQuery(this);
+            _txQuery = txQuery;
+            if (setOutputQuery && txQuery != null) txQuery.SetOutputQuery(this);
             return this;
         }
 
@@ -94,9 +94,9 @@ namespace Monero.Wallet.Common
             return _subaddressIndices;
         }
 
-        public MoneroOutputQuery? SetSubaddressIndices(List<uint> subaddressIndices)
+        public MoneroOutputQuery SetSubaddressIndices(List<uint> subaddressIndices)
         {
-            this._subaddressIndices = subaddressIndices;
+            _subaddressIndices = subaddressIndices;
             return this;
         }
         
@@ -107,26 +107,26 @@ namespace Monero.Wallet.Common
             // filter on output
             if (GetAccountIndex() != null && !GetAccountIndex().Equals(output.GetAccountIndex())) return false;
             if (GetSubaddressIndex() != null && !GetSubaddressIndex().Equals(output.GetSubaddressIndex())) return false;
-            if (GetAmount() != null && ((uint)GetAmount()).CompareTo(output.GetAmount()) != 0) return false;
+            if (GetAmount() != null && ((uint)GetAmount()!).CompareTo(output.GetAmount()) != 0) return false;
             if (IsSpent() != null && !IsSpent().Equals(output.IsSpent())) return false;
             if (IsFrozen() != null && !IsFrozen().Equals(output.IsFrozen())) return false;
     
             // filter on output key image
             if (GetKeyImage() != null) {
                 if (output.GetKeyImage() == null) return false;
-                if (GetKeyImage().GetHex() != null && !GetKeyImage().GetHex().Equals(output.GetKeyImage().GetHex())) return false;
-                if (GetKeyImage().GetSignature() != null && !GetKeyImage().GetSignature().Equals(output.GetKeyImage().GetSignature())) return false;
+                if (GetKeyImage()!.GetHex() != null && !GetKeyImage()!.GetHex()!.Equals(output.GetKeyImage()!.GetHex())) return false;
+                if (GetKeyImage()!.GetSignature() != null && !GetKeyImage()!.GetSignature()!.Equals(output.GetKeyImage()!.GetSignature())) return false;
             }
     
             // filter on extensions
-            if (GetSubaddressIndices() != null && !GetSubaddressIndices().Contains((uint)output.GetSubaddressIndex())) return false;
+            if (GetSubaddressIndices() != null && !GetSubaddressIndices()!.Contains((uint)output.GetSubaddressIndex()!)) return false;
     
             // filter with tx query
-            if (GetTxQuery() != null && !GetTxQuery().MeetsCriteria(output.GetTx(), false)) return false;
+            if (GetTxQuery() != null && !GetTxQuery()!.MeetsCriteria(output.GetTx()!, false)) return false;
     
             // filter on remaining fields
-            if (GetMinAmount() != null && (output.GetAmount() == null || ((ulong)output.GetAmount()).CompareTo(GetMinAmount()) < 0)) return false;
-            if (GetMaxAmount() != null && (output.GetAmount() == null || ((ulong)output.GetAmount()).CompareTo(GetMaxAmount()) > 0)) return false;
+            if (GetMinAmount() != null && (output.GetAmount() == null || ((ulong)output.GetAmount()!).CompareTo(GetMinAmount()) < 0)) return false;
+            if (GetMaxAmount() != null && (output.GetAmount() == null || ((ulong)output.GetAmount()!).CompareTo(GetMaxAmount()) > 0)) return false;
     
             // output Meets query
             return true;

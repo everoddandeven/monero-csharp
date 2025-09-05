@@ -3,33 +3,33 @@ namespace Monero.Common
 {
     public abstract class MoneroNetwork
     {
-        private readonly int primaryAddressCode;
-        private readonly int integratedAddressCode;
-        private readonly int subaddressCode;
+        private readonly int _primaryAddressCode;
+        private readonly int _integratedAddressCode;
+        private readonly int _subaddressCode;
 
         public readonly MoneroNetworkType Type;
 
         public MoneroNetwork(int primaryAddressCode, int integratedAddressCode, int subaddressCode, MoneroNetworkType type)
         {
-            this.primaryAddressCode = primaryAddressCode;
-            this.integratedAddressCode = integratedAddressCode;
-            this.subaddressCode = subaddressCode;
+            _primaryAddressCode = primaryAddressCode;
+            _integratedAddressCode = integratedAddressCode;
+            _subaddressCode = subaddressCode;
             Type = type;
         }
 
         public int GetPrimaryAddressCode()
         {
-            return primaryAddressCode;
+            return _primaryAddressCode;
         }
 
         public int GetIntegratedAddressCode()
         {
-            return integratedAddressCode;
+            return _integratedAddressCode;
         }
 
         public int GetSubaddressCode()
         {
-            return subaddressCode;
+            return _subaddressCode;
         }
 
         public static MoneroNetworkType Parse(string? networkTypeStr)
@@ -44,15 +44,15 @@ namespace Monero.Common
             };
         }
 
-        public static MoneroNetworkType Parse(int? netttype)
+        public static MoneroNetworkType Parse(int? nettype)
         {
-            if (netttype == null) throw new MoneroError("Cannot parse null network type");
-            if (netttype == 0) return MoneroNetworkType.MAINNET;
-            else if (netttype == 1) return MoneroNetworkType.TESTNET;
+            if (nettype == null) throw new MoneroError("Cannot parse null network type");
+            if (nettype == 0) return MoneroNetworkType.MAINNET;
+            else if (nettype == 1) return MoneroNetworkType.TESTNET;
             else return MoneroNetworkType.STAGENET;
         }
 
-        public static readonly MoneroNetwork[] Types = [new MoneroNetworkMainnet(), new MoneroNetworkTestnet(), new MoneroNetworkStagenet()];
+        public static readonly MoneroNetwork[] TYPES = [new MoneroNetworkMainnet(), new MoneroNetworkTestnet(), new MoneroNetworkStagenet()];
     }
 
     public class MoneroNetworkMainnet : MoneroNetwork

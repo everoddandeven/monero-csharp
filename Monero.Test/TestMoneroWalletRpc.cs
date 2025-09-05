@@ -8,13 +8,12 @@ namespace Monero.Test
 {
     public class MoneroWalletRpcFixture : MoneroWalletCommonFixture 
     {
-        public new MoneroWalletRpc wallet;
+        public MoneroWalletRpc walletRpc;
 
-        public MoneroWalletRpcFixture(MoneroWalletRpc wallet, MoneroDaemonRpc daemon): base(wallet, daemon) {
+        public MoneroWalletRpcFixture(): base(TestUtils.GetWalletRpc(), TestUtils.GetDaemonRpc()) {
             // Before All
-            this.wallet = wallet;
+            walletRpc = (MoneroWalletRpc)wallet;
         }
-
     }
 
     public class TestMoneroWalletRpc : TestMoneroWalletCommon, IClassFixture<MoneroWalletRpcFixture>
@@ -45,7 +44,7 @@ namespace Monero.Test
             // assign defaults
             if (config == null) config = new MoneroWalletConfig();
             bool random = config.GetSeed() == null && config.GetPrimaryAddress() == null;
-            if (config.GetPath() == null) config.SetPath(GenUtils.GetUUID());
+            if (config.GetPath() == null) config.SetPath(GenUtils.GetGuid());
             if (config.GetPassword() == null) config.SetPassword(TestUtils.WALLET_PASSWORD);
             if (config.GetRestoreHeight() == null && !random) config.SetRestoreHeight(0l);
             if (config.GetServer() == null && config.GetConnectionManager() == null) config.SetServer(daemon.GetRpcConnection());
@@ -135,22 +134,22 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
 
             // Create random wallet with defaults
-            string path = GenUtils.GetUUID();
-            MoneroWallet wallet = CreateWallet(new MoneroWalletConfig().SetPath(path));
-            string seed = wallet.GetSeed();
+            string path = GenUtils.GetGuid();
+            MoneroWallet newWallet = CreateWallet(new MoneroWalletConfig().SetPath(path));
+            string seed = newWallet.GetSeed();
             MoneroUtils.ValidateMnemonic(seed);
             Assert.NotEqual(TestUtils.SEED, seed);
-            MoneroUtils.ValidateAddress(wallet.GetPrimaryAddress(), TestUtils.NETWORK_TYPE);
-            wallet.Sync();  // very quick because restore height is chain height
-            CloseWallet(wallet);
+            MoneroUtils.ValidateAddress(newWallet.GetPrimaryAddress(), TestUtils.NETWORK_TYPE);
+            newWallet.Sync();  // very quick because restore height is chain height
+            CloseWallet(newWallet);
 
             // Create random wallet with non defaults
-            path = GenUtils.GetUUID();
-            wallet = CreateWallet(new MoneroWalletConfig().SetPath(path).SetLanguage("Spanish"));
-            MoneroUtils.ValidateMnemonic(wallet.GetSeed());
-            Assert.NotEqual(seed, wallet.GetSeed());
-            seed = wallet.GetSeed();
-            MoneroUtils.ValidateAddress(wallet.GetPrimaryAddress(), TestUtils.NETWORK_TYPE);
+            path = GenUtils.GetGuid();
+            newWallet = CreateWallet(new MoneroWalletConfig().SetPath(path).SetLanguage("Spanish"));
+            MoneroUtils.ValidateMnemonic(newWallet.GetSeed());
+            Assert.NotEqual(seed, newWallet.GetSeed());
+            seed = newWallet.GetSeed();
+            MoneroUtils.ValidateAddress(newWallet.GetPrimaryAddress(), TestUtils.NETWORK_TYPE);
 
             // attempt to Create wallet which already exists
             try
@@ -161,9 +160,9 @@ namespace Monero.Test
             {
                 Assert.Equal(e.Message, "Wallet already exists: " + path);
                 Assert.Equal(-21, (int)e.GetCode());
-                Assert.Equal(seed, wallet.GetSeed());
+                Assert.Equal(seed, newWallet.GetSeed());
             }
-            CloseWallet(wallet);
+            CloseWallet(newWallet);
         }
 
         // Can create a RPC wallet from a seed
@@ -173,7 +172,7 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
 
             // Create wallet with seed and defaults
-            string path = GenUtils.GetUUID();
+            string path = GenUtils.GetGuid();
             MoneroWallet wallet = CreateWallet(new MoneroWalletConfig().SetPath(path).SetSeed(TestUtils.SEED).SetRestoreHeight(TestUtils.FIRST_RECEIVE_HEIGHT));
             Assert.Equal(TestUtils.SEED, wallet.GetSeed());
             Assert.Equal(TestUtils.ADDRESS, wallet.GetPrimaryAddress());
@@ -185,7 +184,7 @@ namespace Monero.Test
             CloseWallet(wallet); // TODO: monero-wallet-rpc: if wallet is not closed, primary address will not change
 
             // Create wallet with non-defaults
-            path = GenUtils.GetUUID();
+            path = GenUtils.GetGuid();
             wallet = CreateWallet(new MoneroWalletConfig().SetPath(path).SetSeed(TestUtils.SEED).SetRestoreHeight(TestUtils.FIRST_RECEIVE_HEIGHT).SetLanguage("German").SetSeedOffset("my offset!").SetSaveCurrent(false));
             MoneroUtils.ValidateMnemonic(wallet.GetSeed());
             Assert.NotEqual(TestUtils.SEED, wallet.GetSeed()); // seed is different because of offset
@@ -205,7 +204,7 @@ namespace Monero.Test
             // create names of test wallets
             int numTestWallets = 3;
             List<string> names = new List<string>();
-            for (int i = 0; i < numTestWallets; i++) names.Add(GenUtils.GetUUID());
+            for (int i = 0; i < numTestWallets; i++) names.Add(GenUtils.GetGuid());
 
             // create test wallets
             List<string> seeds = new List<string>();
@@ -270,7 +269,7 @@ namespace Monero.Test
             Assert.True(accounts.Count >= 3, "Not enough accounts to test; run create account test");
 
             // tag some of the accounts
-            MoneroAccountTag tag = new MoneroAccountTag("my_tag_" + GenUtils.GetUUID(), "my tag label", [0, 1]);
+            MoneroAccountTag tag = new MoneroAccountTag("my_tag_" + GenUtils.GetGuid(), "my tag label", [0, 1]);
             wallet.TagAccounts(tag.GetTag(), tag.GetAccountIndices());
 
             // query accounts by tag
@@ -289,7 +288,7 @@ namespace Monero.Test
             Assert.True(tags.Contains(tag));
 
             // re-tag an account
-            MoneroAccountTag tag2 = new MoneroAccountTag("my_tag_" + GenUtils.GetUUID(), "my tag label 2", [1]);
+            MoneroAccountTag tag2 = new MoneroAccountTag("my_tag_" + GenUtils.GetGuid(), "my tag label 2", [1]);
             wallet.TagAccounts(tag2.GetTag(), tag2.GetAccountIndices());
             List<MoneroAccount> taggedAccounts2 = wallet.GetAccounts(false, tag2.GetTag());
             Assert.Equal(1, taggedAccounts2.Count);
@@ -354,7 +353,7 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
 
             // create a test wallet
-            string path = GenUtils.GetUUID();
+            string path = GenUtils.GetGuid();
             MoneroWalletRpc wallet = CreateWallet(new MoneroWalletConfig().SetPath(path));
             wallet.Sync();
 
@@ -410,6 +409,12 @@ namespace Monero.Test
         public override void TestImportKeyImages()
         {
             base.TestImportKeyImages();
+        }
+
+        [Fact(Skip = "monero-wallet-rpc does not support getting a height by date")]
+        public override void TestGetHeightByDate()
+        {
+            base.TestGetHeightByDate();
         }
 
         #endregion

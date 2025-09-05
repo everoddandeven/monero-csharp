@@ -63,8 +63,10 @@ namespace Monero.Common
 
         public MoneroKeyImage Merge(MoneroKeyImage? keyImage)
         {
+            if (keyImage == null) throw new MoneroError("Cannot merge: key image is null");
             if (keyImage == this) return this;
-
+            SetHex(GenUtils.Reconcile(GetHex(), keyImage.GetHex()));
+            SetSignature(GenUtils.Reconcile(GetSignature(), keyImage.GetSignature()));
             return this;
         }
     }

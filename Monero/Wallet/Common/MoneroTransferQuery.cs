@@ -20,24 +20,24 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery(MoneroTransferQuery query) : base(query)
         {
-            this._isIncoming = query._isIncoming;
-            this._address = query._address;
-            if (query._addresses != null) this._addresses = new List<string>(query._addresses);
-            this._subaddressIndex = query._subaddressIndex;
-            if (query._subaddressIndices != null) this._subaddressIndices = new List<uint>(query._subaddressIndices);
+            _isIncoming = query._isIncoming;
+            _address = query._address;
+            if (query._addresses != null) _addresses = new List<string>(query._addresses);
+            _subaddressIndex = query._subaddressIndex;
+            if (query._subaddressIndices != null) _subaddressIndices = new List<uint>(query._subaddressIndices);
             if (query._destinations != null)
             {
-                this._destinations = new List<MoneroDestination>();
-                foreach (MoneroDestination destination in query.GetDestinations() ?? []) this._destinations.Add(destination.Clone());
+                _destinations = new List<MoneroDestination>();
+                foreach (MoneroDestination destination in query.GetDestinations() ?? []) _destinations.Add(destination.Clone());
             }
-            this._hasDestinations = query._hasDestinations;
-            this._txQuery = query._txQuery; // reference original by default, MoneroTxQuery's deep copy will Set this to itself
+            _hasDestinations = query._hasDestinations;
+            _txQuery = query._txQuery; // reference original by default, MoneroTxQuery's deep copy will Set this to itself
             Validate();
         }
 
         private void Validate()
         {
-            if (_subaddressIndex != null && _subaddressIndex < 0) throw new MoneroError("Subaddress index must be >= 0");
+            //if (_subaddressIndex != null && _subaddressIndex < 0) throw new MoneroError("Subaddress index must be >= 0");
             //if (_subaddressIndices != null) foreach (uint subaddressIdx in _subaddressIndices) if (subaddressIdx < 0) throw new MoneroError("Subaddress indices must be >= 0");
         }
         public override MoneroTransferQuery Clone()
@@ -70,7 +70,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetIsIncoming(bool? isIncoming)
         {
-            this._isIncoming = isIncoming;
+            _isIncoming = isIncoming;
             return this;
         }
 
@@ -92,7 +92,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetAddress(string? address)
         {
-            this._address = address;
+            _address = address;
             return this;
         }
 
@@ -103,7 +103,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetAddresses(List<string>? addresses)
         {
-            this._addresses = addresses;
+            _addresses = addresses;
             return this;
         }
 
@@ -120,7 +120,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetSubaddressIndex(uint? subaddressIndex)
         {
-            this._subaddressIndex = subaddressIndex;
+            _subaddressIndex = subaddressIndex;
             Validate();
             return this;
         }
@@ -132,7 +132,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetSubaddressIndices(List<uint>? subaddressIndices)
         {
-            this._subaddressIndices = subaddressIndices;
+            _subaddressIndices = subaddressIndices;
             Validate();
             return this;
         }
@@ -144,7 +144,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetDestinations(List<MoneroDestination>? destinations)
         {
-            this._destinations = destinations;
+            _destinations = destinations;
             return this;
         }
 
@@ -155,7 +155,7 @@ namespace Monero.Wallet.Common
 
         public MoneroTransferQuery SetHasDestinations(bool? hasDestinations)
         {
-            this._hasDestinations = hasDestinations;
+            _hasDestinations = hasDestinations;
             return this;
         }
 
@@ -166,17 +166,17 @@ namespace Monero.Wallet.Common
             // filter on common fields
             if (IsIncoming() != null && IsIncoming() != transfer.IsIncoming()) return false;
             if (IsOutgoing() != null && IsOutgoing() != transfer.IsOutgoing()) return false;
-            if (GetAmount() != null && ((ulong)GetAmount()).CompareTo(transfer.GetAmount()) != 0) return false;
+            if (GetAmount() != null && ((ulong)GetAmount()!).CompareTo(transfer.GetAmount()) != 0) return false;
             if (GetAccountIndex() != null && !GetAccountIndex().Equals(transfer.GetAccountIndex())) return false;
             
             // filter on incoming fields
             if (transfer is MoneroIncomingTransfer) {
               if (HasDestinations() == true) return false;
               MoneroIncomingTransfer inTransfer = (MoneroIncomingTransfer) transfer;
-              if (GetAddress() != null && !GetAddress().Equals(inTransfer.GetAddress())) return false;
-              if (GetAddresses() != null && !GetAddresses().Contains(inTransfer.GetAddress())) return false;
+              if (GetAddress() != null && !GetAddress()!.Equals(inTransfer.GetAddress())) return false;
+              if (GetAddresses() != null && !GetAddresses()!.Contains(inTransfer.GetAddress()!)) return false;
               if (GetSubaddressIndex() != null && !GetSubaddressIndex().Equals(inTransfer.GetSubaddressIndex())) return false;
-              if (GetSubaddressIndices() != null && !GetSubaddressIndices().Contains((uint)inTransfer.GetSubaddressIndex())) return false;
+              if (GetSubaddressIndices() != null && !GetSubaddressIndices()!.Contains((uint)inTransfer.GetSubaddressIndex()!)) return false;
             }
 
             // filter on outgoing fields
@@ -184,18 +184,18 @@ namespace Monero.Wallet.Common
               MoneroOutgoingTransfer outTransfer = (MoneroOutgoingTransfer) transfer;
               
               // filter on addresses
-              if (GetAddress() != null && (outTransfer.GetAddresses() == null || !outTransfer.GetAddresses().Contains(this.GetAddress()))) return false;   // TODO: will filter all transfers if they don't contain addresses
+              if (GetAddress() != null && (outTransfer.GetAddresses() == null || !outTransfer.GetAddresses()!.Contains(GetAddress()!))) return false;   // TODO: will filter all transfers if they don't contain addresses
               if (GetAddresses() != null) {
-                HashSet<string> intersections = new HashSet<string>(this.GetAddresses());
-                intersections.IntersectWith(outTransfer.GetAddresses());
+                HashSet<string> intersections = new HashSet<string>(GetAddresses()!);
+                intersections.IntersectWith(outTransfer.GetAddresses()!);
                 if (intersections.Count == 0) return false;  // must have overlapping addresses
               }
               
               // filter on subaddress indices
-              if (GetSubaddressIndex() != null && (outTransfer.GetSubaddressIndices() == null || !outTransfer.GetSubaddressIndices().Contains((uint)this.GetSubaddressIndex()))) return false;
+              if (GetSubaddressIndex() != null && (outTransfer.GetSubaddressIndices() == null || !outTransfer.GetSubaddressIndices()!.Contains((uint)GetSubaddressIndex()!))) return false;
               if (GetSubaddressIndices() != null) {
-                HashSet<uint> intersections = new HashSet<uint>(this.GetSubaddressIndices());
-                intersections.IntersectWith(outTransfer.GetSubaddressIndices());
+                HashSet<uint> intersections = new HashSet<uint>(GetSubaddressIndices()!);
+                intersections.IntersectWith(outTransfer.GetSubaddressIndices()!);
                 if (intersections.Count == 0) return false;  // must have overlapping subaddress indices
               }
               
@@ -213,7 +213,7 @@ namespace Monero.Wallet.Common
             else throw new Exception("Transfer must be MoneroIncomingTransfer or MoneroOutgoingTransfer");
             
             // filter with tx filter
-            if (queryParent && GetTxQuery() != null && !GetTxQuery().MeetsCriteria(transfer.GetTx(), false)) return false;
+            if (queryParent && GetTxQuery() != null && !GetTxQuery()!.MeetsCriteria(transfer.GetTx()!, false)) return false;
             return true;
         }
     }

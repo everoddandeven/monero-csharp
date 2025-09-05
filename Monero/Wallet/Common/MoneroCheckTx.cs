@@ -4,40 +4,40 @@ namespace Monero.Wallet.Common
 {
     public class MoneroCheckTx : MoneroCheck
     {
-        public bool inTxPool;
-        public ulong numConfirmations;
-        public ulong receivedAmount;
+        private bool? _inTxPool;
+        private ulong? _numConfirmations;
+        private ulong? _receivedAmount;
 
-        public bool InTxPool()
+        public bool? InTxPool()
         {
-            return inTxPool;
+            return _inTxPool;
         }
 
-        public MoneroCheckTx SetInTxPool(bool inTxPool)
+        public MoneroCheckTx SetInTxPool(bool? inTxPool)
         {
-            this.inTxPool = inTxPool;
+            _inTxPool = inTxPool;
             return this;
         }
 
-        public ulong GetNumConfirmations()
+        public ulong? GetNumConfirmations()
         {
-            return numConfirmations;
+            return _numConfirmations;
         }
 
-        public MoneroCheckTx SetNumConfirmations(ulong numConfirmations)
+        public MoneroCheckTx SetNumConfirmations(ulong? numConfirmations)
         {
-            this.numConfirmations = numConfirmations;
+            _numConfirmations = numConfirmations;
             return this;
         }
 
-        public ulong GetReceivedAmount()
+        public ulong? GetReceivedAmount()
         {
-            return receivedAmount;
+            return _receivedAmount;
         }
 
-        public MoneroCheckTx SetReceivedAmount(ulong receivedAmount)
+        public MoneroCheckTx SetReceivedAmount(ulong? receivedAmount)
         {
-            this.receivedAmount = receivedAmount;
+            _receivedAmount = receivedAmount;
             return this;
         }
     }

@@ -1,6 +1,5 @@
 ﻿using Monero.Common;
 using Monero.Wallet.Common;
-using System.Collections.ObjectModel;
 
 namespace Monero.Wallet
 {
@@ -160,7 +159,7 @@ namespace Monero.Wallet
          * 
          * @param accountIdx specifies the account index of the address's subaddress
          * @param subaddressIdx specifies the subaddress index within the account
-         * @return the receive address of the specified subaddress
+         * @return the receiver address of the specified subaddress index
          */
         public string GetAddress(uint accountIdx, uint subaddressIdx);
 
@@ -237,7 +236,7 @@ namespace Monero.Wallet
          * 
          * @param SyncPeriodInMs maximum period between Syncs in milliseconds
          */
-        public void StartSyncing(ulong? SyncPeriodInMs = null);
+        public void StartSyncing(ulong? syncPeriodInMs = null);
 
         /**
          * Stop Synchronizing the wallet with the daemon.
@@ -399,30 +398,30 @@ namespace Monero.Wallet
          * not defined.</p>
          * 
          * <p>
-         * All supported query criteria:<br>
-         * &nbsp;&nbsp; isConfirmed - path of the wallet to open<br>
-         * &nbsp;&nbsp; password - password of the wallet to open<br>
-         * &nbsp;&nbsp; networkType - network type of the wallet to open (one of MoneroNetworkType.MAINNET|TESTNET|STAGENET)<br>
-         * &nbsp;&nbsp; serverUri - uri of the wallet's daemon (optional)<br>
-         * &nbsp;&nbsp; serverUsername - username to authenticate with the daemon (optional)<br>
-         * &nbsp;&nbsp; serverPassword - password to authenticate with the daemon (optional)<br>
-         * &nbsp;&nbsp; server - MoneroRpcConnection to a monero daemon (optional)<br>
-         * &nbsp;&nbsp; isConfirmed - Get txs that are confirmed or not (optional)<br>
-         * &nbsp;&nbsp; inTxPool - Get txs that are in the tx pool or not (optional)<br>
-         * &nbsp;&nbsp; isRelayed - Get txs that are relayed or not (optional)<br>
-         * &nbsp;&nbsp; isFailed - Get txs that are failed or not (optional)<br>
-         * &nbsp;&nbsp; isMinerTx - Get miner txs or not (optional)<br>
-         * &nbsp;&nbsp; hash - Get a tx with the hash (optional)<br>
-         * &nbsp;&nbsp; hashes - Get txs with the hashes (optional)<br>
-         * &nbsp;&nbsp; paymentId - Get transactions with the payment id (optional)<br>
-         * &nbsp;&nbsp; paymentIds - Get transactions with the payment ids (optional)<br>
-         * &nbsp;&nbsp; hasPaymentId - Get transactions with a payment id or not (optional)<br>
-         * &nbsp;&nbsp; minHeight - Get txs with height greater than or equal to the given height (optional)<br>
-         * &nbsp;&nbsp; maxHeight - Get txs with height less than or equal to the given height (optional)<br>
-         * &nbsp;&nbsp; isOutgoing - Get txs with an outgoing transfer or not (optional)<br>
-         * &nbsp;&nbsp; isIncoming - Get txs with an incoming transfer or not (optional)<br>
-         * &nbsp;&nbsp; transferQuery - Get txs that have a transfer that meets this query (optional)<br>
-         * &nbsp;&nbsp; includeOutputs - specifies that tx outputs should be returned with tx results (optional)<br>
+         * All supported query criteria:<br/>
+         * &nbsp;&nbsp; isConfirmed - path of the wallet to open<br/>
+         * &nbsp;&nbsp; password - password of the wallet to open<br/>
+         * &nbsp;&nbsp; networkType - network type of the wallet to open (one of MoneroNetworkType.MAINNET|TESTNET|STAGENET)<br/>
+         * &nbsp;&nbsp; serverUri - uri of the wallet's daemon (optional)<br/>
+         * &nbsp;&nbsp; serverUsername - username to authenticate with the daemon (optional)<br/>
+         * &nbsp;&nbsp; serverPassword - password to authenticate with the daemon (optional)<br/>
+         * &nbsp;&nbsp; server - MoneroRpcConnection to a monero daemon (optional)<br/>
+         * &nbsp;&nbsp; isConfirmed - Get txs that are confirmed or not (optional)<br/>
+         * &nbsp;&nbsp; inTxPool - Get txs that are in the tx pool or not (optional)<br/>
+         * &nbsp;&nbsp; isRelayed - Get txs that are relayed or not (optional)<br/>
+         * &nbsp;&nbsp; isFailed - Get txs that are failed or not (optional)<br/>
+         * &nbsp;&nbsp; isMinerTx - Get miner txs or not (optional)<br/>
+         * &nbsp;&nbsp; hash - Get a tx with the hash (optional)<br/>
+         * &nbsp;&nbsp; hashes - Get txs with the hashes (optional)<br/>
+         * &nbsp;&nbsp; paymentId - Get transactions with the payment id (optional)<br/>
+         * &nbsp;&nbsp; paymentIds - Get transactions with the payment ids (optional)<br/>
+         * &nbsp;&nbsp; hasPaymentId - Get transactions with a payment id or not (optional)<br/>
+         * &nbsp;&nbsp; minHeight - Get txs with height greater than or equal to the given height (optional)<br/>
+         * &nbsp;&nbsp; maxHeight - Get txs with height less than or equal to the given height (optional)<br/>
+         * &nbsp;&nbsp; isOutgoing - Get txs with an outgoing transfer or not (optional)<br/>
+         * &nbsp;&nbsp; isIncoming - Get txs with an incoming transfer or not (optional)<br/>
+         * &nbsp;&nbsp; transferQuery - Get txs that have a transfer that meets this query (optional)<br/>
+         * &nbsp;&nbsp; includeOutputs - specifies that tx outputs should be returned with tx results (optional)<br/>
          * </p>
          * 
          * @param query specifies properties of the transactions to Get
@@ -470,23 +469,23 @@ namespace Monero.Wallet
         public List<MoneroTransfer> GetTransfers(uint accountIdx, uint subaddressIdx);
 
         /**
-         * <p>Get tranfsers that meet the criteria defined in a query object.</p>
+         * <p>Get transfers that meet the criteria defined in a query object.</p>
          * 
          * <p>Transfers must meet every criteria defined in the query in order to be
          * returned.  All criteria are optional and no filtering is applied when not
          * defined.</p>
          * 
-         * All supported query criteria:<br>
-         * &nbsp;&nbsp; isOutgoing - Get transfers that are outgoing or not (optional)<br>
-         * &nbsp;&nbsp; isIncoming - Get transfers that are incoming or not (optional)<br>
-         * &nbsp;&nbsp; address - wallet's address that a transfer either originated from (if outgoing) or is destined for (if incoming) (optional)<br>
-         * &nbsp;&nbsp; accountIndex - Get transfers that either originated from (if outgoing) or are destined for (if incoming) a specific account index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndex - Get transfers that either originated from (if outgoing) or are destined for (if incoming) a specific subaddress index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - Get transfers that either originated from (if outgoing) or are destined for (if incoming) specific subaddress indices (optional)<br>
-         * &nbsp;&nbsp; amount - amount being transferred (optional)<br>
-         * &nbsp;&nbsp; destinations - individual destinations of an outgoing transfer, which is local wallet data and NOT recoverable from the blockchain (optional)<br>
-         * &nbsp;&nbsp; hasDestinations - Get transfers that have destinations or not (optional)<br>
-         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br>
+         * All supported query criteria:<br/>
+         * &nbsp;&nbsp; isOutgoing - Get transfers that are outgoing or not (optional)<br/>
+         * &nbsp;&nbsp; isIncoming - Get transfers that are incoming or not (optional)<br/>
+         * &nbsp;&nbsp; address - wallet's address that a transfer either originated from (if outgoing) or is destined for (if incoming) (optional)<br/>
+         * &nbsp;&nbsp; accountIndex - Get transfers that either originated from (if outgoing) or are destined for (if incoming) a specific account index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndex - Get transfers that either originated from (if outgoing) or are destined for (if incoming) a specific subaddress index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - Get transfers that either originated from (if outgoing) or are destined for (if incoming) specific subaddress indices (optional)<br/>
+         * &nbsp;&nbsp; amount - amount being transferred (optional)<br/>
+         * &nbsp;&nbsp; destinations - individual destinations of an outgoing transfer, which is local wallet data and NOT recoverable from the blockchain (optional)<br/>
+         * &nbsp;&nbsp; hasDestinations - Get transfers that have destinations or not (optional)<br/>
+         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br/>
          * 
          * @param query specifies attributes of transfers to Get
          * @return wallet transfers that meet the query
@@ -494,7 +493,7 @@ namespace Monero.Wallet
         public List<MoneroTransfer> GetTransfers(MoneroTransferQuery query);
 
         /**
-         * Get all of the wallet's incoming transfers.
+         * Get all wallet's incoming transfers.
          * 
          * @return the wallet's incoming transfers
          */
@@ -504,13 +503,13 @@ namespace Monero.Wallet
          * <p>Get incoming transfers that meet a query.</p>
          * 
          * <p>
-         * All supported query criteria:<br>
-         * &nbsp;&nbsp; address - Get incoming transfers to a specific address in the wallet (optional)<br>
-         * &nbsp;&nbsp; accountIndex - Get incoming transfers to a specific account index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndex - Get incoming transfers to a specific subaddress index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - Get transfers destined for specific subaddress indices (optional)<br>
-         * &nbsp;&nbsp; amount - amount being transferred (optional)<br>
-         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br>
+         * All supported query criteria:<br/>
+         * &nbsp;&nbsp; address - Get incoming transfers to a specific address in the wallet (optional)<br/>
+         * &nbsp;&nbsp; accountIndex - Get incoming transfers to a specific account index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndex - Get incoming transfers to a specific subaddress index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - Get transfers destined for specific subaddress indices (optional)<br/>
+         * &nbsp;&nbsp; amount - amount being transferred (optional)<br/>
+         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br/>
          * </p>
          * 
          * @param query specifies which incoming transfers to Get
@@ -519,7 +518,7 @@ namespace Monero.Wallet
         public List<MoneroIncomingTransfer> GetIncomingTransfers(MoneroTransferQuery query);
 
         /**
-         * Get all of the wallet's outgoing transfers.
+         * Get all wallet's outgoing transfers.
          * 
          * @return the wallet's outgoing transfers
          */
@@ -529,15 +528,15 @@ namespace Monero.Wallet
          * <p>Get outgoing transfers that meet a query.</p>
          * 
          * <p>
-         * All supported query criteria:<br>
-         * &nbsp;&nbsp; address - Get outgoing transfers from a specific address in the wallet (optional)<br>
-         * &nbsp;&nbsp; accountIndex - Get outgoing transfers from a specific account index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndex - Get outgoing transfers from a specific subaddress index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - Get outgoing transfers from specific subaddress indices (optional)<br>
-         * &nbsp;&nbsp; amount - amount being transferred (optional)<br>
-         * &nbsp;&nbsp; destinations - individual destinations of an outgoing transfer, which is local wallet data and NOT recoverable from the blockchain (optional)<br>
-         * &nbsp;&nbsp; hasDestinations - Get transfers that have destinations or not (optional)<br>
-         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br>
+         * All supported query criteria:<br/>
+         * &nbsp;&nbsp; address - Get outgoing transfers from a specific address in the wallet (optional)<br/>
+         * &nbsp;&nbsp; accountIndex - Get outgoing transfers from a specific account index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndex - Get outgoing transfers from a specific subaddress index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - Get outgoing transfers from specific subaddress indices (optional)<br/>
+         * &nbsp;&nbsp; amount - amount being transferred (optional)<br/>
+         * &nbsp;&nbsp; destinations - individual destinations of an outgoing transfer, which is local wallet data and NOT recoverable from the blockchain (optional)<br/>
+         * &nbsp;&nbsp; hasDestinations - Get transfers that have destinations or not (optional)<br/>
+         * &nbsp;&nbsp; txQuery - Get transfers whose transaction meets this query (optional)<br/>
          * </p>
          * 
          * @param query specifies which outgoing transfers to Get
@@ -562,16 +561,16 @@ namespace Monero.Wallet
          * defined.</p>
          * 
          * <p>
-         * All supported query criteria:<br>
-         * &nbsp;&nbsp; accountIndex - Get outputs associated with a specific account index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndex - Get outputs associated with a specific subaddress index (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - Get outputs associated with specific subaddress indices (optional)<br>
-         * &nbsp;&nbsp; amount - Get outputs with a specific amount (optional)<br>
-         * &nbsp;&nbsp; minAmount - Get outputs greater than or equal to a minimum amount (optional)<br>
-         * &nbsp;&nbsp; maxAmount - Get outputs less than or equal to a maximum amount (optional)<br>
-         * &nbsp;&nbsp; isSpent - Get outputs that are spent or not (optional)<br>
-         * &nbsp;&nbsp; keyImage - Get outputs that match the fields defined in the given key image (optional)<br>
-         * &nbsp;&nbsp; txQuery - Get outputs whose transaction meets this filter (optional)<br>
+         * All supported query criteria:<br/>
+         * &nbsp;&nbsp; accountIndex - Get outputs associated with a specific account index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndex - Get outputs associated with a specific subaddress index (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - Get outputs associated with specific subaddress indices (optional)<br/>
+         * &nbsp;&nbsp; amount - Get outputs with a specific amount (optional)<br/>
+         * &nbsp;&nbsp; minAmount - Get outputs greater than or equal to a minimum amount (optional)<br/>
+         * &nbsp;&nbsp; maxAmount - Get outputs less than or equal to a maximum amount (optional)<br/>
+         * &nbsp;&nbsp; isSpent - Get outputs that are spent or not (optional)<br/>
+         * &nbsp;&nbsp; keyImage - Get outputs that match the fields defined in the given key image (optional)<br/>
+         * &nbsp;&nbsp; txQuery - Get outputs whose transaction meets this filter (optional)<br/>
          * </p>
          * 
          * @param query specifies attributes of outputs to Get
@@ -641,7 +640,7 @@ namespace Monero.Wallet
         public bool IsOutputFrozen(string keyImage);
 
         /**
-         * Get the current default fee priority (unimportant, normal, elevated, etc).
+         * Get the current default fee priority (unimportant, normal, elevated, etc.).
          * 
          * @return the current fee priority
          */
@@ -651,18 +650,18 @@ namespace Monero.Wallet
          * Create a transaction to transfer funds from this wallet.
          * 
          * <p>
-         * All supported configuration:<br>
-         * &nbsp;&nbsp; address - single destination address (required unless `destinations` provided)<br>
-         * &nbsp;&nbsp; amount - single destination amount (required unless `destinations` provided)<br>
-         * &nbsp;&nbsp; accountIndex - source account index to transfer funds from (required)<br>
-         * &nbsp;&nbsp; subaddressIndex - source subaddress index to transfer funds from (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to transfer funds from (optional)<br>
-         * &nbsp;&nbsp; relay - relay the transaction to peers to commit to the blockchain (default false)<br>
-         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br>
-         * &nbsp;&nbsp; destinations - addresses and amounts in a multi-destination tx (required unless `address` and `amount` provided)<br>
-         * &nbsp;&nbsp; subtractFeeFrom - list of destination indices to split the transaction fee (optional)<br>
-         * &nbsp;&nbsp; paymentId - transaction payment ID (optional)<br>
-         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transaction to unlock (default 0)<br>
+         * All supported configuration:<br/>
+         * &nbsp;&nbsp; address - single destination address (required unless `destinations` provided)<br/>
+         * &nbsp;&nbsp; amount - single destination amount (required unless `destinations` provided)<br/>
+         * &nbsp;&nbsp; accountIndex - source account index to transfer funds from (required)<br/>
+         * &nbsp;&nbsp; subaddressIndex - source subaddress index to transfer funds from (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to transfer funds from (optional)<br/>
+         * &nbsp;&nbsp; relay - relay the transaction to peers to commit to the blockchain (default false)<br/>
+         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br/>
+         * &nbsp;&nbsp; destinations - addresses and amounts in a multi-destination tx (required unless `address` and `amount` provided)<br/>
+         * &nbsp;&nbsp; subtractFeeFrom - list of destination indices to split the transaction fee (optional)<br/>
+         * &nbsp;&nbsp; paymentId - transaction payment ID (optional)<br/>
+         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transaction to unlock (default 0)<br/>
          * </p>
          * 
          * @param config configures the transaction to Create
@@ -674,18 +673,18 @@ namespace Monero.Wallet
          * Create one or more transactions to transfer funds from this wallet.
          * 
          * <p>
-         * All supported configuration:<br>
-         * &nbsp;&nbsp; address - single destination address (required unless `destinations` provided)<br>
-         * &nbsp;&nbsp; amount - single destination amount (required unless `destinations` provided)<br>
-         * &nbsp;&nbsp; accountIndex - source account index to transfer funds from (required)<br>
-         * &nbsp;&nbsp; subaddressIndex - source subaddress index to transfer funds from (optional)<br>
-         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to transfer funds from (optional)<br>
-         * &nbsp;&nbsp; relay - relay the transactions to peers to commit to the blockchain (default false)<br>
-         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br>
-         * &nbsp;&nbsp; destinations - addresses and amounts in a multi-destination tx (required unless `address` and `amount` provided)<br>
-         * &nbsp;&nbsp; paymentId - transaction payment ID (optional)<br>
-         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transactions to unlock (default 0)<br>
-         * &nbsp;&nbsp; canSplit - allow funds to be transferred using multiple transactions (default true)<br>
+         * All supported configuration:<br/>
+         * &nbsp;&nbsp; address - single destination address (required unless `destinations` provided)<br/>
+         * &nbsp;&nbsp; amount - single destination amount (required unless `destinations` provided)<br/>
+         * &nbsp;&nbsp; accountIndex - source account index to transfer funds from (required)<br/>
+         * &nbsp;&nbsp; subaddressIndex - source subaddress index to transfer funds from (optional)<br/>
+         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to transfer funds from (optional)<br/>
+         * &nbsp;&nbsp; relay - relay the transactions to peers to commit to the blockchain (default false)<br/>
+         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br/>
+         * &nbsp;&nbsp; destinations - addresses and amounts in a multi-destination tx (required unless `address` and `amount` provided)<br/>
+         * &nbsp;&nbsp; paymentId - transaction payment ID (optional)<br/>
+         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transactions to unlock (default 0)<br/>
+         * &nbsp;&nbsp; canSplit - allow funds to be transferred using multiple transactions (default true)<br/>
          * </p>
          * 
          * @param config configures the transactions to Create
@@ -697,12 +696,12 @@ namespace Monero.Wallet
          * Sweep an output with a given key image.
          * 
          * <p>
-         * All supported configuration:<br>
-         * &nbsp;&nbsp; address - single destination address (required)<br>
-         * &nbsp;&nbsp; keyImage - key image to sweep (required)<br>
-         * &nbsp;&nbsp; relay - relay the transaction to peers to commit to the blockchain (default false)<br>
-         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transaction to unlock (default 0)<br>
-         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br>
+         * All supported configuration:<br/>
+         * &nbsp;&nbsp; address - single destination address (required)<br/>
+         * &nbsp;&nbsp; keyImage - key image to sweep (required)<br/>
+         * &nbsp;&nbsp; relay - relay the transaction to peers to commit to the blockchain (default false)<br/>
+         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transaction to unlock (default 0)<br/>
+         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br/>
          * </p>
          * 
          * @param config configures the sweep transaction
@@ -714,15 +713,15 @@ namespace Monero.Wallet
          * Sweep all unlocked funds according to the given config.
          * 
          * <p>
-         * All supported configuration:<br>
-         * &nbsp;&nbsp; address - single destination address (required)<br>
-         * &nbsp;&nbsp; accountIndex - source account index to sweep from (optional, defaults to all accounts)<br>
-         * &nbsp;&nbsp; subaddressIndex - source subaddress index to sweep from (optional, defaults to all subaddresses)<br>
-         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to sweep from (optional)<br>
-         * &nbsp;&nbsp; relay - relay the transactions to peers to commit to the blockchain (default false)<br>
-         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br>
-         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transactions to unlock (default 0)<br>
-         * &nbsp;&nbsp; sweepEachSubaddress - sweep each subaddress individually if true (default false)<br>
+         * All supported configuration:<br/>
+         * &nbsp;&nbsp; address - single destination address (required)<br/>
+         * &nbsp;&nbsp; accountIndex - source account index to sweep from (optional, defaults to all accounts)<br/>
+         * &nbsp;&nbsp; subaddressIndex - source subaddress index to sweep from (optional, defaults to all subaddresses)<br/>
+         * &nbsp;&nbsp; subaddressIndices - source subaddress indices to sweep from (optional)<br/>
+         * &nbsp;&nbsp; relay - relay the transactions to peers to commit to the blockchain (default false)<br/>
+         * &nbsp;&nbsp; priority - transaction priority (default MoneroTxPriority.NORMAL)<br/>
+         * &nbsp;&nbsp; unlockTime - minimum height or timestamp for the transactions to unlock (default 0)<br/>
+         * &nbsp;&nbsp; sweepEachSubaddress - sweep each subaddress individually if true (default false)<br/>
          * </p>
          * 
          * @param config is the sweep configuration
