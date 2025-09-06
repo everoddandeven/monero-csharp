@@ -28,7 +28,7 @@ namespace Monero.Test.Utils
         public static readonly string WALLET_RPC_USERNAME = "rpc_user";
         public static readonly string WALLET_RPC_PASSWORD = "abc123";
         public static readonly string WALLET_RPC_ZMQ_DOMAIN = "127.0.0.1";
-        public static readonly string WALLET_RPC_DOMAIN = "localhost";
+        public static readonly string WALLET_RPC_DOMAIN = "http://127.0.0.1";
         public static readonly string WALLET_RPC_URI = WALLET_RPC_DOMAIN + ":" + WALLET_RPC_PORT_START;
         public static readonly string WALLET_RPC_ZMQ_URI = "tcp://" + WALLET_RPC_ZMQ_DOMAIN + ":" + WALLET_RPC_ZMQ_PORT_START;
         public static readonly string WALLET_RPC_LOCAL_PATH = MONERO_BINS_DIR + "/monero-wallet-rpc";
