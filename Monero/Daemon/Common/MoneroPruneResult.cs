@@ -6,11 +6,6 @@ namespace Monero.Daemon.Common
         private bool? _isPruned;
         private int? _pruningSeed;
 
-        public MoneroPruneResult()
-        {
-            // nothing to construct
-        }
-
         public bool? IsPruned()
         {
             return _isPruned;

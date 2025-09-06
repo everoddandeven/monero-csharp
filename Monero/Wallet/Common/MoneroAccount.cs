@@ -9,19 +9,65 @@ namespace Monero.Wallet.Common
         private ulong? _unlockedBalance;
         private string? _tag;
         private List<MoneroSubaddress>? _subaddresses;
-
-        public MoneroAccount(uint? index = null, string? primaryAddress = null) {
-            _index = index;
-            _primaryAddress = primaryAddress;
-        }
-
-        public MoneroAccount(uint index, string primaryAddress, ulong balance, ulong unlockedBalance, List<MoneroSubaddress>? subaddresses = null)
+        
+        public MoneroAccount(uint? index = null, string? primaryAddress = null, ulong? balance = null, ulong? unlockedBalance = null, List<MoneroSubaddress>? subaddresses = null)
         {
             _index = index;
             _primaryAddress = primaryAddress;
             _balance = balance;
             _unlockedBalance = unlockedBalance;
             _subaddresses = subaddresses;
+        }
+
+        public MoneroAccount(MoneroAccount other)
+        {
+            _index = other._index;
+            _primaryAddress = other._primaryAddress;
+            _balance = other._balance;
+            _unlockedBalance = other._unlockedBalance;
+
+            if (other._subaddresses != null)
+            {
+                _subaddresses = [];
+                foreach (var subaddr in other._subaddresses)
+                {
+                    _subaddresses.Add(subaddr.Clone());
+                }
+            }
+        }
+
+        public bool Equals(MoneroAccount? other)
+        {
+            if (other == null) return false;
+            if (this == other) return false;
+
+            if (_subaddresses == null)
+            {
+                if (other._subaddresses != null) return false;
+            }
+            else
+            {
+                if (other._subaddresses == null) return false;
+
+                int i = 0;
+
+                foreach (MoneroSubaddress subaddr in _subaddresses)
+                {
+                    var otherSubaddr = other._subaddresses[i];
+                    if (!subaddr.Equals(otherSubaddr)) return false;
+                    i++;
+                }
+            }
+            
+            return _index == other._index && 
+                   _primaryAddress == other._primaryAddress && 
+                   _balance == other._balance && 
+                   _unlockedBalance == other._unlockedBalance;
+        }
+
+        public MoneroAccount Clone()
+        {
+            return new MoneroAccount(this);
         }
 
         public uint? GetIndex()

@@ -1,4 +1,7 @@
 ﻿
+using System.Text;
+using Monero.Common;
+
 namespace Monero.Wallet.Common
 {
     public class MoneroDestination
@@ -16,6 +19,14 @@ namespace Monero.Wallet.Common
         {
             _address = destination._address;
             _amount = destination._amount;
+        }
+
+        public bool Equals(MoneroDestination? other)
+        {
+            if (other == null) return false;
+            if (this == other) return true;
+
+            return _address == other._address && _amount == other._amount;
         }
 
         public MoneroDestination Clone() { return new MoneroDestination(this); }
@@ -40,6 +51,18 @@ namespace Monero.Wallet.Common
         {
             _amount = amount;
             return this;
+        }
+        
+        public override string ToString() {
+            return ToString(0);
+        }
+  
+        public string ToString(int indent) {
+            var sb = new StringBuilder();
+            sb.Append(GenUtils.KvLine("Address", GetAddress(), indent));
+            sb.Append(GenUtils.KvLine("Amount", GetAmount() != null ? GetAmount().ToString() : null, indent));
+            string str = sb.ToString();
+            return str.Substring(0, str.Length - 1);
         }
     }
 }

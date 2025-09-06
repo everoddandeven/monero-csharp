@@ -986,8 +986,8 @@ namespace Monero.Daemon.Common
 
             MoneroNetworkType networkType = GetNetworkType();
 
-            if (networkType == MoneroNetworkType.TESTNET) cmd.Add("--testnet");
-            else if (networkType == MoneroNetworkType.STAGENET) cmd.Add("--stagenet");
+            if (networkType == MoneroNetworkType.Testnet) cmd.Add("--testnet");
+            else if (networkType == MoneroNetworkType.Stagenet) cmd.Add("--stagenet");
             if (!string.IsNullOrEmpty(_logFile))
             {
                 cmd.Add("--log-file");
@@ -1312,7 +1312,7 @@ namespace Monero.Daemon.Common
 
         private string? _path;
         // Network type
-        private MoneroNetworkType _networkType = MoneroNetworkType.MAINNET;
+        private MoneroNetworkType _networkType = MoneroNetworkType.Mainnet;
         // Log
         private string? _logFile;
         private int? _logLevel;

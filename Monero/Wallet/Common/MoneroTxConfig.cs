@@ -21,6 +21,77 @@ namespace Monero.Wallet.Common
         private bool? _sweepEachSubaddress;
         private string? _keyImage;
 
+        public bool Equals(MoneroTxConfig? other)
+        {
+            if (other == null) return false;
+            if (this == other) return true;
+
+            if (_destinations == null)
+            {
+                if (other._destinations != null) return false;
+            }
+            else
+            {
+                if (other._destinations == null || _destinations.Count != other._destinations.Count) return false;
+
+                int i = 0;
+
+                foreach (var dest in _destinations)
+                {
+                    if (!dest.Equals(other._destinations[i])) return false;
+                    i++;
+                }
+            }
+
+            if (_subtractFeeFrom == null)
+            {
+                if (other._subtractFeeFrom != null) return false;
+            }
+            else
+            {
+                if (other._subtractFeeFrom == null || other._subtractFeeFrom.Count != _subtractFeeFrom.Count)
+                    return false;
+
+                int i = 0;
+
+                foreach (var fee in _subtractFeeFrom)
+                {
+                    if (fee != other._subtractFeeFrom[i]) return false;
+                    i++;
+                } 
+            }
+            
+            if (_subaddressIndices == null)
+            {
+                if (other._subaddressIndices != null) return false;
+            }
+            else
+            {
+                if (other._subaddressIndices == null || other._subaddressIndices.Count != _subaddressIndices.Count)
+                    return false;
+
+                int i = 0;
+
+                foreach (var index in _subaddressIndices)
+                {
+                    if (index != other._subaddressIndices[i]) return false;
+                    i++;
+                } 
+            }
+
+            return _paymentId == other._paymentId &&
+                   _priority == other._priority &&
+                   _fee == other._fee &&
+                   _accountIndex == other._accountIndex &&
+                   _canSplit == other._canSplit &&
+                   _relay == other._relay &&
+                   _note == other._note &&
+                   _recipientName == other._recipientName &&
+                   _belowAmount == other._belowAmount &&
+                   _sweepEachSubaddress == other._sweepEachSubaddress &&
+                   _keyImage == other._keyImage;
+        }
+
         public MoneroTxConfig() { }
 
         public MoneroTxConfig(MoneroTxConfig config)

@@ -2,8 +2,8 @@
 {
     public enum MoneroWalletType
     {
-        FULL = 0, // full wallet
-        LIGHT = 1, // light wallet
-        RPC = 2, // rpc wallet
+        Full = 0, // full wallet
+        Light = 1, // light wallet
+        Rpc = 2, // rpc wallet
     }
 }

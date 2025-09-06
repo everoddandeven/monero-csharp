@@ -1,5 +1,4 @@
-﻿
-namespace Monero.Wallet.Common
+﻿namespace Monero.Wallet.Common
 {
     public class MoneroMessageSignatureResult
     {
@@ -71,6 +70,14 @@ namespace Monero.Wallet.Common
         public MoneroMessageSignatureResult Clone()
         {
             return new MoneroMessageSignatureResult(this);
+        }
+
+        public bool Equals(MoneroMessageSignatureResult other)
+        {
+            return IsGood() == other.IsGood() &&
+                   IsOld() == other.IsOld() &&
+                   GetSignatureType() == other.GetSignatureType() &&
+                   GetVersion() == other.GetVersion();
         }
     }
 }

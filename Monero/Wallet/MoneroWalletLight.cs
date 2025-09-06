@@ -284,7 +284,7 @@ namespace Monero.Wallet
 
         public override MoneroWalletType GetWalletType()
         {
-            return MoneroWalletType.LIGHT;
+            return MoneroWalletType.Light;
         }
 
         public override MoneroKeyImageImportResult ImportKeyImages(List<MoneroKeyImage> keyImages)
@@ -392,7 +392,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }
 
-        public override string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SIGN_WITH_SPEND_KEY, uint accountIdx = 0, uint subaddressIdx = 0)
+        public override string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SignWithSpendKey, uint accountIdx = 0, uint subaddressIdx = 0)
         {
             throw new NotImplementedException("Not supported by monero-wallet-light");
         }

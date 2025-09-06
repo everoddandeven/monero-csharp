@@ -102,7 +102,7 @@ namespace Monero.Wallet.Common
         
         public bool MeetsCriteria(MoneroOutputWallet? output, bool queryParent = true)
         {
-            if (!(output is MoneroOutputWallet)) return false;
+            if (output == null) return false;
     
             // filter on output
             if (GetAccountIndex() != null && !GetAccountIndex().Equals(output.GetAccountIndex())) return false;

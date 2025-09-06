@@ -21,8 +21,8 @@ namespace Monero.Daemon
         public List<MoneroBlock> GetBlocksByHash(List<string> blockHashes, ulong startHeight, bool prune);
         public MoneroBlock GetBlockByHeight(ulong blockHeight);
         public List<MoneroBlock> GetBlocksByHeight(List<ulong> blockHeights);
-        public List<MoneroBlock> GetBlocksByRange(ulong startHeight, ulong endHeight);
-        public List<MoneroBlock> GetBlocksByRangeChunked(ulong startHeight, ulong endHeight, ulong? maxChunkSize = null);
+        public List<MoneroBlock> GetBlocksByRange(ulong? startHeight, ulong? endHeight);
+        public List<MoneroBlock> GetBlocksByRangeChunked(ulong? startHeight, ulong? endHeight, ulong? maxChunkSize = null);
         public List<string> GetBlockHashes(List<string> blockHashes, ulong startHeight);
         public MoneroTx? GetTx(string txHash, bool prune = false);
         public List<MoneroTx> GetTxs(List<string> txHashes, bool prune = false);
@@ -62,15 +62,14 @@ namespace Monero.Daemon
         public List<MoneroBan> GetPeerBans();
         public void SetPeerBan(MoneroBan ban);
         public void SetPeerBans(List<MoneroBan> bans);
-        public void StartMining(string address, ulong numThreads, bool isBackground, bool ignoreBattery);
+        public void StartMining(string? address, ulong? numThreads, bool? isBackground, bool? ignoreBattery);
         public void StopMining();
         public MoneroMiningStatus GetMiningStatus();
         public void SubmitBlock(string blockBlob);
         public void SubmitBlocks(List<string> blockBlobs);
         public MoneroPruneResult PruneBlockchain(bool check);
         public MoneroDaemonUpdateCheckResult CheckForUpdate();
-        public MoneroDaemonUpdateDownloadResult DownloadUpdate();
-        public MoneroDaemonUpdateDownloadResult DownloadUpdate(string path);
+        public MoneroDaemonUpdateDownloadResult DownloadUpdate(string? path = null);
         public void Stop();
         public MoneroBlockHeader WaitForNextBlockHeader();
     }

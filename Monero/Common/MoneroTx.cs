@@ -43,6 +43,100 @@ namespace Monero.Common
         private string? _maxUsedBlockHash;
         private List<string>? _signatures;
 
+        public virtual bool Equals(MoneroTx other, bool checkInputs = true, bool checkOutputs = true)
+        {
+            if (this == other) return true;
+
+            if (checkInputs)
+            {
+                var inputs = GetInputs() ?? [];
+                var otherInputs = other.GetInputs() ?? [];
+
+                if (inputs.Count != otherInputs.Count) return false;
+                int i = 0;
+                foreach (var input in inputs)
+                {
+                    var otherInput = otherInputs[i]!;
+                    if (!input.Equals(otherInput)) return false;
+                }
+
+                i++;
+            }
+            
+            if (checkOutputs)
+            {
+                var outputs = GetOutputs() ?? [];
+                var otherOutputs = other.GetOutputs() ?? [];
+
+                if (outputs.Count != otherOutputs.Count) return false;
+                int i = 0;
+                foreach (var output in outputs)
+                {
+                    var otherOutput = otherOutputs[i]!;
+                    if (!output.Equals(otherOutput)) return false;
+                    i++;
+                }
+            }
+
+            var signatures = GetSignatures() ?? [];
+            var otherSignatures = other.GetSignatures() ?? [];
+            
+            if (signatures.Count != otherSignatures.Count) return false;
+
+            int j = 0;
+
+            foreach (var signature in signatures)
+            {
+                if (signature != otherSignatures[j]) return false;
+                j++;
+            }
+
+            var indices = GetOutputIndices() ?? [];
+            var otherIndices = other.GetOutputIndices() ?? [];
+
+            if (indices.Count != otherIndices.Count) return false;
+
+            int k = 0;
+
+            foreach (var index in indices)
+            {
+                if (index != otherIndices[k]) return false;
+                k++;
+            }
+            
+            return GetHash() == other.GetHash() &&
+                   GetVersion() == other.GetVersion() &&
+                   IsMinerTx() == other.IsMinerTx() &&
+                   GetPaymentId() == other.GetPaymentId() &&
+                   GetFee() == other.GetFee() &&
+                   GetRingSize() == other.GetRingSize() &&
+                   GetRelay() == other.GetRelay() &&
+                   IsRelayed() == other.IsRelayed() &&
+                   IsConfirmed() == other.IsConfirmed() &&
+                   InTxPool() == other.InTxPool() &&
+                   GetNumConfirmations() == other.GetNumConfirmations() &&
+                   GetUnlockTime() == other.GetUnlockTime() &&
+                   GetLastRelayedTimestamp() == other.GetLastRelayedTimestamp() &&
+                   GetReceivedTimestamp() == other.GetReceivedTimestamp() &&
+                   IsDoubleSpendSeen() == other.IsDoubleSpendSeen() &&
+                   GetKey() == other.GetKey() &&
+                   GetFullHex() == other.GetFullHex() &&
+                   GetPrunedHex() == other.GetPrunedHex() &&
+                   GetPrunableHash() == other.GetPrunableHash() &&
+                   GetSize() == other.GetSize() &&
+                   GetWeight() == other.GetWeight() &&
+                   GetMetadata() == other.GetMetadata() &&
+                   GetExtra() == other.GetExtra() &&
+                   GetRctSignatures() == other.GetRctSignatures() &&
+                   GetRctSigPrunable() == other.GetRctSigPrunable() &&
+                   IsKeptByBlock() == other.IsKeptByBlock() &&
+                   IsFailed() == other.IsFailed() &&
+                   GetLastFailedHeight() == other.GetLastFailedHeight() &&
+                   GetLastFailedHash() == other.GetLastFailedHash() &&
+                   GetMaxUsedBlockHeight() == other.GetMaxUsedBlockHeight() &&
+                   GetMaxUsedBlockHash() == other.GetMaxUsedBlockHash();
+        }
+        
         public MoneroTx()
         {
             // nothing to build
@@ -50,6 +144,7 @@ namespace Monero.Common
 
         public MoneroTx(MoneroTx tx)
         {
+            
             _hash = tx._hash;
             _version = tx._version;
             _isMinerTx = tx._isMinerTx;
@@ -519,7 +614,7 @@ namespace Monero.Common
             var block = GetBlock();
             
             // merge blocks if they're different
-            if (block != null && block.Equals(tx.GetBlock()))
+            if (block != null && !block.Equals(tx.GetBlock()))
             {
                 if (GetBlock() == null)
                 {

@@ -189,7 +189,7 @@ namespace Monero.Common
                     _isAuthenticated = null;
                     _responseTime = null;
 
-                    if (e as MoneroRpcError != null)
+                    if (e is MoneroRpcError)
                     {
                         if (((MoneroRpcError)e).GetCode() == 401)
                         {

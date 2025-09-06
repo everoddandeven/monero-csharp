@@ -18,6 +18,21 @@ namespace Monero.Wallet.Common
         private uint? _numDummyOutputs;
         private string? _extraHex;  // TODO: refactor MoneroTx to only use extra as hex string
 
+        public bool Equals(MoneroTxWallet other, bool checkInputs = true, bool checkOutputs = true)
+        {
+            if (!base.Equals(other, checkInputs, checkOutputs)) return false;
+            
+            return IsIncoming() == other.IsIncoming() &&
+                   IsOutgoing() == other.IsOutgoing() &&
+                   GetNote() == other.GetNote() &&
+                   IsLocked() == other.IsLocked() &&
+                   GetInputSum() == other.GetInputSum() &&
+                   GetChangeAddress() == other.GetChangeAddress() &&
+                   GetChangeAmount() == other.GetChangeAmount() &&
+                   GetNumDummyOutputs() == other.GetNumDummyOutputs() &&
+                   GetExtraHex() == other.GetExtraHex();
+        }
+        
         public MoneroTxWallet()
         {
             // nothing to initialize

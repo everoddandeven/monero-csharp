@@ -13,6 +13,21 @@ namespace Monero.Wallet.Common
         private bool? _isUsed;
         private ulong? _numBlocksToUnlock;
 
+        public bool Equals(MoneroSubaddress? other)
+        {
+            if (other == null) return false;
+            if (this == other) return true;
+            return _accountIndex == other._accountIndex &&
+                   _index == other._index &&
+                   _address == other._address &&
+                   _label == other._label &&
+                   _balance == other._balance &&
+                   _unlockedBalance == other._unlockedBalance &&
+                   _numUnspentOutputs == other._numUnspentOutputs &&
+                   _isUsed == other._isUsed &&
+                   _numBlocksToUnlock == other._numBlocksToUnlock;
+        }
+        
         public MoneroSubaddress() { }
 
         public MoneroSubaddress(string address)
@@ -24,6 +39,24 @@ namespace Monero.Wallet.Common
         {
             _accountIndex = accountIndex;
             _index = index;
+        }
+
+        public MoneroSubaddress(MoneroSubaddress other)
+        {
+            _accountIndex = other._accountIndex;
+            _index = other._index;
+            _address = other._address;
+            _label = other._label;
+            _balance = other._balance;
+            _unlockedBalance = other._unlockedBalance;
+            _numUnspentOutputs = other._numUnspentOutputs;
+            _isUsed = other._isUsed;
+            _numBlocksToUnlock = other._numBlocksToUnlock;
+        }
+
+        public MoneroSubaddress Clone()
+        {
+            return new MoneroSubaddress(this);
         }
 
         public uint? GetAccountIndex()

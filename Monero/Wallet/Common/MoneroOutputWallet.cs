@@ -13,6 +13,17 @@ namespace Monero.Wallet.Common
         {
         }
 
+        public bool Equals(MoneroOutputWallet? other)
+        {
+            if (other == null) return false;
+            if (!base.Equals(other)) return false;
+
+            return _accountIndex == other._accountIndex &&
+                   _subaddressIndex == other._subaddressIndex &&
+                   _isSpent == other._isSpent &&
+                   _isFrozen == other._isFrozen;
+        }
+
         public MoneroOutputWallet(MoneroOutputWallet output): base(output)
         {
             this._accountIndex = output._accountIndex;

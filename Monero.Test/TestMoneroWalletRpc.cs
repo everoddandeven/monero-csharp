@@ -285,13 +285,13 @@ namespace Monero.Test
 
             // fetch tags and ensure new tag is contained
             List<MoneroAccountTag> tags = wallet.GetAccountTags();
-            Assert.True(tags.Contains(tag));
+            Assert.NotNull(tags.Find(x => x.Equals(tag)));
 
             // re-tag an account
             MoneroAccountTag tag2 = new MoneroAccountTag("my_tag_" + GenUtils.GetGuid(), "my tag label 2", [1]);
             wallet.TagAccounts(tag2.GetTag(), tag2.GetAccountIndices());
             List<MoneroAccount> taggedAccounts2 = wallet.GetAccounts(false, tag2.GetTag());
-            Assert.Equal(1, taggedAccounts2.Count);
+            Assert.Single(taggedAccounts2);
             Assert.True(1 == taggedAccounts2[0].GetIndex());
             Assert.Equal(tag2.GetTag(), taggedAccounts2[0].GetTag());
 
@@ -415,6 +415,30 @@ namespace Monero.Test
         public override void TestGetHeightByDate()
         {
             base.TestGetHeightByDate();
+        }
+
+        [Fact(Skip = "monero-wallet-rpc does not support getting seed language")]
+        public override void TestGetSeedLanguage()
+        {
+            base.TestGetSeedLanguage();
+        }
+
+        [Fact(Skip = "monero-wallet-rpc doesn't support getting public view key")]
+        public override void TestGetPublicViewKey()
+        {
+            base.TestGetPublicViewKey();
+        }
+
+        [Fact(Skip = "monero-wallet-rpc doesn't support getting public spend key")]
+        public override void TestGetPublicSpendKey()
+        {
+            base.TestGetPublicSpendKey();
+        }
+
+        [Fact(Skip = "monero-wallet-rpc does not support creating wallets with subaddress lookahead over rpc")]
+        public override void TestSubaddressLookahead()
+        {
+            base.TestSubaddressLookahead();
         }
 
         #endregion

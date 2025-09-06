@@ -114,5 +114,26 @@ namespace Monero.Common
 
             return this;
         }
+        
+        public bool Equals(MoneroOutput? other) {
+            if (this == other) return true;
+            if (other == null) return false;
+            if (_amount == null) {
+                if (other._amount != null) return false;
+            } else if (_amount != other._amount) return false;
+            if (_index == null) {
+                if (other._index != null) return false;
+            } else if (_index != other._index) return false;
+            if (_keyImage == null) {
+                if (other._keyImage != null) return false;
+            } else if (!_keyImage.Equals(other._keyImage)) return false;
+            if (_ringOutputIndices == null) {
+                if (other._ringOutputIndices != null) return false;
+            } else if (!_ringOutputIndices.Equals(other._ringOutputIndices)) return false;
+            if (_stealthPublicKey == null) {
+                if (other._stealthPublicKey != null) return false;
+            } else if (!_stealthPublicKey.Equals(other._stealthPublicKey)) return false;
+            return true;
+        }
     }
 }

@@ -1,5 +1,4 @@
-﻿
-using Monero.Common;
+﻿using Monero.Common;
 using Monero.Wallet.Common;
 
 
@@ -7,10 +6,10 @@ namespace Monero.Wallet
 {
     public abstract class MoneroWalletDefault : MoneroWallet
     {
-        protected MoneroConnectionManager? connectionManager;
-        protected MoneroConnectionManagerListener? connectionManagerListener;
-        protected List<MoneroWalletListener> listeners = [];
-        protected bool isClosed = false;
+        protected MoneroConnectionManager? ConnectionManager;
+        protected MoneroConnectionManagerListener? ConnectionManagerListener;
+        protected readonly List<MoneroWalletListener> Listeners = [];
+        protected bool IsWalletClosed;
 
         public abstract MoneroWalletType GetWalletType();
 
@@ -20,10 +19,10 @@ namespace Monero.Wallet
 
         public virtual void AddListener(MoneroWalletListener listener)
         {
-            lock (listeners)
+            lock (Listeners)
             {
                 if (listener == null) throw new MoneroError("Cannot add null listener");
-                listeners.Add(listener);
+                Listeners.Add(listener);
             }
         }
 
@@ -39,11 +38,11 @@ namespace Monero.Wallet
 
         public virtual void Close(bool save = false)
         {
-            if (connectionManager != null && connectionManagerListener != null) connectionManager.RemoveListener(connectionManagerListener);
-            connectionManager = null;
-            connectionManagerListener = null;
-            listeners.Clear();
-            isClosed = true;
+            if (ConnectionManager != null && ConnectionManagerListener != null) ConnectionManager.RemoveListener(ConnectionManagerListener);
+            ConnectionManager = null;
+            ConnectionManagerListener = null;
+            Listeners.Clear();
+            IsWalletClosed = true;
         }
 
         public abstract MoneroAccount CreateAccount(string? label = null);
@@ -117,7 +116,7 @@ namespace Monero.Wallet
 
         public virtual MoneroConnectionManager? GetConnectionManager()
         {
-            return connectionManager;
+            return ConnectionManager;
         }
 
         public abstract MoneroRpcConnection? GetDaemonConnection();
@@ -155,7 +154,7 @@ namespace Monero.Wallet
 
         public virtual List<MoneroWalletListener> GetListeners()
         {
-            return [.. listeners];
+            return [.. Listeners];
         }
 
         public abstract MoneroMultisigInfo GetMultisigInfo();
@@ -188,7 +187,7 @@ namespace Monero.Wallet
             return GetOutputs(new MoneroOutputQuery());
         }
 
-        public abstract List<MoneroOutputWallet> GetOutputs(MoneroOutputQuery query);
+        public abstract List<MoneroOutputWallet> GetOutputs(MoneroOutputQuery? query);
 
         public abstract string GetPath();
 
@@ -293,7 +292,7 @@ namespace Monero.Wallet
 
         public virtual bool IsClosed()
         {
-            return isClosed;
+            return IsWalletClosed;
         }
 
         public abstract bool IsConnectedToDaemon();
@@ -343,9 +342,9 @@ namespace Monero.Wallet
 
         public virtual void RemoveListener(MoneroWalletListener listener)
         {
-            lock (listeners)
+            lock (Listeners)
             {
-                listeners.Remove(listener);
+                Listeners.Remove(listener);
             }
         }
 
@@ -368,16 +367,16 @@ namespace Monero.Wallet
 
         public virtual void SetConnectionManager(MoneroConnectionManager? connectionManager)
         {
-            if (this.connectionManager != null && connectionManagerListener != null) this.connectionManager.RemoveListener(connectionManagerListener);
-            this.connectionManager = connectionManager;
+            if (this.ConnectionManager != null && ConnectionManagerListener != null) this.ConnectionManager.RemoveListener(ConnectionManagerListener);
+            this.ConnectionManager = connectionManager;
             if (connectionManager == null) return;
 
-            if (connectionManagerListener == null)
+            if (ConnectionManagerListener == null)
             {
-                connectionManagerListener = new MoneroWalletConnectionManagerListener(this);
+                ConnectionManagerListener = new MoneroWalletConnectionManagerListener(this);
             }
 
-            connectionManager.AddListener(connectionManagerListener);
+            connectionManager.AddListener(ConnectionManagerListener);
             SetDaemonConnection(connectionManager.GetConnection());
         }
 
@@ -400,7 +399,7 @@ namespace Monero.Wallet
 
         public abstract void SetTxNotes(List<string> txHashes, List<string> notes);
 
-        public abstract string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SIGN_WITH_SPEND_KEY, uint accountIdx = 0, uint subaddressIdx = 0);
+        public abstract string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SignWithSpendKey, uint accountIdx = 0, uint subaddressIdx = 0);
 
         public abstract MoneroMultisigSignResult SignMultisigTxHex(string multisigTxHex);
 

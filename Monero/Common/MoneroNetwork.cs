@@ -37,9 +37,9 @@ namespace Monero.Common
             if (networkTypeStr == null) throw new MoneroError("Cannot parse null network type");
             return networkTypeStr.ToLower() switch
             {
-                "mainnet" => MoneroNetworkType.MAINNET,
-                "testnet" => MoneroNetworkType.TESTNET,
-                "stagenet" => MoneroNetworkType.STAGENET,
+                "mainnet" => MoneroNetworkType.Mainnet,
+                "testnet" => MoneroNetworkType.Testnet,
+                "stagenet" => MoneroNetworkType.Stagenet,
                 _ => throw new MoneroError("Invalid network type to parse: " + networkTypeStr),
             };
         }
@@ -47,26 +47,26 @@ namespace Monero.Common
         public static MoneroNetworkType Parse(int? nettype)
         {
             if (nettype == null) throw new MoneroError("Cannot parse null network type");
-            if (nettype == 0) return MoneroNetworkType.MAINNET;
-            else if (nettype == 1) return MoneroNetworkType.TESTNET;
-            else return MoneroNetworkType.STAGENET;
+            if (nettype == 0) return MoneroNetworkType.Mainnet;
+            else if (nettype == 1) return MoneroNetworkType.Testnet;
+            else return MoneroNetworkType.Stagenet;
         }
 
-        public static readonly MoneroNetwork[] TYPES = [new MoneroNetworkMainnet(), new MoneroNetworkTestnet(), new MoneroNetworkStagenet()];
+        public static readonly MoneroNetwork[] Types = [new MoneroNetworkMainnet(), new MoneroNetworkTestnet(), new MoneroNetworkStagenet()];
     }
 
     public class MoneroNetworkMainnet : MoneroNetwork
     {
-        public MoneroNetworkMainnet(): base(18, 19, 42, MoneroNetworkType.MAINNET) { }
+        public MoneroNetworkMainnet(): base(18, 19, 42, MoneroNetworkType.Mainnet) { }
     }
 
     public class MoneroNetworkTestnet : MoneroNetwork
     {
-        public MoneroNetworkTestnet() : base(53, 54, 63, MoneroNetworkType.TESTNET) { }
+        public MoneroNetworkTestnet() : base(53, 54, 63, MoneroNetworkType.Testnet) { }
     }
 
     public class MoneroNetworkStagenet : MoneroNetwork
     {
-        public MoneroNetworkStagenet() : base(24, 25, 36, MoneroNetworkType.STAGENET) { }
+        public MoneroNetworkStagenet() : base(24, 25, 36, MoneroNetworkType.Stagenet) { }
     }
 }

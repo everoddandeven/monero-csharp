@@ -1,4 +1,7 @@
 ﻿
+using System.Text;
+using Monero.Common;
+
 namespace Monero.Wallet.Common
 {
     public class MoneroIncomingTransfer : MoneroTransfer
@@ -10,6 +13,17 @@ namespace Monero.Wallet.Common
         public MoneroIncomingTransfer()
         {
             // nothing to initialize
+        }
+
+        public bool Equals(MoneroIncomingTransfer? other)
+        {
+            if (other == null) return false;
+            if (other == this) return true;
+            if (!base.Equals(other)) return false;
+
+            return _subaddressIndex == other._subaddressIndex &&
+                   _address == other._address &&
+                   _numSuggestedConfirmations == other._numSuggestedConfirmations;
         }
 
         public MoneroIncomingTransfer(MoneroIncomingTransfer transfer) : base(transfer)
@@ -66,6 +80,16 @@ namespace Monero.Wallet.Common
         {
             _numSuggestedConfirmations = numSuggestedConfirmations;
             return this;
+        }
+        
+        public override string ToString(int indent) {
+            var sb = new StringBuilder();
+            sb.Append(base.ToString(indent) + "\n");
+            sb.Append(GenUtils.KvLine("Subaddress index", GetSubaddressIndex(), indent));
+            sb.Append(GenUtils.KvLine("Address", GetAddress(), indent));
+            sb.Append(GenUtils.KvLine("Num suggested confirmations", GetNumSuggestedConfirmations(), indent));
+            string str = sb.ToString();
+            return str.Substring(0, str.Length - 1);
         }
     }
 }

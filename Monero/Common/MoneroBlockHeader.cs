@@ -266,33 +266,11 @@ namespace Monero.Common
             this.SetPowHash(GenUtils.Reconcile(this.GetPowHash(), header.GetPowHash()));
             return this;
         }
-
-        public override bool Equals(object? obj)
+        
+        public virtual bool Equals(MoneroBlockHeader? other)
         {
-            if (obj == null || GetType() != obj.GetType()) return false;
-            MoneroBlockHeader other = (MoneroBlockHeader)obj;
-            return (_hash == other._hash &&
-                    _height == other._height &&
-                    _timestamp == other._timestamp &&
-                    _size == other._size &&
-                    _weight == other._weight &&
-                    _longTermWeight == other._longTermWeight &&
-                    _depth == other._depth &&
-                    _difficulty == other._difficulty &&
-                    _cumulativeDifficulty == other._cumulativeDifficulty &&
-                    _majorVersion == other._majorVersion &&
-                    _minorVersion == other._minorVersion &&
-                    _nonce == other._nonce &&
-                    _minerTxHash == other._minerTxHash &&
-                    _numTxs == other._numTxs &&
-                    _orphanStatus == other._orphanStatus &&
-                    _prevHash == other._prevHash &&
-                    _reward == other._reward &&
-                    _powHash == other._powHash);
-        }
-
-        protected bool Equals(MoneroBlockHeader other)
-        {
+            if (other == null) return false;
+            if (other == this) return true;
             return _hash == other._hash && 
                    _height == other._height && 
                    _timestamp == other._timestamp && 

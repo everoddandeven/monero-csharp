@@ -12,9 +12,9 @@ namespace Monero.Common
 
         public virtual bool? IsGood() { return isGood; }
 
-        public virtual MoneroCheck SetIsGood(bool? isGood)
+        public virtual MoneroCheck SetIsGood(bool? good)
         {
-            this.isGood = isGood;
+            this.isGood = good;
             return this;
         }
     }

@@ -23,6 +23,11 @@ namespace Monero.Common
                 if (comparison == 0) return val1;
             }
 
+            if (val1 is bool bool1 && val2 is bool bool2)
+            {
+                if (bool1 ==  bool2) return val1;
+            }
+
             // resolve one value null
             if (val1 == null || val2 == null)
             {
@@ -122,6 +127,17 @@ namespace Monero.Common
             {
                 throw new Exception("Thread was interrupted while sleeping");
             }
+        }
+        
+        public static string KvLine(object? key, object? value, int indent, bool newline = true, bool ignoreUndefined = true) {
+            if (value == null && ignoreUndefined) return "";
+            return GetIndent(indent) + key + ": " + value + (newline ? '\n' : "");
+        }
+        
+        public static string GetIndent(int length) {
+            string str = "";
+            for (int i = 0; i < length; i++) str += "  "; // two spaces
+            return str;
         }
     }
 }

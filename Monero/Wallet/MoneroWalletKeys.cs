@@ -620,7 +620,7 @@ namespace Monero.Wallet
             throw new NotImplementedException("Not supported by keys only wallet");
         }
 
-        public override string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SIGN_WITH_SPEND_KEY, uint accountIdx = 0, uint subaddressIdx = 0)
+        public override string SignMessage(string message, MoneroMessageSignatureType signatureType = MoneroMessageSignatureType.SignWithSpendKey, uint accountIdx = 0, uint subaddressIdx = 0)
         {
             var address = GetAddress(accountIdx, subaddressIdx);
             var signedMessage = MoneroWallet2Api.MONERO_Wallet_signMessage(walletHandle, message, address);
@@ -744,11 +744,5 @@ namespace Monero.Wallet
 
         #endregion
     }
-
-    internal static class MoneroWalletManagerNative
-    {
-        private readonly static string DllName = "monero_x86_64-w64-mingw32_libwallet2_api_c";
-
-
-    }
+    
 }

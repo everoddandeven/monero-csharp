@@ -69,5 +69,11 @@ namespace Monero.Common
             SetSignature(GenUtils.Reconcile(GetSignature(), keyImage.GetSignature()));
             return this;
         }
+
+        public bool Equals(MoneroKeyImage? other)
+        {
+            if (other == null) return false;
+            return _hex == other._hex && _signature == other._signature;
+        }
     }
 }

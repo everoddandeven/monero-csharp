@@ -3,15 +3,15 @@ namespace Monero.Common
 {
     public class MoneroConnectionManager
     {
-        private static readonly ulong DEFAULT_TIMEOUT = 20000;
-        private static readonly ulong DEFAULT_POLL_PERIOD = 20000;
-        private static readonly bool DEFAULT_AUTO_SWITCH = true;
-        private static readonly int MIN_BETTER_RESPONSES = 3;
+        private static readonly ulong DefaultTimeout = 20000;
+        private static readonly ulong DefaultPollPeriod = 20000;
+        private static readonly bool DefaultAutoSwitch = true;
+        private static readonly int MinBetterResponses = 3;
 
         public enum PollType { 
-            PRIORITIZED,
-            CURRENT,
-            ALL
+            Prioritized,
+            Current,
+            All
         }
 
         private class ConnectionPriorityComparer : IComparer<int>
@@ -64,8 +64,8 @@ namespace Monero.Common
         private List<MoneroRpcConnection> _connections = [];
         private List<MoneroConnectionManagerListener> _listeners = [];
         //private ConnectionComparator _connectionComparator = new ConnectionComparator();
-        private bool _autoSwitch = DEFAULT_AUTO_SWITCH;
-        private ulong _timeoutMs = DEFAULT_TIMEOUT;
+        private bool _autoSwitch = DefaultAutoSwitch;
+        private ulong _timeoutMs = DefaultTimeout;
         private Dictionary<MoneroRpcConnection, List<ulong?>> _responseTimes = [];
 
         private void OnConnectionChanged(MoneroRpcConnection? connection)
@@ -108,9 +108,9 @@ namespace Monero.Common
             foreach (MoneroRpcConnection connection in responses)
             {
                 if (connection == bestConnection) continue;
-                if (!_responseTimes.ContainsKey(connection) || _responseTimes[connection].Count < MIN_BETTER_RESPONSES) continue;
+                if (!_responseTimes.ContainsKey(connection) || _responseTimes[connection].Count < MinBetterResponses) continue;
                 bool better = true;
-                for (int i = 0; i < MIN_BETTER_RESPONSES; i++)
+                for (int i = 0; i < MinBetterResponses; i++)
                 {
                     if (_responseTimes[connection][i] == null || _responseTimes[bestConnection][i] == null || _responseTimes[connection][i] > _responseTimes[bestConnection][i])
                     {
@@ -155,7 +155,7 @@ namespace Monero.Common
                 responseTime.Value.Add(responses.Contains(responseTime.Key) ? responseTime.Key.GetResponseTime() : null);
 
                 // remove old response times
-                if (responseTime.Value.Count > MIN_BETTER_RESPONSES) responseTime.Value.RemoveAt(responseTime.Value.Count - 1);
+                if (responseTime.Value.Count > MinBetterResponses) responseTime.Value.RemoveAt(responseTime.Value.Count - 1);
             }
 
             // update the best connection based on responses and priority
@@ -279,10 +279,10 @@ namespace Monero.Common
         public MoneroConnectionManager StartPolling(ulong? periodMs = null, bool? autoSwitch = null, ulong? timeoutMs = null, PollType? pollType = null, List<MoneroRpcConnection>? excludedConnections = null)
         {
             // apply defaults
-            if (periodMs == null) periodMs = DEFAULT_POLL_PERIOD;
+            if (periodMs == null) periodMs = DefaultPollPeriod;
             if (autoSwitch != null) SetAutoSwitch((bool)autoSwitch);
             if (timeoutMs != null) SetTimeout(timeoutMs);
-            if (pollType == null) pollType = PollType.PRIORITIZED;
+            if (pollType == null) pollType = PollType.Prioritized;
 
             // stop polling
             StopPolling();
@@ -290,10 +290,10 @@ namespace Monero.Common
             // start polling
             switch (pollType)
             {
-                case PollType.CURRENT:
+                case PollType.Current:
                     StartPollingConnection((ulong)periodMs);
                     break;
-                case PollType.ALL:
+                case PollType.All:
                     StartPollingConnections((ulong)periodMs);
                     break;
                 default:
@@ -319,7 +319,7 @@ namespace Monero.Common
         {
             if (timeoutMs == null)
             {
-                _timeoutMs = DEFAULT_TIMEOUT;
+                _timeoutMs = DefaultTimeout;
                 return this;
             }
             _timeoutMs = (ulong)timeoutMs;
@@ -625,8 +625,8 @@ namespace Monero.Common
             RemoveListeners();
             //StopPolling();
             Clear();
-            _timeoutMs = DEFAULT_TIMEOUT;
-            _autoSwitch = DEFAULT_AUTO_SWITCH;
+            _timeoutMs = DefaultTimeout;
+            _autoSwitch = DefaultAutoSwitch;
             return this;
         }
     }

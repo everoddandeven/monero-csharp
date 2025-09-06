@@ -143,7 +143,7 @@ namespace Monero.Test
                     MoneroUtils.ValidatePrivateViewKey(wallet.GetPrivateViewKey());
                     MoneroUtils.ValidatePrivateSpendKey(wallet.GetPrivateSpendKey());
                     MoneroUtils.ValidateMnemonic(wallet.GetSeed());
-                    if (wallet.GetWalletType() != MoneroWalletType.RPC) Assert.True(MoneroWallet.DEFAULT_LANGUAGE == wallet.GetSeedLanguage());  // TODO monero-wallet-rpc: get seed language
+                    if (wallet.GetWalletType() != MoneroWalletType.Rpc) Assert.True(MoneroWallet.DefaultLanguage == wallet.GetSeedLanguage());  // TODO monero-wallet-rpc: get seed language
                 }
                 catch (Exception e)
                 {
@@ -206,7 +206,7 @@ namespace Monero.Test
                     Assert.True(privateViewKey == wallet.GetPrivateViewKey());
                     Assert.True(privateSpendKey == wallet.GetPrivateSpendKey());
                     Assert.True(TestUtils.SEED == wallet.GetSeed());
-                    if (wallet.GetWalletType() != MoneroWalletType.RPC) Assert.True(MoneroWallet.DEFAULT_LANGUAGE == wallet.GetSeedLanguage());
+                    if (wallet.GetWalletType() != MoneroWalletType.Rpc) Assert.True(MoneroWallet.DefaultLanguage == wallet.GetSeedLanguage());
                 }
                 catch (Exception e)
                 {
@@ -263,7 +263,7 @@ namespace Monero.Test
                     Assert.True(TestUtils.SEED == wallet.GetSeed());
                     MoneroUtils.ValidateAddress(wallet.GetPrimaryAddress(), TestUtils.NETWORK_TYPE);
                     Assert.True(TestUtils.ADDRESS != wallet.GetPrimaryAddress());
-                    if (wallet.GetWalletType() != MoneroWalletType.RPC) Assert.True(MoneroWallet.DEFAULT_LANGUAGE == wallet.GetSeedLanguage());  // TODO monero-wallet-rpc: support
+                    if (wallet.GetWalletType() != MoneroWalletType.Rpc) Assert.True(MoneroWallet.DefaultLanguage == wallet.GetSeedLanguage());  // TODO monero-wallet-rpc: support
                 }
                 catch (Exception e)
                 {
@@ -305,10 +305,10 @@ namespace Monero.Test
                     Assert.True(privateSpendKey == wallet.GetPrivateSpendKey());
                     if (!wallet.IsConnectedToDaemon()) MoneroUtils.Log(0, "WARNING: wallet created from keys is not connected to authenticated daemon"); // TODO monero-project: keys wallets not connected
                     Assert.True(wallet.IsConnectedToDaemon(), "Wallet created from keys is not connected to authenticated daemon");
-                    if (wallet.GetWalletType() != MoneroWalletType.RPC)
+                    if (wallet.GetWalletType() != MoneroWalletType.Rpc)
                     {
                         MoneroUtils.ValidateMnemonic(wallet.GetSeed()); // TODO monero-wallet-rpc: cannot get seed from wallet created from keys?
-                        Assert.True(MoneroWallet.DEFAULT_LANGUAGE == wallet.GetSeedLanguage());
+                        Assert.True(MoneroWallet.DefaultLanguage == wallet.GetSeedLanguage());
                     }
                 }
                 catch (Exception e)
@@ -319,7 +319,7 @@ namespace Monero.Test
                 if (e2 != null) throw e2;
 
                 // recreate test wallet from spend _key
-                if (wallet.GetWalletType() != MoneroWalletType.RPC)
+                if (wallet.GetWalletType() != MoneroWalletType.Rpc)
                 { // TODO monero-wallet-rpc: cannot create wallet from spend _key?
                     wallet = CreateWallet(new MoneroWalletConfig().SetPrivateSpendKey(privateSpendKey).SetRestoreHeight(daemon.GetHeight()));
                     e2 = null;
@@ -330,10 +330,10 @@ namespace Monero.Test
                         Assert.True(privateSpendKey == wallet.GetPrivateSpendKey());
                         if (!wallet.IsConnectedToDaemon()) MoneroUtils.Log(0, "WARNING: wallet created from keys is not connected to authenticated daemon"); // TODO monero-project: keys wallets not connected
                         Assert.True(wallet.IsConnectedToDaemon(), "Wallet created from keys is not connected to authenticated daemon");
-                        if (wallet.GetWalletType() != MoneroWalletType.RPC)
+                        if (wallet.GetWalletType() != MoneroWalletType.Rpc)
                         {
                             MoneroUtils.ValidateMnemonic(wallet.GetSeed()); // TODO monero-wallet-rpc: cannot get seed from wallet created from keys?
-                            Assert.True(MoneroWallet.DEFAULT_LANGUAGE == wallet.GetSeedLanguage());
+                            Assert.True(MoneroWallet.DefaultLanguage == wallet.GetSeedLanguage());
                         }
                     }
                     catch (Exception e)
@@ -577,7 +577,7 @@ namespace Monero.Test
         {
             Assert.True(TEST_NON_RELAYS);
             string language = wallet.GetSeedLanguage();
-            Assert.True(MoneroWallet.DEFAULT_LANGUAGE == language);
+            Assert.True(MoneroWallet.DefaultLanguage == language);
         }
 
         // Can get a list of supported languages for the seed
@@ -770,7 +770,7 @@ namespace Monero.Test
             Assert.True(TEST_NON_RELAYS);
             MoneroIntegratedAddress integratedAddress = wallet.GetIntegratedAddress(null, "03284e41c342f036");
             MoneroIntegratedAddress decodedAddress = wallet.DecodeIntegratedAddress(integratedAddress.ToString());
-            Assert.Equal(integratedAddress, decodedAddress);
+            Assert.True(integratedAddress.Equals(decodedAddress));
 
             // decode invalid address
             try
@@ -1068,7 +1068,13 @@ namespace Monero.Test
                 List<MoneroSubaddress> fetchedSubaddresses = wallet.GetSubaddresses((uint)account.GetIndex(), subaddressIndices);
 
                 // original subaddresses (minus one removed if applicable) is equal to fetched subaddresses
-                Assert.Equal(subaddresses, fetchedSubaddresses);
+                int i = 0;
+
+                foreach (MoneroSubaddress subaddr in subaddresses)
+                {
+                    Assert.True(subaddr.Equals(fetchedSubaddresses[i]));
+                    i++;
+                }
             }
         }
 
@@ -1090,8 +1096,8 @@ namespace Monero.Test
                 {
                     TestSubaddress(subaddress);
                     uint subaddressIdx = (uint)subaddress.GetIndex();
-                    Assert.Equal(subaddress, wallet.GetSubaddress(accountIdx, subaddressIdx));
-                    Assert.Equal(subaddress, (wallet.GetSubaddresses(accountIdx, new List<uint>() { subaddressIdx })[0])); // test plural call with single subaddr number
+                    Assert.True(subaddress.Equals(wallet.GetSubaddress(accountIdx, subaddressIdx)));
+                    Assert.True(subaddress.Equals((wallet.GetSubaddresses(accountIdx, new List<uint>() { subaddressIdx })[0]))); // test plural call with single subaddr number
                 }
             }
         }
@@ -1116,7 +1122,7 @@ namespace Monero.Test
                 TestSubaddress(subaddress);
                 List<MoneroSubaddress> subaddressesNew = wallet.GetSubaddresses(accountIdx);
                 Assert.Equal(subaddressesNew.Count - 1, subaddresses.Count);
-                Assert.Equal(subaddress, subaddressesNew[subaddressesNew.Count - 1]);
+                Assert.True(subaddress.Equals(subaddressesNew[subaddressesNew.Count - 1]));
 
                 // create subaddress with label
                 subaddresses = wallet.GetSubaddresses(accountIdx);
@@ -1126,7 +1132,7 @@ namespace Monero.Test
                 TestSubaddress(subaddress);
                 subaddressesNew = wallet.GetSubaddresses(accountIdx);
                 Assert.Equal(subaddresses.Count, subaddressesNew.Count - 1);
-                Assert.Equal(subaddress, subaddressesNew[subaddressesNew.Count - 1]);
+                Assert.True(subaddress.Equals(subaddressesNew[subaddressesNew.Count - 1]));
             }
         }
 
@@ -1190,8 +1196,8 @@ namespace Monero.Test
                 // ensure unique block reference per height
                 if (txs[i].IsConfirmed() == true)
                 {
-                    MoneroBlock block = blockPerHeight[(ulong)txs[i].GetHeight()];
-                    if (block == null) blockPerHeight.Add((ulong)txs[i].GetHeight(), txs[i].GetBlock());
+                    MoneroBlock? block = blockPerHeight.GetValueOrDefault((ulong)txs[i].GetHeight()!);
+                    if (block == null) blockPerHeight.Add((ulong)txs[i].GetHeight()!, txs[i].GetBlock()!);
                     else
                     {
                         Assert.Equal(block, txs[i].GetBlock());
@@ -1477,11 +1483,27 @@ namespace Monero.Test
             // fetch txs at mode height by range
             List<MoneroTxWallet> modeTxsByRange = wallet.GetTxs(new MoneroTxQuery().SetMinHeight(modeHeight).SetMaxHeight(modeHeight));
             Assert.Equal(modeTxs.Count, modeTxsByRange.Count);
-            Assert.Equal(modeTxs, modeTxsByRange);
-
+            int i = 0;
+            foreach (MoneroTxWallet modeTx in modeTxs)
+            {
+                Assert.True(modeTx.Equals(modeTxsByRange[i]));
+                i++;
+            }
+            
             // fetch all txs by range
-            Assert.Equal(txs, wallet.GetTxs(new MoneroTxQuery().SetMinHeight(txs.First().GetHeight()).SetMaxHeight(txs.Last().GetHeight())));
+            var fetchedTxs = wallet.GetTxs(new MoneroTxQuery().SetMinHeight(txs.First().GetHeight())
+                .SetMaxHeight(txs.Last().GetHeight()));
+            
+            Assert.Equal(txs.Count, fetchedTxs.Count);
 
+            int j = 0;
+
+            foreach (var fetchedTx in fetchedTxs)
+            {
+                Assert.True(fetchedTx.Equals(txs[j]));
+                j++;
+            }
+            
             // test some filtered by range
             {
                 txs = wallet.GetTxs(new MoneroTxQuery().SetIsConfirmed(true));
@@ -1671,7 +1693,7 @@ namespace Monero.Test
 
                 // get transfers by subaddress index
                 List<MoneroTransfer> subaddressTransfers = new List<MoneroTransfer>();
-                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses()!)
                 {
                     List<MoneroTransfer> _transfers = GetAndTestTransfers(wallet, new MoneroTransferQuery().SetAccountIndex(subaddress.GetAccountIndex()).SetSubaddressIndex(subaddress.GetIndex()), null, null);
                     foreach (MoneroTransfer transfer in _transfers)
@@ -1688,10 +1710,10 @@ namespace Monero.Test
                         else
                         {
                             MoneroOutgoingTransfer outTransfer = (MoneroOutgoingTransfer)transfer;
-                            Assert.True(outTransfer.GetSubaddressIndices().Contains((uint)subaddress.GetIndex()));
+                            Assert.Contains((uint)subaddress.GetIndex()!, outTransfer.GetSubaddressIndices()!);
                             if (transfer.GetAccountIndex() != 0)
                             {
-                                foreach (int subaddrIdx in outTransfer.GetSubaddressIndices())
+                                foreach (int subaddrIdx in outTransfer.GetSubaddressIndices()!)
                                 {
                                     if (subaddrIdx > 0)
                                     {
@@ -1706,7 +1728,7 @@ namespace Monero.Test
                         bool found = false;
                         foreach (MoneroTransfer subaddressTransfer in subaddressTransfers)
                         {
-                            if (transfer.ToString().Equals(subaddressTransfer.ToString()) && transfer.GetTx().GetHash().Equals(subaddressTransfer.GetTx().GetHash()))
+                            if (transfer.ToString().Equals(subaddressTransfer.ToString()) && transfer.GetTx()!.GetHash()!.Equals(subaddressTransfer.GetTx()!.GetHash()))
                             {
                                 found = true;
                                 break;
@@ -1955,7 +1977,7 @@ namespace Monero.Test
 
                 // determine if account is used
                 bool isUsed = false;
-                foreach (MoneroSubaddress subaddress in account.GetSubaddresses()) if (subaddress.IsUsed() == true) isUsed = true;
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses()!) if (subaddress.IsUsed() == true) isUsed = true;
 
                 // get outputs by account index
                 List<MoneroOutputWallet> accountOutputs = GetAndTestOutputs(wallet, new MoneroOutputQuery().SetAccountIndex(account.GetIndex()), isUsed);
@@ -1963,7 +1985,7 @@ namespace Monero.Test
 
                 // get outputs by subaddress index
                 List<MoneroOutputWallet> subaddressOutputs = new List<MoneroOutputWallet>();
-                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses()!)
                 {
                     List<MoneroOutputWallet> _outputs = GetAndTestOutputs(wallet, new MoneroOutputQuery().SetAccountIndex(account.GetIndex()).SetSubaddressIndex(subaddress.GetIndex()), subaddress.IsUsed());
                     foreach (MoneroOutputWallet output in _outputs)
@@ -1978,7 +2000,7 @@ namespace Monero.Test
 
                 // get outputs by subaddress indices
                 HashSet<uint> subaddressIndices = new HashSet<uint>();
-                foreach (MoneroOutputWallet output in subaddressOutputs) subaddressIndices.Add((uint)output.GetSubaddressIndex());
+                foreach (MoneroOutputWallet output in subaddressOutputs) subaddressIndices.Add((uint)output.GetSubaddressIndex()!);
                 List<MoneroOutputWallet> outputs = GetAndTestOutputs(wallet, new MoneroOutputQuery().SetAccountIndex(account.GetIndex()).SetSubaddressIndices(new List<uint>(subaddressIndices)), isUsed);
                 Assert.Equal(outputs.Count, subaddressOutputs.Count);
                 foreach (MoneroOutputWallet output in outputs)
@@ -2153,12 +2175,12 @@ namespace Monero.Test
 
             // wallet balance is sum of all unspent outputs
             ulong walletSum = 0;
-            foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount();
+            foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount()!;
             if (!walletBalance.Equals(walletSum))
             {
                 // txs may have changed in between calls so retry test
                 walletSum = 0;
-                foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount();
+                foreach (MoneroOutputWallet output in wallet.GetOutputs(new MoneroOutputQuery().SetIsSpent(false))) walletSum += (ulong)output.GetAmount()!;
                 if (!walletBalance.Equals(walletSum)) Assert.True(hasUnconfirmedTx, "Wallet balance must equal sum of unspent outputs if no unconfirmed txs");
             }
 
@@ -2167,15 +2189,15 @@ namespace Monero.Test
             {
                 ulong accountSum = 0;
                 List<MoneroOutputWallet> accountOutputs = wallet.GetOutputs(new MoneroOutputQuery().SetAccountIndex(account.GetIndex()).SetIsSpent(false));
-                foreach (MoneroOutputWallet output in accountOutputs) accountSum += (uint)output.GetAmount();
+                foreach (MoneroOutputWallet output in accountOutputs) accountSum += (ulong)output.GetAmount()!;
                 if (!account.GetBalance().Equals(accountSum)) Assert.True(hasUnconfirmedTx, "Account balance must equal sum of its unspent outputs if no unconfirmed txs");
 
                 // subaddress balances are sum of their unspent outputs
-                foreach (MoneroSubaddress subaddress in account.GetSubaddresses())
+                foreach (MoneroSubaddress subaddress in account.GetSubaddresses()!)
                 {
                     ulong subaddressSum = 0;
                     List<MoneroOutputWallet> subaddressOutputs = wallet.GetOutputs(new MoneroOutputQuery().SetAccountIndex(account.GetIndex()).SetSubaddressIndex(subaddress.GetIndex()).SetIsSpent(false));
-                    foreach (MoneroOutputWallet output in subaddressOutputs) subaddressSum += (uint)output.GetAmount();
+                    foreach (MoneroOutputWallet output in subaddressOutputs) subaddressSum += (ulong)output.GetAmount()!;
                     if (!subaddress.GetBalance().Equals(subaddressSum)) Assert.True(hasUnconfirmedTx, "Subaddress balance must equal sum of its unspent outputs if no unconfirmed txs");
                 }
             }
@@ -2778,38 +2800,38 @@ namespace Monero.Test
             {
 
                 // sign and verify message with spend key
-                string signature = wallet.SignMessage(msg, MoneroMessageSignatureType.SIGN_WITH_SPEND_KEY, (uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex());
+                string signature = wallet.SignMessage(msg, MoneroMessageSignatureType.SignWithSpendKey, (uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex());
                 MoneroMessageSignatureResult result = wallet.VerifyMessage(msg, wallet.GetAddress((uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex()), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(true, false, MoneroMessageSignatureType.SIGN_WITH_SPEND_KEY, 2), result);
+                Assert.True(new MoneroMessageSignatureResult(true, false, MoneroMessageSignatureType.SignWithSpendKey, 2).Equals(result));
 
                 // verify message with incorrect address
                 result = wallet.VerifyMessage(msg, wallet.GetAddress(0, 2), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
 
                 // verify message with invalid address
                 result = wallet.VerifyMessage(msg, "invalid address", signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
 
                 // verify message with external address
                 result = wallet.VerifyMessage(msg, TestUtils.GetExternalWalletAddress(), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
 
                 // sign and verify message with view key
-                signature = wallet.SignMessage(msg, MoneroMessageSignatureType.SIGN_WITH_VIEW_KEY, (uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex());
+                signature = wallet.SignMessage(msg, MoneroMessageSignatureType.SignWithViewKey, (uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex());
                 result = wallet.VerifyMessage(msg, wallet.GetAddress((uint)subaddress.GetAccountIndex(), (uint)subaddress.GetIndex()), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(true, false, MoneroMessageSignatureType.SIGN_WITH_VIEW_KEY, 2), result);
+                Assert.True(new MoneroMessageSignatureResult(true, false, MoneroMessageSignatureType.SignWithViewKey, 2).Equals(result));
 
                 // verify message with incorrect address
                 result = wallet.VerifyMessage(msg, wallet.GetAddress(0, 2), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
 
                 // verify message with external address
                 result = wallet.VerifyMessage(msg, TestUtils.GetExternalWalletAddress(), signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
 
                 // verify message with invalid address
                 result = wallet.VerifyMessage(msg, "invalid address", signature);
-                Assert.Equal(new MoneroMessageSignatureResult(false, null, null, null), result);
+                Assert.True(new MoneroMessageSignatureResult(false, null, null, null).Equals(result));
             }
         }
 
@@ -2843,7 +2865,7 @@ namespace Monero.Test
                     {
                         TestAddressBookEntry(entry);
                         Assert.Equal(entry.GetAddress(), address);
-                        Assert.Equal(entry.GetDescription(), "hi there!");
+                        Assert.Equal("hi there!", entry.GetDescription());
                         found = true;
                         break;
                     }
@@ -2897,7 +2919,7 @@ namespace Monero.Test
                         TestAddressBookEntry(entry);
                         Assert.Equal(integratedDescriptions[idx], entry.GetDescription());
                         Assert.Equal(integratedAddresses[idx].ToString(), entry.GetAddress());
-                        Assert.Equal(null, entry.GetPaymentId());
+                        Assert.Null(entry.GetPaymentId());
                         found = true;
                         break;
                     }
@@ -2951,7 +2973,7 @@ namespace Monero.Test
             MoneroTxConfig config1 = new MoneroTxConfig().SetAddress(wallet.GetAddress(0, 0)).SetAmount(0);
             string uri = wallet.GetPaymentUri(config1);
             MoneroTxConfig config2 = wallet.ParsePaymentUri(uri);
-            Assert.Equal(config1, config2);
+            Assert.True(config1.Equals(config2));
 
             // test with subaddress and all fields
             config1.GetDestinations()[0].SetAddress(wallet.GetSubaddress(0, 1).GetAddress());
@@ -2960,7 +2982,7 @@ namespace Monero.Test
             config1.SetNote("OMZG XMR FTW");
             uri = wallet.GetPaymentUri(config1);
             config2 = wallet.ParsePaymentUri(uri);
-            Assert.Equal(config1, config2);
+            Assert.True(config1.Equals(config2));
 
             // test with undefined address
             string address = config1.GetDestinations()[0].GetAddress();
@@ -4095,7 +4117,7 @@ namespace Monero.Test
             config.SetDestinations(new List<MoneroDestination>());
             config.SetRelay(true);
             config.SetCanSplit(canSplit);
-            config.SetPriority(MoneroTxPriority.NORMAL);
+            config.SetPriority(MoneroTxPriority.Normal);
             List<uint> subtractFeeFrom = new List<uint>();
             for (uint i = 0; i < destinationAddresses.Count; i++)
             {
@@ -4367,7 +4389,7 @@ namespace Monero.Test
         [Fact]
         public virtual void TestSweepSubaddresses()
         {
-            Assert.True(TEST_RESETS);
+            Assert.True(TEST_RESETS, "Reset tests disabled");
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
 
             const int NUM_SUBADDRESSES_TO_SWEEP = 2;
@@ -4465,7 +4487,7 @@ namespace Monero.Test
         [Fact]
         public virtual void TestSweepAccounts()
         {
-            Assert.True(TEST_RESETS);
+            Assert.True(TEST_RESETS, "Reset tests disabled");
             TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
 
             const int NUM_ACCOUNTS_TO_SWEEP = 1;
@@ -4548,7 +4570,7 @@ namespace Monero.Test
         [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
         public virtual void TestSweepWalletByAccounts()
         {
-            Assert.True(TEST_RESETS);
+            Assert.True(TEST_RESETS, "Reset tests disabled");
             TestSweepWallet(null);
         }
 
@@ -4556,7 +4578,7 @@ namespace Monero.Test
         [Fact(Skip = "Disabled so tests don't sweep the whole wallet")]
         public virtual void TestSweepWalletBySubaddresses()
         {
-            Assert.True(TEST_RESETS);
+            Assert.True(TEST_RESETS, "Reset tests disabled");
             TestSweepWallet(true);
         }
 
@@ -4663,7 +4685,7 @@ namespace Monero.Test
         [Fact(Skip = "Disabled so tests don't delete local cache")]
         public virtual void TestRescanBlockchain()
         {
-            Assert.True(TEST_RESETS);
+            Assert.True(TEST_RESETS, "Reset tests disabled");
             wallet.RescanBlockchain();
             foreach (MoneroTxWallet tx in wallet.GetTxs())
             {
@@ -5521,7 +5543,7 @@ namespace Monero.Test
             
             TestGetTxsStructure(txs, query);
             
-            if (query != null) Assert.Equal(copy, query);
+            if (query != null) Assert.True(copy.Equals(query));
             return txs;
         }
 
@@ -5535,7 +5557,7 @@ namespace Monero.Test
             if (ctx == null) ctx = new TxContext();
             ctx.Wallet = wallet;
             foreach (MoneroTransfer transfer in transfers) TestTxWallet(transfer.GetTx(), ctx);
-            if (query != null) Assert.Equal(copy, query);
+            if (query != null) Assert.True(copy.Equals(query));
             return transfers;
         }
 
@@ -5544,11 +5566,21 @@ namespace Monero.Test
             MoneroOutputQuery? copy = null;
             if (query != null) copy = query.Clone();
             List<MoneroOutputWallet> outputs = wallet.GetOutputs(query);
-            Assert.Equal(copy, query);
+
+            if (query != null)
+            {
+                Assert.True(query.Equals(copy));
+            }
+            
             if (isExpected == false) Assert.True(outputs.Count == 0);
             if (isExpected == true) Assert.True(outputs.Count > 0, "Outputs were expected but not found; run send tests");
             foreach (MoneroOutputWallet output in outputs) TestOutputWallet(output);
-            if (query != null) Assert.Equal(copy, query);
+            
+            if (query != null)
+            {
+                Assert.True(query.Equals(copy));
+            }
+            
             return outputs;
         }
 
@@ -5564,7 +5596,7 @@ namespace Monero.Test
 
         protected virtual void TestInvalidTxKeyError(MoneroError e)
         {
-            Assert.Equal("Tx _key has invalid format", e.Message);
+            Assert.Equal("Tx key has invalid format", e.Message);
         }
 
         protected virtual void TestInvalidSignatureError(MoneroError e)
@@ -5579,7 +5611,7 @@ namespace Monero.Test
 
         protected virtual void TestSignatureHeaderCheckError(MoneroError e)
         {
-            Assert.Equal("Signature header _check error", e.Message);
+            Assert.Equal("Signature header check error", e.Message);
         }
 
         private static void TestAccount(MoneroAccount account)
@@ -5856,7 +5888,7 @@ namespace Monero.Test
                 MoneroTxConfig config = ctx.Config;
                 Assert.Equal(false, tx.IsConfirmed());
                 TestTransfer(tx.GetOutgoingTransfer(), ctx);
-                Assert.Equal(MoneroUtils.RING_SIZE, (uint)tx.GetRingSize());
+                Assert.Equal(MoneroUtils.RingSize, (uint)tx.GetRingSize());
                 Assert.True(0 == tx.GetUnlockTime());
                 Assert.Null(tx.GetBlock());
                 Assert.True(tx.GetKey().Length > 0);
@@ -5961,7 +5993,7 @@ namespace Monero.Test
             // copy _tx and Assert. deep equality
             MoneroTxWallet copy = tx.Clone();
             Assert.True(copy is MoneroTxWallet);
-            Assert.Equal(copy, tx);
+            Assert.True(copy.Equals(tx));
 
             // test different references
             if (tx.GetOutgoingTransfer() != null)
@@ -5970,36 +6002,36 @@ namespace Monero.Test
                 Assert.True(tx.GetOutgoingTransfer().GetTx() != copy.GetOutgoingTransfer().GetTx());
                 if (tx.GetOutgoingTransfer().GetDestinations() != null)
                 {
-                    Assert.True(tx.GetOutgoingTransfer().GetDestinations() != copy.GetOutgoingTransfer().GetDestinations());
-                    for (int i = 0; i < tx.GetOutgoingTransfer().GetDestinations().Count; i++)
+                    Assert.True(tx.GetOutgoingTransfer()!.GetDestinations() != copy.GetOutgoingTransfer()!.GetDestinations());
+                    for (int i = 0; i < tx.GetOutgoingTransfer()!.GetDestinations()!.Count; i++)
                     {
-                        Assert.Equal(copy.GetOutgoingTransfer().GetDestinations()[i], tx.GetOutgoingTransfer().GetDestinations()[i]);
-                        Assert.True(tx.GetOutgoingTransfer().GetDestinations()[i] != copy.GetOutgoingTransfer().GetDestinations()[i]);
+                        Assert.True(copy.GetOutgoingTransfer()!.GetDestinations()![i].Equals(tx.GetOutgoingTransfer()!.GetDestinations()![i]));
+                        Assert.True(tx.GetOutgoingTransfer()!.GetDestinations()![i] != copy.GetOutgoingTransfer()!.GetDestinations()![i]);
                     }
                 }
             }
             if (tx.GetIncomingTransfers() != null)
             {
-                for (int i = 0; i < tx.GetIncomingTransfers().Count; i++)
+                for (int i = 0; i < tx.GetIncomingTransfers()!.Count; i++)
                 {
-                    Assert.Equal(copy.GetIncomingTransfers()[i], tx.GetIncomingTransfers()[i]);
-                    Assert.True(tx.GetIncomingTransfers()[i] != copy.GetIncomingTransfers()[i]);
+                    Assert.True(copy.GetIncomingTransfers()![i].Equals(tx.GetIncomingTransfers()![i]));
+                    Assert.True(tx.GetIncomingTransfers()![i] != copy.GetIncomingTransfers()![i]);
                 }
             }
             if (tx.GetInputs() != null)
             {
-                for (int i = 0; i < tx.GetInputs().Count; i++)
+                for (int i = 0; i < tx.GetInputs()!.Count; i++)
                 {
-                    Assert.Equal(copy.GetInputs()[i], tx.GetInputs()[i]);
-                    Assert.True(tx.GetInputs()[i] != copy.GetInputs()[i]);
+                    Assert.True(copy.GetInputs()![i].Equals(tx.GetInputs()![i]));
+                    Assert.True(tx.GetInputs()![i] != copy.GetInputs()![i]);
                 }
             }
             if (tx.GetOutputs() != null)
             {
-                for (int i = 0; i < tx.GetOutputs().Count; i++)
+                for (int i = 0; i < tx.GetOutputs()!.Count; i++)
                 {
-                    Assert.Equal(copy.GetOutputs()[i], tx.GetOutputs()[i]);
-                    Assert.True(tx.GetOutputs()[i] != copy.GetOutputs()[i]);
+                    Assert.True(copy.GetOutputs()![i].Equals(tx.GetOutputs()![i]));
+                    Assert.True(tx.GetOutputs()![i] != copy.GetOutputs()![i]);
                 }
             }
 
