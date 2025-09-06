@@ -43,7 +43,7 @@ namespace Monero.Test.Utils
   
         // test wallet constants
         public static readonly ulong MAX_FEE = 75000000000;
-        public static readonly MoneroNetworkType NETWORK_TYPE = MoneroNetworkType.TESTNET;
+        public static readonly MoneroNetworkType NETWORK_TYPE = MoneroNetworkType.Testnet;
         public static readonly string LANGUAGE = "English";
         public static readonly string SEED = "silk mocked cucumber lettuce hope adrenalin aching lush roles fuel revamp baptism wrist long tender teardrop midst pastry pigment equip frying inbound pinched ravine frying";
         public static readonly string ADDRESS = "A1y9sbVt8nqhZAVm3me1U18rUVXcjeNKuBd1oE2cTs8biA9cozPMeyYLhe77nPv12JA3ejJN3qprmREriit2fi6tJDi99RR";
@@ -208,11 +208,11 @@ namespace Monero.Test.Utils
             
             switch (networkType)
             {
-                case MoneroNetworkType.STAGENET:
+                case MoneroNetworkType.Stagenet:
                     return "78Zq71rS1qK4CnGt8utvMdWhVNMJexGVEDM2XsSkBaGV9bDSnRFFhWrQTbmCACqzevE8vth9qhWfQ9SUENXXbLnmMVnBwgW"; // subaddress
-                case MoneroNetworkType.TESTNET:
+                case MoneroNetworkType.Testnet:
                     return "BhsbVvqW4Wajf4a76QW3hA2B3easR5QdNE5L8NwkY7RWXCrfSuaUwj1DDUsk3XiRGHBqqsK3NPvsATwcmNNPUQQ4SRR2b3V"; // subaddress
-                case MoneroNetworkType.MAINNET:
+                case MoneroNetworkType.Mainnet:
                     return "87a1Yf47UqyQFCrMqqtxfvhJN9se3PgbmU7KUFWqhSu5aih6YsZYoxfjgyxAM1DztNNSdoYTZYn9xa3vHeJjoZqdAybnLzN"; // subaddress
                 default:
                     throw new MoneroError("Invalid network type: " + networkType);
