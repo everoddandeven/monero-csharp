@@ -3,40 +3,40 @@ namespace Monero.Wallet.Common;
 
 public class MoneroSyncResult
 {
-    private ulong _numBlocksFetched;
-    private bool _receivedMoney;
+    private ulong? numBlocksFetched;
+    private bool? receivedMoney;
 
-    public MoneroSyncResult(ulong numBlocksFetched, bool receivedMoney)
+    public MoneroSyncResult(ulong? numBlocksFetched = null, bool? receivedMoney = null)
     {
-        _numBlocksFetched = numBlocksFetched;
-        _receivedMoney = receivedMoney;
+        this.numBlocksFetched = numBlocksFetched;
+        this.receivedMoney = receivedMoney;
     }
 
     public MoneroSyncResult(MoneroSyncResult syncResult)
     {
-        _numBlocksFetched = syncResult._numBlocksFetched;
-        _receivedMoney = syncResult._receivedMoney;
+        numBlocksFetched = syncResult.numBlocksFetched;
+        receivedMoney = syncResult.receivedMoney;
     }
 
-    public ulong GetNumBlocksFetched()
+    public ulong? GetNumBlocksFetched()
     {
-        return _numBlocksFetched;
+        return numBlocksFetched;
     }
 
-    public MoneroSyncResult SetNumBlocksFetched(ulong numBlocksFetched)
+    public MoneroSyncResult SetNumBlocksFetched(ulong? numBlocksFetched)
     {
-        _numBlocksFetched = numBlocksFetched;
+        this.numBlocksFetched = numBlocksFetched;
         return this;
     }
 
-    public bool IsReceivedMoney()
+    public bool? GetReceivedMoney()
     {
-        return _receivedMoney;
+        return receivedMoney;
     }
 
-    public MoneroSyncResult SetReceivedMoney(bool receivedMoney)
+    public MoneroSyncResult SetReceivedMoney(bool? receivedMoney)
     {
-        _receivedMoney = receivedMoney;
+        this.receivedMoney = receivedMoney;
         return this;
     }
 

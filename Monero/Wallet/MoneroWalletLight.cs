@@ -7,7 +7,7 @@ public class MoneroWalletLight : MoneroWalletKeys
 {
     #region Override Base Methods
 
-    public override int AddAddressBookEntry(string address, string description)
+    public override uint AddAddressBookEntry(string address, string description)
     {
         throw new NotImplementedException("Not supported by monero-wallet-light");
     }

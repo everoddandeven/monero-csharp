@@ -4,27 +4,69 @@ public class MoneroAccount
 {
     private uint? index;
     private string? primaryAddress;
-    private ulong balance;
-    private ulong unlockedBalance;
+    private ulong? balance;
+    private ulong? unlockedBalance;
     private string? tag;
-    private List<MoneroSubaddress> subaddresses;
+    private List<MoneroSubaddress>? subaddresses;
 
-    public MoneroAccount(uint? index = null, string? primaryAddress = null)
-    {
-        this.index = index;
-        this.primaryAddress = primaryAddress;
-        subaddresses = [];
-        balance = 0;
-        unlockedBalance = 0;
-    }
-
-    public MoneroAccount(uint index, string primaryAddress, ulong balance, ulong unlockedBalance, List<MoneroSubaddress> subaddresses)
+    public MoneroAccount(uint? index = null, string? primaryAddress = null, ulong? balance = null, ulong? unlockedBalance = null, List<MoneroSubaddress>? subaddresses = null)
     {
         this.index = index;
         this.primaryAddress = primaryAddress;
         this.balance = balance;
         this.unlockedBalance = unlockedBalance;
         this.subaddresses = subaddresses;
+    }
+
+    public MoneroAccount(MoneroAccount other)
+    {
+        index = other.index;
+        primaryAddress = other.primaryAddress;
+        balance = other.balance;
+        unlockedBalance = other.unlockedBalance;
+
+        if (other.subaddresses != null)
+        {
+            subaddresses = [];
+            foreach (var subaddr in other.subaddresses)
+            {
+                subaddresses.Add(subaddr.Clone());
+            }
+        }
+    }
+
+    public bool Equals(MoneroAccount? other)
+    {
+        if (other == null) return false;
+        if (this == other) return false;
+
+        if (subaddresses == null)
+        {
+            if (other.subaddresses != null) return false;
+        }
+        else
+        {
+            if (other.subaddresses == null) return false;
+
+            int i = 0;
+
+            foreach (MoneroSubaddress subaddr in subaddresses)
+            {
+                var otherSubaddr = other.subaddresses[i];
+                if (!subaddr.Equals(otherSubaddr)) return false;
+                i++;
+            }
+        }
+
+        return index == other.index &&
+                primaryAddress == other.primaryAddress &&
+                balance == other.balance &&
+                unlockedBalance == other.unlockedBalance;
+    }
+
+    public MoneroAccount Clone()
+    {
+        return new MoneroAccount(this);
     }
 
     public uint? GetIndex()
@@ -49,23 +91,23 @@ public class MoneroAccount
         return this;
     }
 
-    public ulong GetBalance()
+    public ulong? GetBalance()
     {
         return balance;
     }
 
-    public MoneroAccount SetBalance(ulong balance)
+    public MoneroAccount SetBalance(ulong? balance)
     {
         this.balance = balance;
         return this;
     }
 
-    public ulong GetUnlockedBalance()
+    public ulong? GetUnlockedBalance()
     {
         return unlockedBalance;
     }
 
-    public MoneroAccount SetUnlockedBalance(ulong unlockedBalance)
+    public MoneroAccount SetUnlockedBalance(ulong? unlockedBalance)
     {
         this.unlockedBalance = unlockedBalance;
         return this;
@@ -82,12 +124,12 @@ public class MoneroAccount
         return this;
     }
 
-    public List<MoneroSubaddress> GetSubaddresses()
+    public List<MoneroSubaddress>? GetSubaddresses()
     {
         return subaddresses;
     }
 
-    public MoneroAccount SetSubaddresses(List<MoneroSubaddress> subaddresses)
+    public MoneroAccount SetSubaddresses(List<MoneroSubaddress>? subaddresses)
     {
         this.subaddresses = subaddresses;
         if (subaddresses != null)

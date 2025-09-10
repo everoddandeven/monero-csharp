@@ -13,6 +13,21 @@ public class MoneroSubaddress
     private bool? isUsed;
     private ulong? numBlocksToUnlock;
 
+    public bool Equals(MoneroSubaddress? other)
+    {
+        if (other == null) return false;
+        if (this == other) return true;
+        return accountIndex == other.accountIndex &&
+                index == other.index &&
+                address == other.address &&
+                label == other.label &&
+                balance == other.balance &&
+                unlockedBalance == other.unlockedBalance &&
+                numUnspentOutputs == other.numUnspentOutputs &&
+                isUsed == other.isUsed &&
+                numBlocksToUnlock == other.numBlocksToUnlock;
+    }
+
     public MoneroSubaddress() { }
 
     public MoneroSubaddress(string address)
@@ -24,6 +39,24 @@ public class MoneroSubaddress
     {
         this.accountIndex = accountIndex;
         this.index = index;
+    }
+
+    public MoneroSubaddress(MoneroSubaddress other)
+    {
+        accountIndex = other.accountIndex;
+        index = other.index;
+        address = other.address;
+        label = other.label;
+        balance = other.balance;
+        unlockedBalance = other.unlockedBalance;
+        numUnspentOutputs = other.numUnspentOutputs;
+        isUsed = other.isUsed;
+        numBlocksToUnlock = other.numBlocksToUnlock;
+    }
+
+    public MoneroSubaddress Clone()
+    {
+        return new MoneroSubaddress(this);
     }
 
     public uint? GetAccountIndex()

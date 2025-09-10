@@ -1,5 +1,4 @@
-﻿
-using Monero.Common;
+﻿using Monero.Common;
 using Monero.Wallet.Common;
 
 namespace Monero.Wallet;
@@ -8,14 +7,14 @@ public abstract class MoneroWalletDefault : MoneroWallet
 {
     protected MoneroConnectionManager? connectionManager;
     protected MoneroConnectionManagerListener? connectionManagerListener;
-    protected List<MoneroWalletListener> listeners = [];
-    protected bool isClosed = false;
+    protected readonly List<MoneroWalletListener> listeners = [];
+    protected bool isWalletClosed;
 
     public abstract MoneroWalletType GetWalletType();
 
     public abstract MoneroNetworkType GetNetworkType();
 
-    public abstract int AddAddressBookEntry(string address, string description);
+    public abstract uint AddAddressBookEntry(string address, string description);
 
     public virtual void AddListener(MoneroWalletListener listener)
     {
@@ -42,7 +41,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
         connectionManager = null;
         connectionManagerListener = null;
         listeners.Clear();
-        isClosed = true;
+        isWalletClosed = true;
     }
 
     public abstract MoneroAccount CreateAccount(string? label = null);
@@ -187,7 +186,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
         return GetOutputs(new MoneroOutputQuery());
     }
 
-    public abstract List<MoneroOutputWallet> GetOutputs(MoneroOutputQuery query);
+    public abstract List<MoneroOutputWallet> GetOutputs(MoneroOutputQuery? query);
 
     public abstract string GetPath();
 
@@ -292,14 +291,14 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public virtual bool IsClosed()
     {
-        return isClosed;
+        return isWalletClosed;
     }
 
     public abstract bool IsConnectedToDaemon();
 
     public virtual bool IsMultisig()
     {
-        return GetMultisigInfo().IsMultisig() == true;
+        return GetMultisigInfo().IsMultisig();
     }
 
     public abstract bool IsMultisigImportNeeded();
@@ -323,7 +322,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public virtual string RelayTx(MoneroTxWallet tx)
     {
-        return RelayTx(tx.GetMetadata());
+        return RelayTx(tx.GetMetadata()!);
     }
 
     public abstract List<string> RelayTxs(List<string> txMetadatas);
@@ -334,7 +333,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
         foreach (MoneroTxWallet tx in txs)
         {
-            txMetadatas.Add(tx.GetMetadata());
+            txMetadatas.Add(tx.GetMetadata()!);
         }
 
         return RelayTxs(txMetadatas);
@@ -382,7 +381,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public virtual void SetDaemonConnection(string? uri, string? username = null, string? password = null)
     {
-        if (uri == null) SetDaemonConnection((MoneroRpcConnection?)null);
+        if (uri == null) SetDaemonConnection(null);
         else SetDaemonConnection(new MoneroRpcConnection(uri, username, password));
     }
 
@@ -407,7 +406,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public abstract void StartMining(ulong numThreads, bool backgroundMining, bool ignoreBattery);
 
-    public abstract void StartSyncing(ulong? SyncPeriodInMs = null);
+    public abstract void StartSyncing(ulong? syncPeriodInMs = null);
 
     public abstract void StopMining();
 
@@ -438,7 +437,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public abstract MoneroMessageSignatureResult VerifyMessage(string message, string address, string signature);
 
-    protected static MoneroTransferQuery NormalizeTransferQuery(MoneroTransferQuery query)
+    protected static MoneroTransferQuery NormalizeTransferQuery(MoneroTransferQuery? query)
     {
         if (query == null) query = new MoneroTransferQuery();
         else
@@ -446,19 +445,19 @@ public abstract class MoneroWalletDefault : MoneroWallet
             if (query.GetTxQuery() == null) query = query.Clone();
             else
             {
-                MoneroTxQuery txQuery = query.GetTxQuery().Clone();
-                if (query.GetTxQuery().GetTransferQuery() == query) query = txQuery.GetTransferQuery();
+                MoneroTxQuery txQuery = query.GetTxQuery()!.Clone();
+                if (query.GetTxQuery()!.GetTransferQuery() == query) query = txQuery.GetTransferQuery();
                 else
                 {
-                    if (null != query.GetTxQuery().GetTransferQuery()) throw new MoneroError("Transfer query's tx query must be circular reference or null");
+                    if (null != query.GetTxQuery()!.GetTransferQuery()) throw new MoneroError("Transfer query's tx query must be circular reference or null");
                     query = query.Clone();
                     query.SetTxQuery(txQuery);
                 }
             }
         }
-        if (query.GetTxQuery() == null) query.SetTxQuery(new MoneroTxQuery());
-        query.GetTxQuery().SetTransferQuery(query);
-        if (query.GetTxQuery().GetBlock() == null) query.GetTxQuery().SetBlock(new MoneroBlock().SetTxs(query.GetTxQuery()));
+        if (query!.GetTxQuery() == null) query.SetTxQuery(new MoneroTxQuery());
+        query.GetTxQuery()!.SetTransferQuery(query);
+        if (query.GetTxQuery()!.GetBlock() == null) query.GetTxQuery()!.SetBlock(new MoneroBlock().SetTxs([query.GetTxQuery()!]));
         return query;
     }
 }

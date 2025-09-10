@@ -182,12 +182,6 @@ public class MoneroBlock : MoneroBlockHeader
         return this;
     }
 
-    public MoneroBlock SetTxs(MoneroTx? tx)
-    {
-        if (tx == null) throw new ArgumentNullException(nameof(tx), "Transaction cannot be null");
-        return SetTxs([tx]);
-    }
-
     public MoneroBlock AddTx(MoneroTx? tx)
     {
         if (tx == null) throw new ArgumentNullException(nameof(tx), "Transaction cannot be null");

@@ -513,125 +513,218 @@ public class MoneroTx
         return this;
     }
 
-    public MoneroTx Merge(MoneroTx? tx)
+    public virtual MoneroTx Merge(MoneroTx tx)
     {
-        if (tx == null)
-        {
-            throw new MoneroError("Cannot merge null tx");
-        }
         if (this == tx) return this;
+        var block = GetBlock();
 
         // merge blocks if they're different
-        if (this.GetBlock() != tx.GetBlock())
+        if (block != null && !block.Equals(tx.GetBlock()))
         {
-            if (this.GetBlock() == null)
+            if (GetBlock() == null)
             {
-                this.SetBlock(tx.GetBlock());
-                //this.GetBlock().GetTxs().Set(this.GetBlock().GetTxs().IndexOf(tx), this); // update block to point to this tx
+                SetBlock(tx.GetBlock());
+                var blockTxs = GetBlock()!.GetTxs() ?? [];
+                var txIndex = blockTxs.IndexOf(tx);
+                blockTxs[txIndex] = this; // update block to point to this tx
             }
             else if (tx.GetBlock() != null)
             {
-                this.GetBlock().Merge(tx.GetBlock()); // comes back to merging txs
+                GetBlock()!.Merge(tx.GetBlock()); // comes back to merging txs
                 return this;
             }
         }
 
         // otherwise merge tx fields
-        this.SetHash(GenUtils.Reconcile(this.GetHash(), tx.GetHash()));
-        this.SetVersion(GenUtils.Reconcile(this.GetVersion(), tx.GetVersion()));
-        this.SetPaymentId(GenUtils.Reconcile(this.GetPaymentId(), tx.GetPaymentId()));
-        this.SetFee(GenUtils.Reconcile(this.GetFee(), tx.GetFee()));
-        this.SetRingSize(GenUtils.Reconcile(this.GetRingSize(), tx.GetRingSize()));
-        this.SetIsConfirmed(GenUtils.Reconcile(this.IsConfirmed(), tx.IsConfirmed(), null, true, null));  // tx can become confirmed
-        this.SetIsMinerTx(GenUtils.Reconcile(this.IsMinerTx(), tx.IsMinerTx(), null, null, null));
-        this.SetRelay(GenUtils.Reconcile(this.GetRelay(), tx.GetRelay(), null, true, null));        // tx can become relayed
-        this.SetIsRelayed(GenUtils.Reconcile(this.IsRelayed(), tx.IsRelayed(), null, true, null));  // tx can become relayed
-        this.SetIsDoubleSpendSeen(GenUtils.Reconcile(this.IsDoubleSpendSeen(), tx.IsDoubleSpendSeen(), null, true, null)); // double spend can become seen
-        this.SetKey(GenUtils.Reconcile(this.GetKey(), tx.GetKey()));
-        this.SetFullHex(GenUtils.Reconcile(this.GetFullHex(), tx.GetFullHex()));
-        this.SetPrunedHex(GenUtils.Reconcile(this.GetPrunedHex(), tx.GetPrunedHex()));
-        this.SetPrunableHex(GenUtils.Reconcile(this.GetPrunableHex(), tx.GetPrunableHex()));
-        this.SetPrunableHash(GenUtils.Reconcile(this.GetPrunableHash(), tx.GetPrunableHash()));
-        this.SetSize(GenUtils.Reconcile(this.GetSize(), tx.GetSize()));
-        this.SetWeight(GenUtils.Reconcile(this.GetWeight(), tx.GetWeight()));
-        this.SetOutputIndices(GenUtils.Reconcile(this.GetOutputIndices(), tx.GetOutputIndices()));
-        this.SetMetadata(GenUtils.Reconcile(this.GetMetadata(), tx.GetMetadata()));
-        this.SetExtra(GenUtils.ReconcileByteArrays(this.GetExtra(), tx.GetExtra()));
-        this.SetRctSignatures(GenUtils.Reconcile(this.GetRctSignatures(), tx.GetRctSignatures()));
-        this.SetRctSigPrunable(GenUtils.Reconcile(this.GetRctSigPrunable(), tx.GetRctSigPrunable()));
-        this.SetIsKeptByBlock(GenUtils.Reconcile(this.IsKeptByBlock(), tx.IsKeptByBlock()));
-        this.SetIsFailed(GenUtils.Reconcile(this.IsFailed(), tx.IsFailed(), null, true, null));
-        this.SetLastFailedHeight(GenUtils.Reconcile(this.GetLastFailedHeight(), tx.GetLastFailedHeight()));
-        this.SetLastFailedHash(GenUtils.Reconcile(this.GetLastFailedHash(), tx.GetLastFailedHash()));
-        this.SetMaxUsedBlockHeight(GenUtils.Reconcile(this.GetMaxUsedBlockHeight(), tx.GetMaxUsedBlockHeight()));
-        this.SetMaxUsedBlockHash(GenUtils.Reconcile(this.GetMaxUsedBlockHash(), tx.GetMaxUsedBlockHash()));
-        this.SetSignatures(GenUtils.Reconcile(this.GetSignatures(), tx.GetSignatures()));
-        this.SetUnlockTime(GenUtils.Reconcile(this.GetUnlockTime(), tx.GetUnlockTime()));
-        this.SetNumConfirmations(GenUtils.Reconcile(this.GetNumConfirmations(), tx.GetNumConfirmations(), null, null, true)); // num confirmations can increase
+        SetHash(GenUtils.Reconcile(GetHash(), tx.GetHash()));
+        SetVersion(GenUtils.Reconcile(GetVersion(), tx.GetVersion()));
+        SetPaymentId(GenUtils.Reconcile(GetPaymentId(), tx.GetPaymentId()));
+        SetFee(GenUtils.Reconcile(GetFee(), tx.GetFee()));
+        SetRingSize(GenUtils.Reconcile(GetRingSize(), tx.GetRingSize()));
+        SetIsConfirmed(GenUtils.Reconcile(IsConfirmed(), tx.IsConfirmed(), null, true, null));  // tx can become confirmed
+        SetIsMinerTx(GenUtils.Reconcile(IsMinerTx(), tx.IsMinerTx(), null, null, null));
+        SetRelay(GenUtils.Reconcile(GetRelay(), tx.GetRelay(), null, true, null));        // tx can become relayed
+        SetIsRelayed(GenUtils.Reconcile(IsRelayed(), tx.IsRelayed(), null, true, null));  // tx can become relayed
+        SetIsDoubleSpendSeen(GenUtils.Reconcile(IsDoubleSpendSeen(), tx.IsDoubleSpendSeen(), null, true, null)); // double spend can become seen
+        SetKey(GenUtils.Reconcile(GetKey(), tx.GetKey()));
+        SetFullHex(GenUtils.Reconcile(GetFullHex(), tx.GetFullHex()));
+        SetPrunedHex(GenUtils.Reconcile(GetPrunedHex(), tx.GetPrunedHex()));
+        SetPrunableHex(GenUtils.Reconcile(GetPrunableHex(), tx.GetPrunableHex()));
+        SetPrunableHash(GenUtils.Reconcile(GetPrunableHash(), tx.GetPrunableHash()));
+        SetSize(GenUtils.Reconcile(GetSize(), tx.GetSize()));
+        SetWeight(GenUtils.Reconcile(GetWeight(), tx.GetWeight()));
+        SetOutputIndices(GenUtils.Reconcile(GetOutputIndices(), tx.GetOutputIndices()));
+        SetMetadata(GenUtils.Reconcile(GetMetadata(), tx.GetMetadata()));
+        SetExtra(GenUtils.ReconcileByteArrays(GetExtra()!, tx.GetExtra()!));
+        SetRctSignatures(GenUtils.Reconcile(GetRctSignatures(), tx.GetRctSignatures()));
+        SetRctSigPrunable(GenUtils.Reconcile(GetRctSigPrunable(), tx.GetRctSigPrunable()));
+        SetIsKeptByBlock(GenUtils.Reconcile(IsKeptByBlock(), tx.IsKeptByBlock()));
+        SetIsFailed(GenUtils.Reconcile(IsFailed(), tx.IsFailed(), null, true, null));
+        SetLastFailedHeight(GenUtils.Reconcile(GetLastFailedHeight(), tx.GetLastFailedHeight()));
+        SetLastFailedHash(GenUtils.Reconcile(GetLastFailedHash(), tx.GetLastFailedHash()));
+        SetMaxUsedBlockHeight(GenUtils.Reconcile(GetMaxUsedBlockHeight(), tx.GetMaxUsedBlockHeight()));
+        SetMaxUsedBlockHash(GenUtils.Reconcile(GetMaxUsedBlockHash(), tx.GetMaxUsedBlockHash()));
+        SetSignatures(GenUtils.Reconcile(GetSignatures(), tx.GetSignatures()));
+        SetUnlockTime(GenUtils.Reconcile(GetUnlockTime(), tx.GetUnlockTime()));
+        SetNumConfirmations(GenUtils.Reconcile(GetNumConfirmations(), tx.GetNumConfirmations(), null, null, true)); // num confirmations can increase
 
         // merge inputs
         if (tx.GetInputs() != null)
         {
-            foreach (MoneroOutput merger in tx.GetInputs())
+            foreach (MoneroOutput merger in tx.GetInputs()!)
             {
                 bool merged = false;
                 merger.SetTx(this);
-                if (this.GetInputs() == null) this.SetInputs([]);
-                foreach (MoneroOutput mergee in this.GetInputs())
+                if (GetInputs() == null) SetInputs([]);
+                foreach (MoneroOutput mergee in GetInputs()!)
                 {
-                    if (mergee.GetKeyImage().GetHex().Equals(merger.GetKeyImage().GetHex()))
+                    if (mergee.GetKeyImage()!.GetHex()!.Equals(merger.GetKeyImage()!.GetHex()))
                     {
                         mergee.Merge(merger);
                         merged = true;
                         break;
                     }
                 }
-                if (!merged) this.GetInputs().Add(merger);
+                if (!merged) GetInputs()!.Add(merger);
             }
         }
 
         // merge outputs
         if (tx.GetOutputs() != null)
         {
-            foreach (MoneroOutput output in tx.GetOutputs()) output.SetTx(this);
-            if (this.GetOutputs() == null) this.SetOutputs(tx.GetOutputs());
+            foreach (MoneroOutput output in tx.GetOutputs()!) output.SetTx(this);
+            if (GetOutputs() == null) SetOutputs(tx.GetOutputs());
             else
             {
 
                 // merge outputs if key image or stealth public key present, otherwise append
-                foreach (MoneroOutput merger in tx.GetOutputs())
+                foreach (MoneroOutput merger in tx.GetOutputs()!)
                 {
                     bool merged = false;
                     merger.SetTx(this);
-                    foreach (MoneroOutput mergee in this.GetOutputs())
+                    foreach (MoneroOutput mergee in GetOutputs()!)
                     {
-                        if ((merger.GetKeyImage() != null && mergee.GetKeyImage().GetHex().Equals(merger.GetKeyImage().GetHex())) ||
-                            (merger.GetStealthPublicKey() != null && mergee.GetStealthPublicKey().Equals(merger.GetStealthPublicKey())))
+                        if ((merger.GetKeyImage() != null && mergee.GetKeyImage()!.GetHex()!.Equals(merger.GetKeyImage()!.GetHex())) ||
+                            (merger.GetStealthPublicKey() != null && mergee.GetStealthPublicKey()!.Equals(merger.GetStealthPublicKey())))
                         {
                             mergee.Merge(merger);
                             merged = true;
                             break;
                         }
                     }
-                    if (!merged) this.GetOutputs().Add(merger); // append output
+                    if (!merged) GetOutputs()!.Add(merger); // append output
                 }
             }
         }
 
         // handle unrelayed -> relayed -> confirmed
-        if (this.IsConfirmed() == true)
+        if (IsConfirmed() == true)
         {
-            this.SetInTxPool(false);
-            this.SetReceivedTimestamp(null);
-            this.SetLastRelayedTimestamp(null);
+            SetInTxPool(false);
+            SetReceivedTimestamp(null);
+            SetLastRelayedTimestamp(null);
         }
         else
         {
-            this.SetInTxPool(GenUtils.Reconcile(this.InTxPool(), tx.InTxPool(), null, true, null)); // unrelayed -> tx pool
-            this.SetReceivedTimestamp(GenUtils.Reconcile(this.GetReceivedTimestamp(), tx.GetReceivedTimestamp(), null, null, false)); // take earliest receive time
-            this.SetLastRelayedTimestamp(GenUtils.Reconcile(this.GetLastRelayedTimestamp(), tx.GetLastRelayedTimestamp(), null, null, true));  // take latest relay time
+            SetInTxPool(GenUtils.Reconcile(InTxPool(), tx.InTxPool(), null, true, null)); // unrelayed -> tx pool
+            SetReceivedTimestamp(GenUtils.Reconcile(GetReceivedTimestamp(), tx.GetReceivedTimestamp(), null, null, false)); // take earliest receive time
+            SetLastRelayedTimestamp(GenUtils.Reconcile(GetLastRelayedTimestamp(), tx.GetLastRelayedTimestamp(), null, null, true));  // take latest relay time
         }
 
         return this;  // for chaining
+    }
+
+    public virtual bool Equals(MoneroTx other, bool checkInputs = true, bool checkOutputs = true)
+    {
+        if (this == other) return true;
+
+        if (checkInputs)
+        {
+            var inputs = GetInputs() ?? [];
+            var otherInputs = other.GetInputs() ?? [];
+
+            if (inputs.Count != otherInputs.Count) return false;
+            int i = 0;
+            foreach (var input in inputs)
+            {
+                var otherInput = otherInputs[i]!;
+                if (!input.Equals(otherInput)) return false;
+            }
+
+            i++;
+        }
+
+        if (checkOutputs)
+        {
+            var outputs = GetOutputs() ?? [];
+            var otherOutputs = other.GetOutputs() ?? [];
+
+            if (outputs.Count != otherOutputs.Count) return false;
+            int i = 0;
+            foreach (var output in outputs)
+            {
+                var otherOutput = otherOutputs[i]!;
+                if (!output.Equals(otherOutput)) return false;
+                i++;
+            }
+        }
+
+        var signatures = GetSignatures() ?? [];
+        var otherSignatures = other.GetSignatures() ?? [];
+
+        if (signatures.Count != otherSignatures.Count) return false;
+
+        int j = 0;
+
+        foreach (var signature in signatures)
+        {
+            if (signature != otherSignatures[j]) return false;
+            j++;
+        }
+
+        var indices = GetOutputIndices() ?? [];
+        var otherIndices = other.GetOutputIndices() ?? [];
+
+        if (indices.Count != otherIndices.Count) return false;
+
+        int k = 0;
+
+        foreach (var index in indices)
+        {
+            if (index != otherIndices[k]) return false;
+            k++;
+        }
+
+        return GetHash() == other.GetHash() &&
+               GetVersion() == other.GetVersion() &&
+               IsMinerTx() == other.IsMinerTx() &&
+               GetPaymentId() == other.GetPaymentId() &&
+               GetFee() == other.GetFee() &&
+               GetRingSize() == other.GetRingSize() &&
+               GetRelay() == other.GetRelay() &&
+               IsRelayed() == other.IsRelayed() &&
+               IsConfirmed() == other.IsConfirmed() &&
+               InTxPool() == other.InTxPool() &&
+               GetNumConfirmations() == other.GetNumConfirmations() &&
+               GetUnlockTime() == other.GetUnlockTime() &&
+               GetLastRelayedTimestamp() == other.GetLastRelayedTimestamp() &&
+               GetReceivedTimestamp() == other.GetReceivedTimestamp() &&
+               IsDoubleSpendSeen() == other.IsDoubleSpendSeen() &&
+               GetKey() == other.GetKey() &&
+               GetFullHex() == other.GetFullHex() &&
+               GetPrunedHex() == other.GetPrunedHex() &&
+               GetPrunableHash() == other.GetPrunableHash() &&
+               GetSize() == other.GetSize() &&
+               GetWeight() == other.GetWeight() &&
+               GetMetadata() == other.GetMetadata() &&
+               GetExtra() == other.GetExtra() &&
+               GetRctSignatures() == other.GetRctSignatures() &&
+               GetRctSigPrunable() == other.GetRctSigPrunable() &&
+               IsKeptByBlock() == other.IsKeptByBlock() &&
+               IsFailed() == other.IsFailed() &&
+               GetLastFailedHeight() == other.GetLastFailedHeight() &&
+               GetLastFailedHash() == other.GetLastFailedHash() &&
+               GetMaxUsedBlockHeight() == other.GetMaxUsedBlockHeight() &&
+               GetMaxUsedBlockHash() == other.GetMaxUsedBlockHash();
     }
 }

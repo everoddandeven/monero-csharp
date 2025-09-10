@@ -1,13 +1,14 @@
 ﻿
+using System.Text;
 using Monero.Common;
 
 namespace Monero.Wallet.Common;
 
 public abstract class MoneroTransfer
 {
-    protected MoneroTxWallet _tx;
-    protected ulong? _amount;
-    protected uint? _accountIndex;
+    private MoneroTxWallet? _tx;
+    private ulong? _amount;
+    private uint? _accountIndex;
 
     public MoneroTransfer() { }
 
@@ -20,12 +21,12 @@ public abstract class MoneroTransfer
 
     public abstract MoneroTransfer Clone();
 
-    public MoneroTxWallet GetTx()
+    public MoneroTxWallet? GetTx()
     {
         return _tx;
     }
 
-    public virtual MoneroTransfer SetTx(MoneroTxWallet tx)
+    public virtual MoneroTransfer SetTx(MoneroTxWallet? tx)
     {
         _tx = tx;
         return this;
@@ -67,7 +68,7 @@ public abstract class MoneroTransfer
         // merge txs if they're different which comes back to merging transfers
         if (this.GetTx() != transfer.GetTx())
         {
-            this.GetTx().Merge(transfer.GetTx());
+            this.GetTx()!.Merge(transfer.GetTx()!);
             return this;
         }
 
@@ -87,4 +88,35 @@ public abstract class MoneroTransfer
         return this;
     }
 
+    public bool Equals(MoneroTransfer? other)
+    {
+        if (other == null) return false;
+        if (this == other) return true;
+        if (_accountIndex == null)
+        {
+            if (other._accountIndex != null) return false;
+        }
+        else if (!_accountIndex.Equals(other._accountIndex)) return false;
+        if (_amount == null)
+        {
+            if (other._amount != null) return false;
+        }
+        else if (!_amount.Equals(other._amount)) return false;
+        return true;
+    }
+
+    public override string ToString()
+    {
+        return ToString(0);
+    }
+
+    public virtual string ToString(int indent)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append(GenUtils.KvLine("Is incoming", this.IsIncoming(), indent));
+        sb.Append(GenUtils.KvLine("Amount", this.GetAmount() != null ? this.GetAmount().ToString() : null, indent));
+        sb.Append(GenUtils.KvLine("Account index", this.GetAccountIndex(), indent));
+        string str = sb.ToString();
+        return str.Length == 0 ? str : str.Substring(0, str.Length - 1);	  // strip last newline
+    }
 }

@@ -27,7 +27,7 @@ internal abstract class TestUtils
     public static readonly int WALLET_RPC_ZMQ_BIND_PORT_START = 48083;  // TODO: zmq bind port necessary?
     public static readonly string WALLET_RPC_USERNAME = "";
     public static readonly string WALLET_RPC_PASSWORD = "";
-    public static readonly string WALLET_RPC_ZMQ_DOMAIN = "127.0.0.1";
+    public static readonly string WALLET_RPC_ZMQ_DOMAIN = "xmr_wallet";
     public static readonly string WALLET_RPC_DOMAIN = "http://xmr_wallet";
     public static readonly string WALLET_RPC_URI = WALLET_RPC_DOMAIN + ":" + WALLET_RPC_PORT_START;
     public static readonly string WALLET_RPC_ZMQ_URI = "tcp://" + WALLET_RPC_ZMQ_DOMAIN + ":" + WALLET_RPC_ZMQ_PORT_START;
@@ -49,11 +49,14 @@ internal abstract class TestUtils
     public static readonly string ADDRESS = "4B7nn4hBQhaJ2MBWHLpdUHQMoMqgE2BWtZfofNxTDAJoGgckeEGm4f9WaBuFJmCKuwZ7FE3Di7biKbdafqE4JDj19MWPvQ9";
     public static readonly string PRIVATE_VIEW_KEY = "395d05e724f4c08f072895eab08ee4d00b3b2848902cf939fd3c07288454f804";
     public static readonly ulong FIRST_RECEIVE_HEIGHT = 171; // NOTE: this value must be the height of the wallet's first tx for tests
-    public static readonly int SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in milliseconds
+    public static readonly int SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in 
+    public static readonly ulong SYNC_PERIOD_IN_MS_ULONG = (ulong)SYNC_PERIOD_IN_MS;
     public static readonly string OFFLINE_SERVER_URI = "offline_server_uri"; // dummy server uri to remain offline because wallet2 connects to default if not given
     public static readonly int AUTO_CONNECT_TIMEOUT_MS = 3000;
 
     public static readonly WalletTxTracker WALLET_TX_TRACKER = new();
+
+    public static Dictionary<MoneroWalletRpc, int> WALLET_PORT_OFFSETS = [];
 
     public static MoneroWalletRpc StartWalletRpcProcess(bool offline = false)
     {

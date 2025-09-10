@@ -1,10 +1,28 @@
-﻿using Monero.Wallet;
+﻿using Monero.Daemon;
+using Monero.Wallet;
 using Monero.Wallet.Common;
 
 namespace Monero.Test;
 
-public class TestMoneroWalletLight : TestMoneroWalletCommon
+public class MoneroWalletLightFixture : MoneroWalletCommonFixture
 {
+    public new MoneroWalletLight _wallet;
+    public MoneroDaemonLws _lws;
+
+    public MoneroWalletLightFixture(MoneroWalletLight wallet, MoneroDaemonRpc daemon, MoneroDaemonLws lws) : base(wallet, daemon)
+    {
+        // Before All
+        _wallet = wallet;
+        _lws = lws;
+    }
+}
+
+public class TestMoneroWalletLight : TestMoneroWalletCommon, IClassFixture<MoneroWalletLightFixture>
+{
+    public TestMoneroWalletLight(MoneroWalletLightFixture walletLightFixture) : base(walletLightFixture)
+    {
+
+    }
 
     protected override void CloseWallet(MoneroWallet wallet, bool save)
     {

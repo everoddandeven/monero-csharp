@@ -79,7 +79,7 @@ public class WalletTxTracker
             }
 
             // sleep for a moment
-            try { Thread.Sleep(TestUtils.SYNC_PERIOD_IN_MS); }
+            try { GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS); }
             catch (Exception e) { throw new MoneroError(e.Message); }
         }
 
@@ -92,6 +92,44 @@ public class WalletTxTracker
             wallet.Sync();
             clearedWallets.Add(wallet);
         }
+    }
+
+    public ulong WaitForUnlockedBalance(MoneroWallet wallet, uint? accountIndex, uint? subaddressIndex, ulong? minAmount)
+    {
+        if (minAmount == null) minAmount = 0;
+
+        // check if wallet has balance
+        if (wallet.GetBalance(accountIndex, subaddressIndex) < minAmount) throw new Exception("Wallet does not have enough balance to wait for");
+
+        // check if wallet has unlocked balance
+        ulong unlockedBalance = wallet.GetUnlockedBalance(accountIndex, subaddressIndex);
+        if (unlockedBalance > minAmount) return unlockedBalance;
+
+        // start mining
+        MoneroDaemon daemon = TestUtils.GetDaemonRpc();
+        bool miningStarted = false;
+        if (daemon.GetMiningStatus().IsActive() != true)
+        {
+            try
+            {
+                StartMining.Start();
+                miningStarted = true;
+            }
+            catch (Exception err) { }
+        }
+
+        // wait for unlocked balance // TODO: promote to MoneroWallet interface?
+        Console.WriteLine("Waiting for unlocked balance");
+        while (unlockedBalance < minAmount)
+        {
+            unlockedBalance = wallet.GetUnlockedBalance(accountIndex, subaddressIndex);
+            try { GenUtils.WaitFor(TestUtils.SYNC_PERIOD_IN_MS); }
+            catch (ThreadInterruptedException e) { throw new Exception("Thread was interrupted", e); }
+        }
+
+        // stop mining if started
+        if (miningStarted) daemon.StopMining();
+        return unlockedBalance;
     }
 
 }

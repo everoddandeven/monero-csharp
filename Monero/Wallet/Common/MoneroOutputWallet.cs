@@ -6,11 +6,22 @@ public class MoneroOutputWallet : MoneroOutput
 {
     private uint? accountIndex;
     private uint? subaddressIndex;
-    private bool isSpent;
-    private bool isFrozen;
+    private bool? isSpent;
+    private bool? isFrozen;
 
     public MoneroOutputWallet()
     {
+    }
+
+    public bool Equals(MoneroOutputWallet? other)
+    {
+        if (other == null) return false;
+        if (!base.Equals(other)) return false;
+
+        return accountIndex == other.accountIndex &&
+                subaddressIndex == other.subaddressIndex &&
+                isSpent == other.isSpent &&
+                isFrozen == other.isFrozen;
     }
 
     public MoneroOutputWallet(MoneroOutputWallet output) : base(output)
@@ -26,21 +37,20 @@ public class MoneroOutputWallet : MoneroOutput
         return new MoneroOutputWallet(this);
     }
 
-    public override MoneroTxWallet GetTx()
+    public override MoneroTxWallet? GetTx()
     {
-        return (MoneroTxWallet)base.GetTx();
+        return (MoneroTxWallet?)base.GetTx();
     }
 
-
-    public override MoneroOutputWallet SetTx(MoneroTx tx)
+    public override MoneroOutputWallet SetKeyImage(MoneroKeyImage? keyImage)
     {
-        //if (tx != null && !(tx instanceof MoneroTxWallet)) throw new MoneroError("Wallet output's transaction must be of type MoneroTxWallet");
-        base.SetTx(tx);
+        base.SetKeyImage(keyImage);
         return this;
     }
 
-    public MoneroOutputWallet SetTx(MoneroTxWallet tx)
+    public override MoneroOutputWallet SetTx(MoneroTx? tx)
     {
+        //if (tx != null && !(tx instanceof MoneroTxWallet)) throw new MoneroError("Wallet output's transaction must be of type MoneroTxWallet");
         base.SetTx(tx);
         return this;
     }
@@ -50,7 +60,7 @@ public class MoneroOutputWallet : MoneroOutput
         return accountIndex;
     }
 
-    public MoneroOutputWallet SetAccountIndex(uint? accountIndex)
+    public virtual MoneroOutputWallet SetAccountIndex(uint? accountIndex)
     {
         this.accountIndex = accountIndex;
         return this;
@@ -61,7 +71,7 @@ public class MoneroOutputWallet : MoneroOutput
         return subaddressIndex;
     }
 
-    public MoneroOutputWallet SetSubaddressIndex(uint? subaddressIndex)
+    public virtual MoneroOutputWallet SetSubaddressIndex(uint? subaddressIndex)
     {
         this.subaddressIndex = subaddressIndex;
         return this;
@@ -73,23 +83,23 @@ public class MoneroOutputWallet : MoneroOutput
         return this;
     }
 
-    public bool IsSpent()
+    public bool? IsSpent()
     {
         return isSpent;
     }
 
-    public MoneroOutputWallet SetIsSpent(bool isSpent)
+    public virtual MoneroOutputWallet SetIsSpent(bool? isSpent)
     {
         this.isSpent = isSpent;
         return this;
     }
 
-    public bool IsFrozen()
+    public bool? IsFrozen()
     {
         return isFrozen;
     }
 
-    public MoneroOutputWallet SetIsFrozen(bool isFrozen)
+    public virtual MoneroOutputWallet SetIsFrozen(bool? isFrozen)
     {
         this.isFrozen = isFrozen;
         return this;
@@ -99,6 +109,6 @@ public class MoneroOutputWallet : MoneroOutput
     public bool? IsLocked()
     {
         if (GetTx() == null) return null;
-        return GetTx().IsLocked();
+        return GetTx()!.IsLocked();
     }
 }
