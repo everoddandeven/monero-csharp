@@ -7,7 +7,7 @@ using Monero.Daemon.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-using MoneroJsonRpcParams = System.Collections.Generic.Dictionary<string, object>;
+using MoneroJsonRpcParams = System.Collections.Generic.Dictionary<string, object?>;
 
 namespace Monero.Daemon;
 
@@ -17,7 +17,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
     private static readonly ulong MAX_REQ_SIZE = 3000000; // max request size when fetching blocks from daemon
     private static readonly uint NUM_HEADERS_PER_REQ = 750;
     private readonly Thread? outputThread;
-    private readonly MoneroRpcConnection? rpc;
+    private readonly MoneroRpcConnection rpc;
     private DaemonPoller? daemonPoller;
     private Process? process;
 
@@ -101,7 +101,10 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
                             Console.WriteLine("[monerod] " + bgLine);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"[monerod] error: {e.Message}");
+                    }
                 });
                 outputThread.Start();
 
@@ -150,7 +153,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
     private void CheckConnection()
     {
-        if (rpc == null || rpc.IsConnected() == true || rpc.GetUri() == null || rpc.GetUri()!.Length == 0)
+        if (rpc.IsConnected() == true || rpc.GetUri() == null || rpc.GetUri()!.Length == 0)
         {
             return;
         }
@@ -160,12 +163,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
     private bool IsLocal()
     {
-        MoneroRpcConnection? connection = GetRpcConnection();
-
-        if (connection == null)
-        {
-            return false;
-        }
+        MoneroRpcConnection connection = GetRpcConnection();
 
         string? uri = connection.GetUri();
 
@@ -227,7 +225,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         RefreshListening();
     }
 
-    public MoneroRpcConnection? GetRpcConnection()
+    public MoneroRpcConnection GetRpcConnection()
     {
         return rpc;
     }
@@ -291,7 +289,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             return [];
         }
 
-        return ((JArray)resp["blks_hashes"]).ToObject<List<string>>()!;
+        return ((JArray)resp["blks_hashes"]!).ToObject<List<string>>()!;
     }
 
     public override List<MoneroAltChain> GetAltChains()
@@ -305,9 +303,9 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             return chains;
         }
 
-        foreach (JToken rpcChain in (JArray)result["chains"])
+        foreach (JToken rpcChain in (JArray)result["chains"]!)
         {
-            chains.Add(ConvertRpcAltChain(rpcChain.ToObject<Dictionary<string, object>>()!));
+            chains.Add(ConvertRpcAltChain(rpcChain.ToObject<Dictionary<string, object?>>()!));
         }
 
         return chains;
@@ -336,7 +334,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
     public override string GetBlockHash(ulong height)
     {
         List<ulong> param = [height];
-        MoneroJsonRpcResponse<string> respMap = rpc!.SendJsonRequest("on_get_block_hash", param);
+        MoneroJsonRpcResponse<string> respMap = rpc.SendJsonRequest("on_get_block_hash", param);
         string hash = respMap.Result ?? "";
         if (!MoneroUtils.IsValidHex(hash))
         {
@@ -364,7 +362,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             respMap = rpc.SendJsonRequest("get_block_header_by_hash", parameters);
         MoneroJsonRpcParams? resultMap = respMap.Result!;
         MoneroBlockHeader header =
-            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]).ToObject<Dictionary<string, object>>());
+            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]!).ToObject<Dictionary<string, object?>>());
         return header;
     }
 
@@ -376,7 +374,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             rpc.SendJsonRequest("get_block_header_by_height", parameters);
         MoneroJsonRpcParams? resultMap = respMap.Result!;
         MoneroBlockHeader header =
-            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]).ToObject<Dictionary<string, object>>());
+            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]!).ToObject<Dictionary<string, object?>>());
         return header;
     }
 
@@ -387,11 +385,11 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         parameters.Add("end_height", endHeight);
         MoneroJsonRpcResponse<MoneroJsonRpcParams> respMap = rpc.SendJsonRequest("get_block_headers_range", parameters);
         MoneroJsonRpcParams? resultMap = respMap.Result!;
-        JArray rpcHeaders = (JArray)resultMap["headers"];
+        JArray rpcHeaders = (JArray)resultMap["headers"]!;
         List<MoneroBlockHeader> headers = [];
         foreach (JToken rpcHeader in rpcHeaders)
         {
-            MoneroBlockHeader header = ConvertRpcBlockHeader(rpcHeader.ToObject<Dictionary<string, object>>());
+            MoneroBlockHeader header = ConvertRpcBlockHeader(rpcHeader.ToObject<Dictionary<string, object?>>());
             headers.Add(header);
         }
 
@@ -416,8 +414,8 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
         // build blocks with transactions
         List<MoneroBlock> blocks = [];
-        JArray rpcBlocks = (JArray)rpcResp["blocks"];
-        List<List<MoneroJsonRpcParams>> rpcTxs = (List<List<Dictionary<string, object>>>)rpcResp["txs"];
+        JArray rpcBlocks = (JArray)rpcResp["blocks"]!;
+        List<List<MoneroJsonRpcParams>> rpcTxs = (List<List<Dictionary<string, object?>>>)rpcResp["txs"]!;
         if (rpcBlocks.Count != rpcTxs.Count)
         {
             throw new MoneroError("Blocks and txs count mismatch");
@@ -426,7 +424,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         for (int blockIdx = 0; blockIdx < rpcBlocks.Count; blockIdx++)
         {
             // build block
-            MoneroBlock block = ConvertRpcBlock(rpcBlocks[blockIdx].ToObject<Dictionary<string, object>>()!);
+            MoneroBlock block = ConvertRpcBlock(rpcBlocks[blockIdx].ToObject<Dictionary<string, object?>>()!);
             block.SetHeight(blockHeights[blockIdx]);
             blocks.Add(block);
 
@@ -539,7 +537,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         if (result.ContainsKey("fees"))
         {
             List<ulong> fees = [];
-            foreach (JToken fee in (JArray)result["fees"])
+            foreach (JToken fee in (JArray)result["fees"]!)
             {
                 fees.Add(Convert.ToUInt64(fee));
             }
@@ -585,7 +583,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroJsonRpcParams resp = rpc.SendPathRequest("is_key_image_spent", parameters);
         CheckResponseStatus(resp);
         List<MoneroKeyImage.SpentStatus> statuses = [];
-        foreach (int bi in (List<int>)resp["spent_status"])
+        foreach (int bi in ((JArray)resp["spent_status"]!).ToObject<List<int>>()!)
         {
             statuses.Add((MoneroKeyImage.SpentStatus)bi);
         }
@@ -603,9 +601,9 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         List<MoneroPeer> peers = [];
         if (respMap.ContainsKey("gray_list"))
         {
-            foreach (JToken rpcPeer in (JArray)respMap["gray_list"])
+            foreach (JToken rpcPeer in (JArray)respMap["gray_list"]!)
             {
-                MoneroPeer peer = ConvertRpcPeer(rpcPeer.ToObject<Dictionary<string, object>>());
+                MoneroPeer peer = ConvertRpcPeer(rpcPeer.ToObject<Dictionary<string, object?>>());
                 peer.SetIsOnline(false); // gray list means offline last checked
                 peers.Add(peer);
             }
@@ -613,9 +611,9 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
         if (respMap.ContainsKey("white_list"))
         {
-            foreach (JToken rpcPeer in (JArray)respMap["white_list"])
+            foreach (JToken rpcPeer in (JArray)respMap["white_list"]!)
             {
-                MoneroPeer peer = ConvertRpcPeer(rpcPeer.ToObject<Dictionary<string, object>>());
+                MoneroPeer peer = ConvertRpcPeer(rpcPeer.ToObject<Dictionary<string, object?>>());
                 peer.SetIsOnline(true); // white list means online last checked
                 peers.Add(peer);
             }
@@ -630,7 +628,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroJsonRpcParams? resultMap = respMap.Result!;
         CheckResponseStatus(resultMap);
         MoneroBlockHeader header =
-            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]).ToObject<Dictionary<string, object>>());
+            ConvertRpcBlockHeader(((JObject)resultMap["block_header"]!).ToObject<Dictionary<string, object?>>());
         return header;
     }
 
@@ -690,9 +688,9 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             return entries;
         }
 
-        foreach (JToken rpcEntry in (JArray)result["histogram"])
+        foreach (JToken rpcEntry in (JArray)result["histogram"]!)
         {
-            entries.Add(ConvertRpcOutputHistogramEntry(rpcEntry.ToObject<Dictionary<string, object>>()));
+            entries.Add(ConvertRpcOutputHistogramEntry(rpcEntry.ToObject<Dictionary<string, object?>>()));
         }
 
         return entries;
@@ -722,7 +720,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         CheckResponseStatus(result);
         if (result.ContainsKey("outs"))
         {
-            return ConvertRpcOuts(((JArray)result["outs"]).ToObject<List<Dictionary<string, object>>>()!);
+            return ConvertRpcOuts(((JArray)result["outs"]!).ToObject<List<Dictionary<string, object>>>()!);
         }
 
         return [];
@@ -734,7 +732,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroJsonRpcParams? result = resp.Result!;
         CheckResponseStatus(result);
         List<MoneroBan> bans = [];
-        foreach (JToken rpcBan in (JArray)result["bans"])
+        foreach (JToken rpcBan in (JArray)result["bans"]!)
         {
             MoneroBan ban = new();
             ban.SetHost((string?)rpcBan["host"]);
@@ -757,9 +755,9 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             return connections;
         }
 
-        foreach (JToken rpcConnection in (JArray)result["connections"])
+        foreach (JToken rpcConnection in (JArray)result["connections"]!)
         {
-            connections.Add(ConvertRpcConnection(rpcConnection.ToObject<Dictionary<string, object>>()));
+            connections.Add(ConvertRpcConnection(rpcConnection.ToObject<Dictionary<string, object?>>()));
         }
 
         return connections;
@@ -794,7 +792,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         List<MoneroTx> txs = [];
         if (resp.ContainsKey("transactions"))
         {
-            foreach (JToken rpcTx in (JArray)resp["transactions"])
+            foreach (JToken rpcTx in (JArray)resp["transactions"]!)
             {
                 MoneroTx tx = new();
                 txs.Add(tx);
@@ -802,7 +800,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
                 tx.SetIsMinerTx(false);
                 tx.SetInTxPool(true);
                 tx.SetNumConfirmations(0);
-                ConvertRpcTx(rpcTx.ToObject<Dictionary<string, object>>(), tx);
+                ConvertRpcTx(rpcTx.ToObject<Dictionary<string, object?>>(), tx);
             }
         }
 
@@ -825,7 +823,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
     {
         MoneroJsonRpcParams resp = rpc.SendPathRequest("get_transaction_pool_stats");
         CheckResponseStatus(resp);
-        return ConvertRpcTxPoolStats(((JObject)resp["pool_stats"]).ToObject<Dictionary<string, object>>());
+        return ConvertRpcTxPoolStats(((JObject)resp["pool_stats"]!).ToObject<Dictionary<string, object?>>());
     }
 
     public override List<MoneroTx> GetTxs(List<string> txHashes, bool prune = false)
@@ -861,14 +859,14 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         if (respMap.ContainsKey("txs"))
         {
             //  interpret response
-            JArray rpcTxs = (JArray)respMap["txs"];
+            JArray rpcTxs = (JArray)respMap["txs"]!;
 
             // build transaction models
             for (int i = 0; i < rpcTxs.Count; i++)
             {
                 MoneroTx tx = new();
                 tx.SetIsMinerTx(false);
-                txs.Add(ConvertRpcTx(rpcTxs[i].ToObject<Dictionary<string, object>>(), tx)!);
+                txs.Add(ConvertRpcTx(rpcTxs[i].ToObject<Dictionary<string, object?>>(), tx)!);
             }
         }
 
@@ -884,16 +882,17 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
     {
         MoneroJsonRpcResponse<MoneroJsonRpcParams> resp = rpc.SendJsonRequest("get_version");
         MoneroJsonRpcParams? result = resp.Result!;
-        long version64 = (long)result.GetValueOrDefault("version", 0);
+        long version64 = (long?)result.GetValueOrDefault("version", 0) ?? 0;
         int version = Convert.ToInt32(version64.ToString());
-        return new MoneroVersion(version, (bool)result["release"]);
+        return new MoneroVersion(version, (bool?)result["release"]);
     }
 
     public override bool IsTrusted()
     {
         MoneroJsonRpcParams resp = rpc.SendPathRequest("get_height");
         CheckResponseStatus(resp);
-        return !(bool)resp["untrusted"];
+        bool untrusted = (bool?)resp["untrusted"] ?? true;
+        return !untrusted;
     }
 
     public override MoneroPruneResult PruneBlockchain(bool check)
@@ -904,7 +903,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroJsonRpcParams? resultMap = resp.Result!;
         CheckResponseStatus(resultMap);
         MoneroPruneResult result = new();
-        result.SetIsPruned((bool)resultMap["pruned"]);
+        result.SetIsPruned((bool?)resultMap["pruned"]);
         result.SetPruningSeed(Convert.ToInt32(resultMap["pruning_seed"]));
         return result;
     }
@@ -1190,7 +1189,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
     #region Private Static Methods
 
-    private static void CheckResponseStatus(Dictionary<string, object>? resp)
+    private static void CheckResponseStatus(Dictionary<string, object?>? resp)
     {
         if (resp == null)
         {
@@ -1205,7 +1204,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         }
     }
 
-    private static MoneroTx? ConvertRpcTx(Dictionary<string, object>? rpcTx, MoneroTx? tx = null)
+    private static MoneroTx? ConvertRpcTx(Dictionary<string, object?>? rpcTx, MoneroTx? tx = null)
     {
         if (rpcTx == null)
         {
@@ -1225,7 +1224,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroBlock? block = null;
         foreach (string key in rpcTx.Keys)
         {
-            object val = rpcTx[key];
+            object val = rpcTx[key]!;
             if (key.Equals("tx_hash") || key.Equals("id_hash"))
             {
                 tx.SetHash(GenUtils.Reconcile(tx.GetHash(), (string)val));
@@ -1299,7 +1298,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
                 {
                     // ignore miner input TODO: why? probably needs re-enabled
                     List<MoneroOutput> inputs = [];
-                    foreach (Dictionary<string, object> rpcInput in rpcInputs)
+                    foreach (Dictionary<string, object?> rpcInput in rpcInputs)
                     {
                         inputs.Add(ConvertRpcOutput(rpcInput, tx));
                     }
@@ -1309,10 +1308,10 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             }
             else if (key.Equals("vout"))
             {
-                List<Dictionary<string, object>> rpcOutputs =
-                    ((JArray)val).ToObject<List<Dictionary<string, object>>>()!;
+                List<Dictionary<string, object?>> rpcOutputs =
+                    ((JArray)val).ToObject<List<Dictionary<string, object?>>>()!;
                 List<MoneroOutput> outputs = [];
-                foreach (Dictionary<string, object> rpcOutput in rpcOutputs)
+                foreach (Dictionary<string, object?> rpcOutput in rpcOutputs)
                 {
                     outputs.Add(ConvertRpcOutput(rpcOutput, tx));
                 }
@@ -1321,7 +1320,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             }
             else if (key.Equals("rct_signatures"))
             {
-                Dictionary<string, object> rctSignaturesMap = ((JObject)val).ToObject<Dictionary<string, object>>()!;
+                Dictionary<string, object> rctSignaturesMap = ((JObject)val).ToObject<Dictionary<string, object?>>()!;
                 tx.SetRctSignatures(GenUtils.Reconcile(tx.GetRctSignatures(), rctSignaturesMap));
                 if (rctSignaturesMap.ContainsKey("txnFee"))
                 {
@@ -1478,12 +1477,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
         if (rpcTx.ContainsKey("as_json") && !"".Equals(rpcTx["as_json"]))
         {
-            ConvertRpcTx(JsonConvert.DeserializeObject<Dictionary<string, object>>((string)rpcTx["as_json"]), tx);
+            ConvertRpcTx(JsonConvert.DeserializeObject<Dictionary<string, object?>>((string)rpcTx["as_json"]!), tx);
         }
 
         if (rpcTx.ContainsKey("tx_json") && !"".Equals(rpcTx["tx_json"]))
         {
-            ConvertRpcTx(JsonConvert.DeserializeObject<Dictionary<string, object>>((string)rpcTx["tx_json"]), tx);
+            ConvertRpcTx(JsonConvert.DeserializeObject<Dictionary<string, object?>>((string)rpcTx["tx_json"]!), tx);
         }
 
         if (tx.IsRelayed() != true)
@@ -1496,12 +1495,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return tx;
     }
 
-    private static MoneroBlockTemplate ConvertRpcBlockTemplate(Dictionary<string, object> rpcTemplate)
+    private static MoneroBlockTemplate ConvertRpcBlockTemplate(Dictionary<string, object?> rpcTemplate)
     {
         MoneroBlockTemplate template = new();
         foreach (string key in rpcTemplate.Keys)
         {
-            object val = rpcTemplate[key];
+            object val = rpcTemplate[key]!;
             if (key.Equals("blockhashing_blob"))
             {
                 template.SetBlockHashingBlob((string)val);
@@ -1560,7 +1559,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return template;
     }
 
-    private static MoneroBlockHeader ConvertRpcBlockHeader(Dictionary<string, object>? rpcHeader,
+    private static MoneroBlockHeader ConvertRpcBlockHeader(Dictionary<string, object?>? rpcHeader,
         MoneroBlockHeader? header = null)
     {
         if (header == null)
@@ -1575,7 +1574,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
         foreach (string key in rpcHeader.Keys)
         {
-            object val = rpcHeader[key];
+            object val = rpcHeader[key]!;
             if (key.Equals("block_size"))
             {
                 header.SetSize(GenUtils.Reconcile(header.GetSize(), Convert.ToUInt64(val)));
@@ -1664,30 +1663,30 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return header;
     }
 
-    private static MoneroBlock ConvertRpcBlock(Dictionary<string, object> rpcBlock)
+    private static MoneroBlock ConvertRpcBlock(Dictionary<string, object?> rpcBlock)
     {
         // build block
         MoneroBlock block = new();
         ConvertRpcBlockHeader(
             rpcBlock.ContainsKey("block_header")
-                ? ((JObject)rpcBlock["block_header"]).ToObject<Dictionary<string, object>>()
+                ? ((JObject)rpcBlock["block_header"]!).ToObject<Dictionary<string, object?>>()
                 : rpcBlock, block);
-        block.SetHex((string)rpcBlock["blob"]);
+        block.SetHex((string)rpcBlock["blob"]!);
         block.SetTxHashes(rpcBlock.ContainsKey("tx_hashes")
-            ? ((JArray)rpcBlock["tx_hashes"]).ToObject<List<string>>()
+            ? ((JArray)rpcBlock["tx_hashes"]!).ToObject<List<string>>()
             : []);
 
         // build miner tx
-        Dictionary<string, object>? rpcMinerTx;
+        Dictionary<string, object?>? rpcMinerTx;
         if (rpcBlock.ContainsKey("json"))
         {
             rpcMinerTx =
-                ((JObject)JsonConvert.DeserializeObject<Dictionary<string, object>>((string)rpcBlock["json"])![
-                    "miner_tx"]).ToObject<Dictionary<string, object>>();
+                ((JObject)JsonConvert.DeserializeObject<Dictionary<string, object?>>((string)rpcBlock["json"]!)![
+                    "miner_tx"]!).ToObject<Dictionary<string, object?>>();
         }
         else if (rpcBlock.ContainsKey("miner_tx"))
         {
-            rpcMinerTx = ((JObject)rpcBlock["miner_tx"]).ToObject<Dictionary<string, object>>()!;
+            rpcMinerTx = ((JObject)rpcBlock["miner_tx"]!).ToObject<Dictionary<string, object?>>()!;
         }
         else
         {
@@ -1701,13 +1700,13 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return block;
     }
 
-    private static MoneroOutput ConvertRpcOutput(Dictionary<string, object> rpcOutput, MoneroTx? tx)
+    private static MoneroOutput ConvertRpcOutput(Dictionary<string, object?> rpcOutput, MoneroTx? tx)
     {
         MoneroOutput output = new();
         output.SetTx(tx);
         foreach (string key in rpcOutput.Keys)
         {
-            object val = rpcOutput[key];
+            object val = rpcOutput[key]!;
             if (key.Equals("gen"))
             {
                 throw new MoneroError(
@@ -1716,12 +1715,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
             if (key.Equals("key"))
             {
-                MoneroJsonRpcParams? rpcKey = ((JObject)val).ToObject<Dictionary<string, object>>()!;
+                MoneroJsonRpcParams? rpcKey = ((JObject)val).ToObject<Dictionary<string, object?>>()!;
                 output.SetAmount(GenUtils.Reconcile(output.GetAmount(), Convert.ToUInt64(rpcKey["amount"])));
                 output.SetKeyImage(GenUtils.Reconcile(output.GetKeyImage(),
-                    new MoneroKeyImage((string)rpcKey["k_image"])));
+                    new MoneroKeyImage((string)rpcKey["k_image"]!)));
                 List<ulong> ringOutputIndices = [];
-                foreach (ulong bi in (JArray)rpcKey["key_offsets"])
+                foreach (ulong bi in (JArray)rpcKey["key_offsets"]!)
                 {
                     ringOutputIndices.Add(Convert.ToUInt64(bi));
                 }
@@ -1734,10 +1733,10 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
             }
             else if (key.Equals("target"))
             {
-                MoneroJsonRpcParams? valMap = ((JObject)val).ToObject<Dictionary<string, object>>()!;
+                MoneroJsonRpcParams? valMap = ((JObject)val).ToObject<Dictionary<string, object?>>()!;
                 string pubKey = valMap.ContainsKey("key")
-                    ? (string)valMap["key"]
-                    : ((JObject)valMap["tagged_key"])
+                    ? (string)valMap["key"]!
+                    : ((JObject)valMap["tagged_key"]!)
                     .ToObject<Dictionary<string, string>>()!
                     ["key"]; // TODO (monerod): rpc json uses {tagged_key={key=...}}, binary blocks use {key=...}
                 output.SetStealthPublicKey(GenUtils.Reconcile(output.GetStealthPublicKey(), pubKey));
@@ -1751,7 +1750,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return output;
     }
 
-    private static List<MoneroOutput> ConvertRpcOuts(List<Dictionary<string, object>> rpcOutputs)
+    private static List<MoneroOutput> ConvertRpcOuts(List<Dictionary<string, object?>> rpcOutputs)
     {
         List<MoneroOutput> outputs = [];
         Dictionary<ulong, MoneroBlock> blocksMap = [];
@@ -1765,7 +1764,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
 
             foreach (string key in rpcOutput.Keys)
             {
-                object val = rpcOutput[key];
+                object val = rpcOutput[key]!;
                 if (key.Equals("key"))
                 {
                     output.SetStealthPublicKey((string?)val);
@@ -1825,12 +1824,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return outputs;
     }
 
-    private static MoneroDaemonUpdateCheckResult ConvertRpcUpdateCheckResult(Dictionary<string, object> rpcResult)
+    private static MoneroDaemonUpdateCheckResult ConvertRpcUpdateCheckResult(Dictionary<string, object?> rpcResult)
     {
         MoneroDaemonUpdateCheckResult result = new();
         foreach (string key in rpcResult.Keys)
         {
-            object val = rpcResult[key];
+            object val = rpcResult[key]!;
             if (key.Equals("auto_uri"))
             {
                 result.SetAutoUri((string)val);
@@ -1883,7 +1882,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return result;
     }
 
-    private static MoneroTxPoolStats ConvertRpcTxPoolStats(Dictionary<string, object>? rpcStats)
+    private static MoneroTxPoolStats ConvertRpcTxPoolStats(Dictionary<string, object?>? rpcStats)
     {
         if (rpcStats == null)
         {
@@ -1893,7 +1892,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroTxPoolStats stats = new();
         foreach (string key in rpcStats.Keys)
         {
-            object val = rpcStats[key];
+            object val = rpcStats[key]!;
             if (key.Equals("bytes_max"))
             {
                 stats.SetBytesMax(Convert.ToUInt64(val));
@@ -1974,10 +1973,10 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return stats;
     }
 
-    private static MoneroDaemonUpdateDownloadResult ConvertRpcUpdateDownloadResult(Dictionary<string, object> rpcResult)
+    private static MoneroDaemonUpdateDownloadResult ConvertRpcUpdateDownloadResult(Dictionary<string, object?> rpcResult)
     {
         MoneroDaemonUpdateDownloadResult result = new(ConvertRpcUpdateCheckResult(rpcResult));
-        result.SetDownloadPath((string)rpcResult["path"]);
+        result.SetDownloadPath((string)rpcResult["path"]!);
         if ("".Equals(result.GetDownloadPath()))
         {
             result.SetDownloadPath(null);
@@ -1986,7 +1985,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return result;
     }
 
-    private static MoneroPeer ConvertRpcPeer(Dictionary<string, object>? rpcPeer)
+    private static MoneroPeer ConvertRpcPeer(Dictionary<string, object?>? rpcPeer)
     {
         if (rpcPeer == null)
         {
@@ -1996,7 +1995,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroPeer peer = new();
         foreach (string key in rpcPeer.Keys)
         {
-            object val = rpcPeer[key];
+            object val = rpcPeer[key]!;
             if (key.Equals("host"))
             {
                 peer.SetHost((string)val);
@@ -2035,7 +2034,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return peer;
     }
 
-    private static MoneroSubmitTxResult ConvertRpcSubmitTxResult(Dictionary<string, object>? rpcResult)
+    private static MoneroSubmitTxResult ConvertRpcSubmitTxResult(Dictionary<string, object?>? rpcResult)
     {
         if (rpcResult == null)
         {
@@ -2045,7 +2044,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroSubmitTxResult result = new();
         foreach (string key in rpcResult.Keys)
         {
-            object val = rpcResult[key];
+            object val = rpcResult[key]!;
             if (key.Equals("double_spend"))
             {
                 result.SetIsDoubleSpend((bool)val);
@@ -2116,7 +2115,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return result;
     }
 
-    private static MoneroPeer ConvertRpcConnection(Dictionary<string, object>? rpcConnection)
+    private static MoneroPeer ConvertRpcConnection(Dictionary<string, object?>? rpcConnection)
     {
         if (rpcConnection == null)
         {
@@ -2127,7 +2126,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         peer.SetIsOnline(true);
         foreach (string key in rpcConnection.Keys)
         {
-            object val = rpcConnection[key];
+            object val = rpcConnection[key]!;
             if (key.Equals("address"))
             {
                 peer.SetAddress((string)val);
@@ -2258,7 +2257,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return peer;
     }
 
-    private static MoneroOutputHistogramEntry ConvertRpcOutputHistogramEntry(Dictionary<string, object>? rpcEntry)
+    private static MoneroOutputHistogramEntry ConvertRpcOutputHistogramEntry(Dictionary<string, object?>? rpcEntry)
     {
         if (rpcEntry == null)
         {
@@ -2268,7 +2267,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroOutputHistogramEntry entry = new();
         foreach (string key in rpcEntry.Keys)
         {
-            object val = rpcEntry[key];
+            object val = rpcEntry[key]!;
             if (key.Equals("amount"))
             {
                 entry.SetAmount(Convert.ToUInt64(val));
@@ -2294,7 +2293,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return entry;
     }
 
-    private static MoneroDaemonInfo? ConvertRpcInfo(Dictionary<string, object>? rpcInfo)
+    private static MoneroDaemonInfo? ConvertRpcInfo(Dictionary<string, object?>? rpcInfo)
     {
         if (rpcInfo == null)
         {
@@ -2304,7 +2303,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         MoneroDaemonInfo info = new();
         foreach (string key in rpcInfo.Keys)
         {
-            object val = rpcInfo[key];
+            object val = rpcInfo[key]!;
             if (key.Equals("version"))
             {
                 info.SetVersion((string)val);
@@ -2480,12 +2479,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return info;
     }
 
-    private static MoneroDaemonSyncInfo ConvertRpcSyncInfo(Dictionary<string, object> rpcSyncInfo)
+    private static MoneroDaemonSyncInfo ConvertRpcSyncInfo(Dictionary<string, object?> rpcSyncInfo)
     {
         MoneroDaemonSyncInfo syncInfo = new();
         foreach (string key in rpcSyncInfo.Keys)
         {
-            object val = rpcSyncInfo[key];
+            object val = rpcSyncInfo[key]!;
             if (key.Equals("height"))
             {
                 syncInfo.SetHeight(Convert.ToUInt64(val));
@@ -2497,7 +2496,7 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
                 foreach (MoneroJsonRpcParams rpcConnection in rpcConnections)
                 {
                     syncInfo.GetPeers()!.Add(
-                        ConvertRpcConnection(((JObject)rpcConnection["info"]).ToObject<Dictionary<string, object>>()));
+                        ConvertRpcConnection(((JObject)rpcConnection["info"]!).ToObject<Dictionary<string, object?>>()));
                 }
             }
             else if (key.Equals("spans"))
@@ -2558,12 +2557,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return syncInfo;
     }
 
-    private static MoneroHardForkInfo ConvertRpcHardForkInfo(Dictionary<string, object> rpcHardForkInfo)
+    private static MoneroHardForkInfo ConvertRpcHardForkInfo(Dictionary<string, object?> rpcHardForkInfo)
     {
         MoneroHardForkInfo info = new();
         foreach (string key in rpcHardForkInfo.Keys)
         {
-            object val = rpcHardForkInfo[key];
+            object val = rpcHardForkInfo[key]!;
             if (key.Equals("earliest_height"))
             {
                 info.SetEarliestHeight(Convert.ToUInt64(val));
@@ -2615,12 +2614,12 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return info;
     }
 
-    private static MoneroConnectionSpan ConvertRpcConnectionSpan(Dictionary<string, object> rpcConnectionSpan)
+    private static MoneroConnectionSpan ConvertRpcConnectionSpan(Dictionary<string, object?> rpcConnectionSpan)
     {
         MoneroConnectionSpan span = new();
         foreach (string key in rpcConnectionSpan.Keys)
         {
-            object val = rpcConnectionSpan[key];
+            object val = rpcConnectionSpan[key]!;
             if (key.Equals("connection_id"))
             {
                 span.SetConnectionId((string)val);
@@ -2671,27 +2670,27 @@ public class MoneroDaemonRpc : MoneroDaemonDefault
         return rpcBan;
     }
 
-    private static MoneroMiningStatus ConvertRpcMiningStatus(Dictionary<string, object> rpcStatus)
+    private static MoneroMiningStatus ConvertRpcMiningStatus(Dictionary<string, object?> rpcStatus)
     {
         MoneroMiningStatus status = new();
-        status.SetIsActive((bool)rpcStatus["active"]);
+        status.SetIsActive((bool?)rpcStatus["active"]);
         status.SetSpeed(Convert.ToUInt64(rpcStatus["speed"]));
         status.SetNumThreads(Convert.ToUInt32(rpcStatus["threads_count"]));
         if (status.IsActive() == true)
         {
-            status.SetAddress((string)rpcStatus["address"]);
-            status.SetIsBackground((bool)rpcStatus["is_background_mining_enabled"]);
+            status.SetAddress((string?)rpcStatus["address"]);
+            status.SetIsBackground((bool?)rpcStatus["is_background_mining_enabled"]);
         }
 
         return status;
     }
 
-    private static MoneroAltChain ConvertRpcAltChain(Dictionary<string, object> rpcChain)
+    private static MoneroAltChain ConvertRpcAltChain(Dictionary<string, object?> rpcChain)
     {
         MoneroAltChain chain = new();
         foreach (string key in rpcChain.Keys)
         {
-            object val = rpcChain[key];
+            object val = rpcChain[key]!;
             if (key.Equals("block_hash")) { } // using block_hashes instead
             else if (key.Equals("difficulty")) { } // handled by wide_difficulty
             else if (key.Equals("difficulty_top64")) { } // handled by wide_difficulty
@@ -2812,7 +2811,7 @@ internal class DaemonPoller
 
             // fetch and compare latest block header
             MoneroBlockHeader header = daemon.GetLastBlockHeader();
-            if (!header.GetHash().Equals(lastHeader.GetHash()))
+            if (header.GetHash() != lastHeader.GetHash())
             {
                 lastHeader = header;
                 lock (daemon.GetListeners())
@@ -2823,7 +2822,7 @@ internal class DaemonPoller
         }
         catch (Exception e)
         {
-            //e.printStackTrace();
+            MoneroUtils.Log(1, $"[daemon-poller] error: {e.Message}");
         }
     }
 
