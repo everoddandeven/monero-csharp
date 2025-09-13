@@ -7,7 +7,7 @@ using Monero.Daemon.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-using MoneroJsonRpcParams = System.Collections.Generic.Dictionary<string, object>;
+using MoneroJsonRpcParams = System.Collections.Generic.Dictionary<string, object?>;
 
 namespace Monero.Daemon;
 
