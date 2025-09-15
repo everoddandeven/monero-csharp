@@ -4,17 +4,17 @@ public class MoneroTxSet
 {
     private string? _multisigTxHex;
     private string? _signedTxHex;
-    private List<MoneroTxWallet> _txs = [];
+    private List<MoneroTxWallet>? _txs;
     private string? _unsignedTxHex;
 
-    public List<MoneroTxWallet> GetTxs()
+    public List<MoneroTxWallet>? GetTxs()
     {
         return _txs;
     }
 
-    public MoneroTxSet SetTxs(List<MoneroTxWallet> txs)
+    public MoneroTxSet SetTxs(List<MoneroTxWallet>? txs)
     {
-        _txs = txs ?? [];
+        _txs = txs;
         return this;
     }
 

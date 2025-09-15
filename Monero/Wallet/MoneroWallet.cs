@@ -428,7 +428,7 @@ public interface MoneroWallet
      * @param query specifies the criteria used to retrieve transactions
      * @return a list of wallet transactions matching the query
      */
-    List<MoneroTxWallet> GetTxs(MoneroTxQuery query);
+    List<MoneroTxWallet> GetTxs(MoneroTxQuery? query);
 
     /**
      * Get all incoming and outgoing transfers to and from this wallet.  An

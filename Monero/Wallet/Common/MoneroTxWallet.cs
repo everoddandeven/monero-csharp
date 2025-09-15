@@ -62,7 +62,7 @@ public class MoneroTxWallet : MoneroTx
         return txSet;
     }
 
-    public virtual MoneroTxWallet SetTxSet(MoneroTxSet txSet)
+    public virtual MoneroTxWallet SetTxSet(MoneroTxSet? txSet)
     {
         this.txSet = txSet;
         return this;
@@ -233,9 +233,9 @@ public class MoneroTxWallet : MoneroTx
         return this;
     }
 
-    public virtual MoneroTxWallet SetInputsWallet(List<MoneroOutputWallet> inputs)
+    public virtual MoneroTxWallet SetInputsWallet(List<MoneroOutputWallet>? inputs)
     {
-        return SetInputs(new List<MoneroOutput>(inputs));
+        return SetInputs(inputs == null ? null : [.. inputs]);
     }
 
     public List<MoneroOutputWallet> GetInputsWallet()
@@ -283,9 +283,9 @@ public class MoneroTxWallet : MoneroTx
     }
 
 
-    public virtual MoneroTxWallet SetOutputsWallet(List<MoneroOutputWallet> outputs)
+    public virtual MoneroTxWallet SetOutputsWallet(List<MoneroOutputWallet>? outputs)
     {
-        return SetOutputs([.. outputs]);
+        return SetOutputs(outputs == null ? null : [.. outputs]);
     }
 
     public List<MoneroOutputWallet> GetOutputsWallet()
@@ -346,7 +346,7 @@ public class MoneroTxWallet : MoneroTx
         return note;
     }
 
-    public virtual MoneroTxWallet SetNote(string note)
+    public virtual MoneroTxWallet SetNote(string? note)
     {
         this.note = note;
         return this;
@@ -363,13 +363,13 @@ public class MoneroTxWallet : MoneroTx
         return this;
     }
 
-    public virtual MoneroTxWallet SetInputSum(ulong inputSum)
+    public virtual MoneroTxWallet SetInputSum(ulong? inputSum)
     {
         this.inputSum = inputSum;
         return this;
     }
 
-    public virtual MoneroTxWallet SetOutputSum(ulong outputSum)
+    public virtual MoneroTxWallet SetOutputSum(ulong? outputSum)
     {
         this.outputSum = outputSum;
         return this;
@@ -380,19 +380,19 @@ public class MoneroTxWallet : MoneroTx
         return changeAddress;
     }
 
-    public virtual MoneroTxWallet SetChangeAddress(string changeAddress)
+    public virtual MoneroTxWallet SetChangeAddress(string? changeAddress)
     {
         this.changeAddress = changeAddress;
         return this;
     }
 
-    public virtual MoneroTxWallet SetChangeAmount(ulong changeAmount)
+    public virtual MoneroTxWallet SetChangeAmount(ulong? changeAmount)
     {
         this.changeAmount = changeAmount;
         return this;
     }
 
-    public virtual MoneroTxWallet SetNumDummyOutputs(uint numDummyOutputs)
+    public virtual MoneroTxWallet SetNumDummyOutputs(uint? numDummyOutputs)
     {
         this.numDummyOutputs = numDummyOutputs;
         return this;
@@ -403,7 +403,7 @@ public class MoneroTxWallet : MoneroTx
         return extraHex;
     }
 
-    public virtual MoneroTxWallet SetExtraHex(string extraHex)
+    public virtual MoneroTxWallet SetExtraHex(string? extraHex)
     {
         this.extraHex = extraHex;
         return this;

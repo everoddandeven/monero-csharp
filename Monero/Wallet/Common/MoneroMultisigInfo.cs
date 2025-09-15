@@ -2,12 +2,17 @@ namespace Monero.Wallet.Common;
 
 public class MoneroMultisigInfo
 {
-    private bool _isMultisig;
-    private bool _isReady;
-    private int _numParticipants;
-    private int _threshold;
+    private bool? _isMultisig;
+    private bool? _isReady;
+    private int? _numParticipants;
+    private int? _threshold;
 
-    public MoneroMultisigInfo(bool isMultisig = false, bool isReady = false, int threshold = 0, int numParticipants = 0)
+    public MoneroMultisigInfo()
+    {
+
+    }
+
+    public MoneroMultisigInfo(bool? isMultisig, bool? isReady, int? threshold, int? numParticipants)
     {
         _isMultisig = isMultisig;
         _isReady = isReady;
@@ -23,45 +28,45 @@ public class MoneroMultisigInfo
         _numParticipants = multisigInfo._numParticipants;
     }
 
-    public bool IsMultisig()
+    public bool? IsMultisig()
     {
         return _isMultisig;
     }
 
-    public MoneroMultisigInfo SetIsMultisig(bool isMultisig)
+    public MoneroMultisigInfo SetIsMultisig(bool? isMultisig)
     {
         _isMultisig = isMultisig;
         return this;
     }
 
-    public bool IsReady()
+    public bool? IsReady()
     {
         return _isReady;
     }
 
-    public MoneroMultisigInfo SetIsReady(bool isReady)
+    public MoneroMultisigInfo SetIsReady(bool? isReady)
     {
         _isReady = isReady;
         return this;
     }
 
-    public int GetThreshold()
+    public int? GetThreshold()
     {
         return _threshold;
     }
 
-    public MoneroMultisigInfo SetThreshold(int threshold)
+    public MoneroMultisigInfo SetThreshold(int? threshold)
     {
         _threshold = threshold;
         return this;
     }
 
-    public int GetNumParticipants()
+    public int? GetNumParticipants()
     {
         return _numParticipants;
     }
 
-    public MoneroMultisigInfo SetNumParticipants(int numParticipants)
+    public MoneroMultisigInfo SetNumParticipants(int? numParticipants)
     {
         _numParticipants = numParticipants;
         return this;

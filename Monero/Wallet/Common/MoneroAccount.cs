@@ -18,13 +18,13 @@ public class MoneroAccount
         unlockedBalance = 0;
     }
 
-    public MoneroAccount(uint index, string primaryAddress, ulong balance, ulong unlockedBalance,
+    public MoneroAccount(uint? index, string? primaryAddress, ulong? balance, ulong? unlockedBalance,
         List<MoneroSubaddress>? subaddresses)
     {
         this.index = index;
         this.primaryAddress = primaryAddress;
-        this.balance = balance;
-        this.unlockedBalance = unlockedBalance;
+        this.balance = balance ?? 0;
+        this.unlockedBalance = unlockedBalance ?? 0;
         this.subaddresses = subaddresses;
     }
 
@@ -88,7 +88,7 @@ public class MoneroAccount
         return subaddresses;
     }
 
-    public MoneroAccount SetSubaddresses(List<MoneroSubaddress> subaddresses)
+    public MoneroAccount SetSubaddresses(List<MoneroSubaddress>? subaddresses)
     {
         this.subaddresses = subaddresses;
         if (subaddresses != null)

@@ -63,7 +63,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
             throw new MoneroError("Send request cannot be null");
         }
 
-        if (config.GetCanSplit())
+        if (config.GetCanSplit() == true)
         {
             throw new MoneroError(
                 "Cannot request split transactions with createTx() which prevents splitting; use createTxs() instead");
@@ -317,7 +317,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
         return GetTxs(new MoneroTxQuery().SetHashes(txHashes));
     }
 
-    public abstract List<MoneroTxWallet> GetTxs(MoneroTxQuery query);
+    public abstract List<MoneroTxWallet> GetTxs(MoneroTxQuery? query);
 
     public abstract ulong GetUnlockedBalance(uint? accountIdx = null, uint? subaddressIdx = null);
 
@@ -338,7 +338,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public virtual bool IsMultisig()
     {
-        return GetMultisigInfo().IsMultisig();
+        return GetMultisigInfo().IsMultisig() == true;
     }
 
     public abstract bool IsMultisigImportNeeded();
@@ -366,7 +366,14 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public virtual string RelayTx(MoneroTxWallet tx)
     {
-        return RelayTx(tx.GetMetadata());
+        string? metadata = tx.GetMetadata();
+
+        if (metadata == null)
+        {
+            throw new MoneroError("Cannot relay tx, metadata is null");
+        }
+
+        return RelayTx(metadata);
     }
 
     public abstract List<string> RelayTxs(List<string> txMetadatas);
@@ -377,7 +384,14 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
         foreach (MoneroTxWallet tx in txs)
         {
-            txMetadatas.Add(tx.GetMetadata());
+            string? metadata = tx.GetMetadata();
+
+            if (metadata == null)
+            {
+                throw new MoneroError($"Cannot relay tx {tx.GetHash()}, metadata is null");
+            }
+
+            txMetadatas.Add(metadata);
         }
 
         return RelayTxs(txMetadatas);
@@ -510,14 +524,14 @@ public abstract class MoneroWalletDefault : MoneroWallet
             }
             else
             {
-                MoneroTxQuery txQuery = query.GetTxQuery().Clone();
-                if (query.GetTxQuery().GetTransferQuery() == query)
+                MoneroTxQuery txQuery = query.GetTxQuery()!.Clone();
+                if (query.GetTxQuery()!.GetTransferQuery() == query)
                 {
-                    query = txQuery.GetTransferQuery();
+                    query = txQuery.GetTransferQuery()!;
                 }
                 else
                 {
-                    if (null != query.GetTxQuery().GetTransferQuery())
+                    if (null != query.GetTxQuery()!.GetTransferQuery())
                     {
                         throw new MoneroError("Transfer query's tx query must be circular reference or null");
                     }
@@ -533,10 +547,10 @@ public abstract class MoneroWalletDefault : MoneroWallet
             query.SetTxQuery(new MoneroTxQuery());
         }
 
-        query.GetTxQuery().SetTransferQuery(query);
-        if (query.GetTxQuery().GetBlock() == null)
+        query.GetTxQuery()!.SetTransferQuery(query);
+        if (query.GetTxQuery()!.GetBlock() == null)
         {
-            query.GetTxQuery().SetBlock(new MoneroBlock().SetTxs(query.GetTxQuery()));
+            query.GetTxQuery()!.SetBlock(new MoneroBlock().SetTxs(query.GetTxQuery()));
         }
 
         return query;

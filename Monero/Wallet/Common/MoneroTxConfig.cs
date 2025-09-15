@@ -7,32 +7,42 @@ namespace Monero.Wallet.Common;
 
 public class MoneroTxConfig
 {
-    private uint accountIndex;
-    private ulong belowAmount;
-    private bool canSplit;
+    private uint? accountIndex;
+    private ulong? belowAmount;
+    private bool? canSplit;
     private List<MoneroDestination>? destinations;
-    private ulong fee;
+    private ulong? fee;
     private string? keyImage;
     private string? note;
     private string? paymentId;
     private MoneroTxPriority? priority;
     private string? recipientName;
-    private bool relay;
+    private bool? relay;
     private List<uint>? subaddressIndices;
     private List<uint>? subtractFeeFrom;
-    private bool sweepEachSubaddress;
+    private bool? sweepEachSubaddress;
 
     public MoneroTxConfig() { }
 
     public MoneroTxConfig(MoneroTxConfig config)
     {
-        destinations = [.. config.destinations];
-        subtractFeeFrom = [.. config.subtractFeeFrom];
+        if (config.destinations != null)
+        {
+            destinations = [.. config.destinations];
+        }
+
+        if (config.subtractFeeFrom != null)
+        {
+            subtractFeeFrom = [.. config.subtractFeeFrom];
+        }
         paymentId = config.paymentId;
         priority = config.priority;
         fee = config.fee;
         accountIndex = config.accountIndex;
-        subaddressIndices = [.. config.subaddressIndices];
+        if (config.subaddressIndices != null)
+        {
+            subaddressIndices = [.. config.subaddressIndices];
+        }
         canSplit = config.canSplit;
         relay = config.relay;
         note = config.note;
@@ -99,7 +109,7 @@ public class MoneroTxConfig
         return new MoneroTxConfig(this);
     }
 
-    public MoneroTxConfig SetAddress(string address)
+    public MoneroTxConfig SetAddress(string? address)
     {
         if (destinations == null)
         {
@@ -126,7 +136,7 @@ public class MoneroTxConfig
         return destinations[0].GetAddress();
     }
 
-    public MoneroTxConfig SetAmount(ulong amount)
+    public MoneroTxConfig SetAmount(ulong? amount)
     {
         if (destinations != null && destinations.Count > 1)
         {
@@ -221,23 +231,23 @@ public class MoneroTxConfig
         return this;
     }
 
-    public ulong GetFee()
+    public ulong? GetFee()
     {
         return fee;
     }
 
-    public MoneroTxConfig SetFee(ulong fee)
+    public MoneroTxConfig SetFee(ulong? fee)
     {
         this.fee = fee;
         return this;
     }
 
-    public uint GetAccountIndex()
+    public uint? GetAccountIndex()
     {
         return accountIndex;
     }
 
-    public MoneroTxConfig SetAccountIndex(uint accountIndex)
+    public MoneroTxConfig SetAccountIndex(uint? accountIndex)
     {
         this.accountIndex = accountIndex;
         return this;
@@ -266,23 +276,23 @@ public class MoneroTxConfig
         return this;
     }
 
-    public bool GetCanSplit()
+    public bool? GetCanSplit()
     {
         return canSplit;
     }
 
-    public MoneroTxConfig SetCanSplit(bool canSplit)
+    public MoneroTxConfig SetCanSplit(bool? canSplit)
     {
         this.canSplit = canSplit;
         return this;
     }
 
-    public bool GetRelay()
+    public bool? GetRelay()
     {
         return relay;
     }
 
-    public MoneroTxConfig SetRelay(bool relay)
+    public MoneroTxConfig SetRelay(bool? relay)
     {
         this.relay = relay;
         return this;
@@ -310,23 +320,23 @@ public class MoneroTxConfig
         return this;
     }
 
-    public ulong GetBelowAmount()
+    public ulong? GetBelowAmount()
     {
         return belowAmount;
     }
 
-    public MoneroTxConfig SetBelowAmount(ulong belowAmount)
+    public MoneroTxConfig SetBelowAmount(ulong? belowAmount)
     {
         this.belowAmount = belowAmount;
         return this;
     }
 
-    public bool GetSweepEachSubaddress()
+    public bool? GetSweepEachSubaddress()
     {
         return sweepEachSubaddress;
     }
 
-    public MoneroTxConfig SetSweepEachSubaddress(bool sweepEachSubaddress)
+    public MoneroTxConfig SetSweepEachSubaddress(bool? sweepEachSubaddress)
     {
         this.sweepEachSubaddress = sweepEachSubaddress;
         return this;

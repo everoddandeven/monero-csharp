@@ -3,7 +3,7 @@ namespace Monero.Wallet.Common;
 public class MoneroMultisigSignResult
 {
     private string? _signedMultisigHex;
-    private List<string> _txHashes = [];
+    private List<string>? _txHashes;
 
     public MoneroMultisigSignResult() { }
 
@@ -16,7 +16,10 @@ public class MoneroMultisigSignResult
     public MoneroMultisigSignResult(MoneroMultisigSignResult signResult)
     {
         _signedMultisigHex = signResult._signedMultisigHex;
-        _txHashes = [.. signResult._txHashes];
+        if (signResult._txHashes != null)
+        {
+            _txHashes = [.. signResult._txHashes];
+        }
     }
 
     public string? GetSignedMultisigTxHex()
@@ -24,20 +27,27 @@ public class MoneroMultisigSignResult
         return _signedMultisigHex;
     }
 
-    public MoneroMultisigSignResult SetSignedMultisigTxHex(string signedMultisigHex)
+    public MoneroMultisigSignResult SetSignedMultisigTxHex(string? signedMultisigHex)
     {
         _signedMultisigHex = signedMultisigHex;
         return this;
     }
 
-    public List<string> GetTxHashes()
+    public List<string>? GetTxHashes()
     {
         return _txHashes;
     }
 
-    public MoneroMultisigSignResult SetTxHashes(List<string> txHashes)
+    public MoneroMultisigSignResult SetTxHashes(List<string>? txHashes)
     {
-        _txHashes = [.. txHashes];
+        if (txHashes == null)
+        {
+            _txHashes = null;
+        }
+        else
+        {
+            _txHashes = [.. txHashes];
+        }
         return this;
     }
 

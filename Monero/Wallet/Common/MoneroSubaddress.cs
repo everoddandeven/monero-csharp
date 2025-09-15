@@ -41,7 +41,7 @@ public class MoneroSubaddress
         return index;
     }
 
-    public MoneroSubaddress SetIndex(uint index)
+    public MoneroSubaddress SetIndex(uint? index)
     {
         this.index = index;
         return this;

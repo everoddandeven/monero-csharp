@@ -23,7 +23,7 @@ public class MoneroIncomingTransfer : MoneroTransfer
         return new MoneroIncomingTransfer(this);
     }
 
-    public override MoneroIncomingTransfer SetTx(MoneroTxWallet tx)
+    public override MoneroIncomingTransfer SetTx(MoneroTxWallet? tx)
     {
         _tx = tx;
         return this;
@@ -39,7 +39,7 @@ public class MoneroIncomingTransfer : MoneroTransfer
         return subaddressIndex;
     }
 
-    public MoneroIncomingTransfer SetSubaddressIndex(uint subaddressIndex)
+    public MoneroIncomingTransfer SetSubaddressIndex(uint? subaddressIndex)
     {
         this.subaddressIndex = subaddressIndex;
         return this;
@@ -50,7 +50,7 @@ public class MoneroIncomingTransfer : MoneroTransfer
         return address;
     }
 
-    public MoneroIncomingTransfer SetAddress(string address)
+    public MoneroIncomingTransfer SetAddress(string? address)
     {
         this.address = address;
         return this;
@@ -61,7 +61,7 @@ public class MoneroIncomingTransfer : MoneroTransfer
         return numSuggestedConfirmations;
     }
 
-    public MoneroIncomingTransfer SetNumSuggestedConfirmations(ulong numSuggestedConfirmations)
+    public MoneroIncomingTransfer SetNumSuggestedConfirmations(ulong? numSuggestedConfirmations)
     {
         this.numSuggestedConfirmations = numSuggestedConfirmations;
         return this;

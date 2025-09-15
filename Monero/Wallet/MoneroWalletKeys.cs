@@ -279,7 +279,7 @@ public class MoneroWalletKeys : MoneroWalletDefault
         throw new NotImplementedException("Not supported by keys only wallet");
     }
 
-    public override List<MoneroTxWallet> GetTxs(MoneroTxQuery query)
+    public override List<MoneroTxWallet> GetTxs(MoneroTxQuery? query)
     {
         throw new NotImplementedException("Not supported by keys only wallet");
     }

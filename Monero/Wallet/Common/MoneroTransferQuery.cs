@@ -1,16 +1,14 @@
-using Monero.Common;
-
 namespace Monero.Wallet.Common;
 
 public class MoneroTransferQuery : MoneroTransfer
 {
     private string? address;
-    private List<string> addresses = [];
-    private List<MoneroDestination> destinations = [];
+    private List<string>? addresses;
+    private List<MoneroDestination>? destinations;
     private bool? hasDestinations;
     private bool? isIncoming;
     private uint? subaddressIndex;
-    private List<uint> subaddressIndices = [];
+    private List<uint>? subaddressIndices;
     protected MoneroTxQuery? txQuery;
 
     public MoneroTransferQuery()
@@ -35,7 +33,7 @@ public class MoneroTransferQuery : MoneroTransfer
         if (query.destinations != null)
         {
             destinations = [];
-            foreach (MoneroDestination destination in query.GetDestinations())
+            foreach (MoneroDestination destination in query.destinations)
             {
                 destinations.Add(destination.Clone());
             }
@@ -44,26 +42,6 @@ public class MoneroTransferQuery : MoneroTransfer
         hasDestinations = query.hasDestinations;
         txQuery =
             query.txQuery; // reference original by default, MoneroTxQuery's deep copy will Set this to itself
-        Validate();
-    }
-
-    private void Validate()
-    {
-        if (subaddressIndex != null && subaddressIndex < 0)
-        {
-            throw new MoneroError("Subaddress index must be >= 0");
-        }
-
-        if (subaddressIndices != null)
-        {
-            foreach (uint subaddressIdx in subaddressIndices)
-            {
-                if (subaddressIdx < 0)
-                {
-                    throw new MoneroError("Subaddress indices must be >= 0");
-                }
-            }
-        }
     }
 
     public override MoneroTransferQuery Clone()
@@ -76,7 +54,7 @@ public class MoneroTransferQuery : MoneroTransfer
         return txQuery;
     }
 
-    public MoneroTransferQuery SetTxQuery(MoneroTxQuery txQuery)
+    public MoneroTransferQuery SetTxQuery(MoneroTxQuery? txQuery)
     {
         this.txQuery = txQuery;
         if (txQuery != null)
@@ -92,7 +70,7 @@ public class MoneroTransferQuery : MoneroTransfer
         return isIncoming;
     }
 
-    public MoneroTransferQuery SetIsIncoming(bool isIncoming)
+    public MoneroTransferQuery SetIsIncoming(bool? isIncoming)
     {
         this.isIncoming = isIncoming;
         return this;
@@ -114,18 +92,18 @@ public class MoneroTransferQuery : MoneroTransfer
         return address;
     }
 
-    public MoneroTransferQuery SetAddress(string address)
+    public MoneroTransferQuery SetAddress(string? address)
     {
         this.address = address;
         return this;
     }
 
-    public List<string> GetAddresses()
+    public List<string>? GetAddresses()
     {
         return addresses;
     }
 
-    public MoneroTransferQuery SetAddresses(List<string> addresses)
+    public MoneroTransferQuery SetAddresses(List<string>? addresses)
     {
         this.addresses = addresses;
         return this;
@@ -145,28 +123,26 @@ public class MoneroTransferQuery : MoneroTransfer
     public MoneroTransferQuery SetSubaddressIndex(uint? subaddressIndex)
     {
         this.subaddressIndex = subaddressIndex;
-        Validate();
         return this;
     }
 
-    public List<uint> GetSubaddressIndices()
+    public List<uint>? GetSubaddressIndices()
     {
         return subaddressIndices;
     }
 
-    public MoneroTransferQuery SetSubaddressIndices(List<uint> subaddressIndices)
+    public MoneroTransferQuery SetSubaddressIndices(List<uint>? subaddressIndices)
     {
         this.subaddressIndices = subaddressIndices;
-        Validate();
         return this;
     }
 
-    public List<MoneroDestination> GetDestinations()
+    public List<MoneroDestination>? GetDestinations()
     {
         return destinations;
     }
 
-    public MoneroTransferQuery SetDestinations(List<MoneroDestination> destinations)
+    public MoneroTransferQuery SetDestinations(List<MoneroDestination>? destinations)
     {
         this.destinations = destinations;
         return this;

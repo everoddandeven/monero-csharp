@@ -4,7 +4,7 @@ public class MoneroOutputQuery : MoneroOutputWallet
 {
     private ulong? maxAmount;
     private ulong? minAmount;
-    private List<uint> subaddressIndices = [];
+    private List<uint>? subaddressIndices;
     protected MoneroTxQuery? txQuery;
 
     public MoneroOutputQuery() { }
@@ -73,18 +73,18 @@ public class MoneroOutputQuery : MoneroOutputWallet
         return this;
     }
 
-    public List<uint> GetSubaddressIndices()
+    public List<uint>? GetSubaddressIndices()
     {
         return subaddressIndices;
     }
 
-    public MoneroOutputQuery? SetSubaddressIndices(List<uint> subaddressIndices)
+    public MoneroOutputQuery SetSubaddressIndices(List<uint>? subaddressIndices)
     {
         this.subaddressIndices = subaddressIndices;
         return this;
     }
 
-    public bool MeetsCriteria(MoneroOutputWallet output)
+    public bool MeetsCriteria(MoneroOutputWallet? output)
     {
         throw new NotImplementedException();
     }
