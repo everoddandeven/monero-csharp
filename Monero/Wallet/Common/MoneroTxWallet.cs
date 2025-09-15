@@ -92,15 +92,22 @@ public class MoneroTxWallet : MoneroTx
 
     public ulong? GetIncomingAmount()
     {
-        if (GetIncomingTransfers() == null)
+        List<MoneroIncomingTransfer>? transfers = GetIncomingTransfers();
+        if (transfers == null)
         {
             return null;
         }
 
         ulong incomingAmt = 0;
-        foreach (MoneroTransfer transfer in GetIncomingTransfers())
+        foreach (MoneroIncomingTransfer transfer in transfers)
         {
-            incomingAmt += (ulong)transfer.GetAmount();
+            ulong? amount = transfer.GetAmount();
+            if (amount == null)
+            {
+                throw new MoneroError("Transfer has null amount");
+            }
+
+            incomingAmt += (ulong)amount;
         }
 
         return incomingAmt;
@@ -108,7 +115,8 @@ public class MoneroTxWallet : MoneroTx
 
     public ulong? GetOutgoingAmount()
     {
-        return GetOutgoingTransfer() != null ? GetOutgoingTransfer().GetAmount() : null;
+        MoneroOutgoingTransfer? transfer = GetOutgoingTransfer();
+        return transfer != null ? transfer.GetAmount() : null;
     }
 
     public List<MoneroTransfer> GetTransfers()
@@ -119,14 +127,17 @@ public class MoneroTxWallet : MoneroTx
     public List<MoneroTransfer> GetTransfers(MoneroTransferQuery? query)
     {
         List<MoneroTransfer> transfers = [];
-        if (GetOutgoingTransfer() != null && (query == null || query.MeetsCriteria(GetOutgoingTransfer())))
+        MoneroOutgoingTransfer? outTransfer = GetOutgoingTransfer();
+        if (outTransfer != null && (query == null || query.MeetsCriteria(outTransfer)))
         {
-            transfers.Add(GetOutgoingTransfer());
+            transfers.Add(outTransfer);
         }
 
-        if (GetIncomingTransfers() != null)
+        List<MoneroIncomingTransfer>? inTransfers = GetIncomingTransfers();
+
+        if (inTransfers != null)
         {
-            foreach (MoneroTransfer transfer in GetIncomingTransfers())
+            foreach (MoneroIncomingTransfer transfer in inTransfers)
             {
                 if (query == null || query.MeetsCriteria(transfer))
                 {
@@ -138,25 +149,27 @@ public class MoneroTxWallet : MoneroTx
         return transfers;
     }
 
-    public List<MoneroTransfer> filterTransfers(MoneroTransferQuery query)
+    public List<MoneroTransfer> FilterTransfers(MoneroTransferQuery? query)
     {
         List<MoneroTransfer> transfers = [];
 
         // collect outgoing transfer or erase if filtered
-        if (GetOutgoingTransfer() != null && (query == null || query.MeetsCriteria(GetOutgoingTransfer())))
+        MoneroOutgoingTransfer? outTransfer = GetOutgoingTransfer();
+        if (outTransfer != null && (query == null || query.MeetsCriteria(outTransfer)))
         {
-            transfers.Add(GetOutgoingTransfer());
+            transfers.Add(outTransfer);
         }
         else
         {
             SetOutgoingTransfer(null);
         }
 
+        List<MoneroIncomingTransfer>? inTransfers = GetIncomingTransfers();
         // collect incoming transfers or erase if filtered
-        if (GetIncomingTransfers() != null)
+        if (inTransfers != null)
         {
             List<MoneroTransfer> toRemoves = [];
-            foreach (MoneroTransfer transfer in GetIncomingTransfers())
+            foreach (MoneroIncomingTransfer transfer in inTransfers)
             {
                 if (query == null || query.MeetsCriteria(transfer))
                 {
@@ -169,7 +182,7 @@ public class MoneroTxWallet : MoneroTx
             }
 
             // TODO GetIncomingTransfers().RemoveAll(toRemoves);
-            if (GetIncomingTransfers().Count == 0)
+            if (inTransfers.Count == 0)
             {
                 SetIncomingTransfers(null);
             }
@@ -201,7 +214,7 @@ public class MoneroTxWallet : MoneroTx
     }
 
 
-    public override MoneroTxWallet SetInputs(List<MoneroOutput> inputs)
+    public override MoneroTxWallet SetInputs(List<MoneroOutput>? inputs)
     {
         // Validate that all inputs are wallet inputs
         if (inputs != null)
@@ -300,13 +313,13 @@ public class MoneroTxWallet : MoneroTx
         return outputsWallet;
     }
 
-    public List<MoneroOutputWallet> filterOutputsWallet(MoneroOutputQuery query)
+    public List<MoneroOutputWallet> FilterOutputsWallet(MoneroOutputQuery query)
     {
         List<MoneroOutputWallet> outputs = [];
         if (GetOutputs() != null)
         {
             List<MoneroOutput> toRemoves = [];
-            foreach (MoneroOutput output in GetOutputs())
+            foreach (MoneroOutput output in GetOutputs()!)
             {
                 if (query == null || query.MeetsCriteria((MoneroOutputWallet)output))
                 {
@@ -319,7 +332,7 @@ public class MoneroTxWallet : MoneroTx
             }
 
             // TODO GetOutputs().RemoveAll(toRemoves);
-            if (GetOutputs().Count == 0)
+            if (GetOutputs()!.Count == 0)
             {
                 SetOutputs(null);
             }

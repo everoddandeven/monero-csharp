@@ -7,6 +7,21 @@ internal class MoneroIncomingTransferComparer : Comparer<MoneroIncomingTransfer>
     public override int Compare(MoneroIncomingTransfer? t1, MoneroIncomingTransfer? t2)
     {
         // compare by height
+        if (t1 == null && t2 == null)
+        {
+            return 0;
+        }
+
+        if (t1 == null)
+        {
+            return 1;
+        }
+
+        if (t2 == null)
+        {
+            return -1;
+        }
+
         int heightComparison = TX_HEIGHT_COMPARATOR.Compare(t1.GetTx(), t2.GetTx());
         if (heightComparison != 0)
         {

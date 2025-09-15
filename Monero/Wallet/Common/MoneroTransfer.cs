@@ -59,17 +59,27 @@ public abstract class MoneroTransfer
         return this;
     }
 
-    public MoneroTransfer Merge(MoneroTransfer transfer)
+    public MoneroTransfer Merge(MoneroTransfer? transfer)
     {
+        if (transfer == null)
+        {
+            throw new MoneroError("Cannot merge null transfer");
+        }
         if (this == transfer)
         {
             return this;
         }
 
         // merge txs if they're different which comes back to merging transfers
-        if (GetTx() != transfer.GetTx())
+        MoneroTxWallet? tx = GetTx();
+        if (tx != transfer.GetTx())
         {
-            GetTx().Merge(transfer.GetTx());
+            if (tx == null)
+            {
+                throw new MoneroError("Cannot merge null tx");
+            }
+
+            tx.Merge(transfer.GetTx());
             return this;
         }
 

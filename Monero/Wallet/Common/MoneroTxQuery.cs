@@ -4,7 +4,7 @@ namespace Monero.Wallet.Common;
 
 public class MoneroTxQuery : MoneroTxWallet
 {
-    private List<string> hashes = [];
+    private List<string>? hashes;
     private bool? hasPaymentId;
     private ulong? height;
     private bool? includeOutputs;
@@ -14,7 +14,7 @@ public class MoneroTxQuery : MoneroTxWallet
     private ulong? maxHeight;
     private ulong? minHeight;
     protected MoneroOutputQuery? outputQuery;
-    private List<string> paymentIds = [];
+    private List<string>? paymentIds;
     protected MoneroTransferQuery? transferQuery;
 
     public MoneroTxQuery()
@@ -89,18 +89,28 @@ public class MoneroTxQuery : MoneroTxWallet
         return this;
     }
 
-    public override MoneroTxQuery SetHash(string hash)
+    public override MoneroTxQuery SetHash(string? hash)
     {
         base.SetHash(hash);
-        return SetHashes([hash]);
+
+        if (hash != null)
+        {
+            SetHashes([hash]);
+        }
+        else
+        {
+            SetHashes(null);
+        }
+
+        return this;
     }
 
-    public List<string> GetHashes()
+    public List<string>? GetHashes()
     {
         return hashes;
     }
 
-    public MoneroTxQuery SetHashes(List<string> hashes)
+    public MoneroTxQuery SetHashes(List<string>? hashes)
     {
         this.hashes = hashes;
         return this;
@@ -111,34 +121,43 @@ public class MoneroTxQuery : MoneroTxWallet
         return hasPaymentId;
     }
 
-    public MoneroTxQuery SetHasPaymentId(bool hasPaymentId)
+    public MoneroTxQuery SetHasPaymentId(bool? hasPaymentId)
     {
         this.hasPaymentId = hasPaymentId;
         return this;
     }
 
-    public List<string> GetPaymentIds()
+    public List<string>? GetPaymentIds()
     {
         return paymentIds;
     }
 
-    public MoneroTxQuery SetPaymentIds(List<string> paymentIds)
+    public MoneroTxQuery SetPaymentIds(List<string>? paymentIds)
     {
         this.paymentIds = paymentIds;
         return this;
     }
 
-    public MoneroTxQuery SetPaymentId(string paymentId)
+    public override MoneroTxQuery SetPaymentId(string? paymentId)
     {
-        return SetPaymentIds([paymentId]);
+        if (paymentId != null)
+        {
+            SetPaymentIds([paymentId]);
+        }
+        else
+        {
+            SetPaymentIds(null);
+        }
+
+        return this;
     }
 
-    public ulong? GetHeight()
+    public override ulong? GetHeight()
     {
         return height;
     }
 
-    public MoneroTxQuery SetHeight(ulong height)
+    public MoneroTxQuery SetHeight(ulong? height)
     {
         this.height = height;
         return this;
@@ -149,7 +168,7 @@ public class MoneroTxQuery : MoneroTxWallet
         return minHeight;
     }
 
-    public MoneroTxQuery SetMinHeight(ulong minHeight)
+    public MoneroTxQuery SetMinHeight(ulong? minHeight)
     {
         this.minHeight = minHeight;
         return this;
@@ -160,7 +179,7 @@ public class MoneroTxQuery : MoneroTxWallet
         return maxHeight;
     }
 
-    public MoneroTxQuery SetMaxHeight(ulong maxHeight)
+    public MoneroTxQuery SetMaxHeight(ulong? maxHeight)
     {
         this.maxHeight = maxHeight;
         return this;
@@ -168,7 +187,7 @@ public class MoneroTxQuery : MoneroTxWallet
 
     public override MoneroTxQuery SetUnlockTime(ulong? unlockTime)
     {
-        base.SetUnlockTime(unlockTime == null ? null : unlockTime);
+        base.SetUnlockTime(unlockTime);
         return this;
     }
 
@@ -177,7 +196,7 @@ public class MoneroTxQuery : MoneroTxWallet
         return includeOutputs;
     }
 
-    public MoneroTxQuery SetIncludeOutputs(bool includeOutputs)
+    public MoneroTxQuery SetIncludeOutputs(bool? includeOutputs)
     {
         this.includeOutputs = includeOutputs;
         return this;
@@ -231,13 +250,13 @@ public class MoneroTxQuery : MoneroTxWallet
         return this;
     }
 
-    public bool MeetsCriteria(MoneroTx tx)
+    public bool MeetsCriteria(MoneroTx? tx)
     {
         throw new NotImplementedException(
             "MoneroTxQuery.MeetsCriteria(MoneroTx tx) is not implemented yet. Please implement this method to filter transactions based on the query criteria.");
     }
 
-    public bool MeetsCriteria(MoneroTxWallet tx)
+    public bool MeetsCriteria(MoneroTxWallet? tx)
     {
         throw new NotImplementedException(
             "MoneroTxQuery.MeetsCriteria(MoneroTxWallet tx) is not implemented yet. Please implement this method to filter transactions based on the query criteria.");

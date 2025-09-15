@@ -1047,7 +1047,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
         query.GetTxQuery().SetTransferQuery(query);
         foreach (MoneroTxWallet tx in GetTxs(query.GetTxQuery()))
         {
-            transfers.AddRange(tx.filterTransfers(query));
+            transfers.AddRange(tx.FilterTransfers(query));
         }
 
         return transfers;
@@ -1065,7 +1065,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
         List<MoneroOutputWallet> outputs = [];
         foreach (MoneroTxWallet tx in GetTxs(query.GetTxQuery()))
         {
-            outputs.AddRange(tx.filterOutputsWallet(query));
+            outputs.AddRange(tx.FilterOutputsWallet(query));
         }
 
         return outputs;
@@ -2531,7 +2531,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
             }
 
             // collect queried transfers, erase if excluded
-            transfers.AddRange(tx.filterTransfers(query));
+            transfers.AddRange(tx.FilterTransfers(query));
 
             // remove excluded txs from block
             if (tx.GetBlock() != null && tx.GetOutgoingTransfer() == null && tx.GetIncomingTransfers() == null)
@@ -2675,7 +2675,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
             }
 
             // collect queried outputs, erase if excluded
-            outputs.AddRange(tx.filterOutputsWallet(query));
+            outputs.AddRange(tx.FilterOutputsWallet(query));
 
             // remove excluded txs from block
             if (tx.GetOutputs() == null && tx.GetBlock() != null)

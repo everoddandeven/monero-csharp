@@ -26,7 +26,7 @@ public class MoneroOutgoingTransfer : MoneroTransfer
         if (transfer.destinations != null)
         {
             destinations = [];
-            foreach (MoneroDestination destination in transfer.GetDestinations())
+            foreach (MoneroDestination destination in transfer.destinations)
             {
                 destinations.Add(destination.Clone());
             }

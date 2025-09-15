@@ -47,8 +47,12 @@ public class MoneroTxConfig
         return GetPaymentUri(this);
     }
 
-    public static string GetPaymentUri(MoneroTxConfig config)
+    public static string GetPaymentUri(MoneroTxConfig? config)
     {
+        if (config == null)
+        {
+            throw new ArgumentException("Must provide a valid tx config");
+        }
         if (config.GetAddress() == null)
         {
             throw new ArgumentException("Payment URI requires an address");
@@ -59,10 +63,10 @@ public class MoneroTxConfig
         sb.Append(config.GetAddress());
 
         StringBuilder paramSb = new();
-
-        if (config.GetAmount() != null)
+        ulong? amount = config.GetAmount();
+        if (amount != null)
         {
-            paramSb.Append("&tx_amount=").Append(MoneroUtils.AtomicUnitsToXmr((ulong)config.GetAmount()));
+            paramSb.Append("&tx_amount=").Append(MoneroUtils.AtomicUnitsToXmr((ulong)amount));
         }
 
         if (!string.IsNullOrEmpty(config.GetRecipientName()))
@@ -97,6 +101,11 @@ public class MoneroTxConfig
 
     public MoneroTxConfig SetAddress(string address)
     {
+        if (destinations == null)
+        {
+            destinations = [];
+        }
+
         if (destinations.Count > 1)
         {
             throw new MoneroError("Cannot Set address when multiple destinations are specified.");
@@ -109,7 +118,7 @@ public class MoneroTxConfig
 
     public string? GetAddress()
     {
-        if (destinations.Count != 1)
+        if (destinations == null || destinations.Count != 1)
         {
             throw new MoneroError("Cannot Get address because MoneroTxConfig does not have exactly one destination");
         }

@@ -103,7 +103,7 @@ public class MoneroTransferQuery : MoneroTransfer
         return isIncoming == null ? null : !isIncoming;
     }
 
-    public MoneroTransferQuery SetIsOutgoing(bool isOutgoing)
+    public MoneroTransferQuery SetIsOutgoing(bool? isOutgoing)
     {
         isIncoming = isOutgoing == null ? null : !isOutgoing;
         return this;
@@ -177,13 +177,13 @@ public class MoneroTransferQuery : MoneroTransfer
         return hasDestinations;
     }
 
-    public MoneroTransferQuery SetHasDestinations(bool hasDestinations)
+    public MoneroTransferQuery SetHasDestinations(bool? hasDestinations)
     {
         this.hasDestinations = hasDestinations;
         return this;
     }
 
-    public bool MeetsCriteria(MoneroTransfer transfer)
+    public bool MeetsCriteria(MoneroTransfer? transfer)
     {
         throw new NotImplementedException();
     }

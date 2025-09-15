@@ -32,7 +32,7 @@ public class MoneroOutputWallet : MoneroOutput
     }
 
 
-    public override MoneroOutputWallet SetTx(MoneroTx tx)
+    public override MoneroOutputWallet SetTx(MoneroTx? tx)
     {
         //if (tx != null && !(tx instanceof MoneroTxWallet)) throw new MoneroError("Wallet output's transaction must be of type MoneroTxWallet");
         base.SetTx(tx);
@@ -98,11 +98,12 @@ public class MoneroOutputWallet : MoneroOutput
 
     public bool? IsLocked()
     {
-        if (GetTx() == null)
+        MoneroTxWallet? tx = GetTx();
+        if (tx == null)
         {
             return null;
         }
 
-        return GetTx().IsLocked();
+        return tx.IsLocked();
     }
 }

@@ -6,10 +6,10 @@ internal class MoneroOutputComparer : Comparer<MoneroOutput>
 {
     private static readonly MoneroTxHeightComparer TX_HEIGHT_COMPARATOR = new();
 
-    public override int Compare(MoneroOutput o1, MoneroOutput o2)
+    public override int Compare(MoneroOutput? o1, MoneroOutput? o2)
     {
-        MoneroOutputWallet ow1 = (MoneroOutputWallet)o1;
-        MoneroOutputWallet ow2 = (MoneroOutputWallet)o2;
+        MoneroOutputWallet? ow1 = (MoneroOutputWallet?)o1;
+        MoneroOutputWallet? ow2 = (MoneroOutputWallet?)o2;
 
         if (ow1 == null && ow2 == null)
         {
