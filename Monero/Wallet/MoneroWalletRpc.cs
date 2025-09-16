@@ -918,7 +918,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
     public override List<MoneroTxWallet> GetTxs(MoneroTxQuery? query)
     {
         // copy and normalize query
-        query = query == null ? new MoneroTxQuery() : query.Clone();
+        query = query?.Clone() ?? new MoneroTxQuery();
         if (query.GetInputQuery() != null)
         {
             query.GetInputQuery()!.SetTxQuery(query);
