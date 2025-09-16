@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Monero.Common;
 
 namespace Monero.Wallet.Common;
@@ -56,6 +58,7 @@ public class MoneroTxQuery : MoneroTxWallet
         }
     }
 
+    [return: NotNull]
     public override MoneroTxQuery Clone()
     {
         return new MoneroTxQuery(this);

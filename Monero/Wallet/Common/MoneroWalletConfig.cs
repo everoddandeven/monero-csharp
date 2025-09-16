@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Monero.Common;
 
 namespace Monero.Wallet.Common;
@@ -59,6 +61,7 @@ public class MoneroWalletConfig
         return _path;
     }
 
+    [return: NotNull]
     public MoneroWalletConfig SetPath(string? path)
     {
         _path = path;
@@ -70,6 +73,7 @@ public class MoneroWalletConfig
         return _password;
     }
 
+    [return: NotNull]
     public MoneroWalletConfig SetPassword(string? password)
     {
         _password = password;
