@@ -58,7 +58,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
 
     #region RPC Wallet Methods
 
-    public MoneroWalletRpc OpenWallet(MoneroWalletConfig config)
+    public MoneroWalletRpc OpenWallet(MoneroWalletConfig? config)
     {
         // validate config
         if (config == null)
@@ -103,7 +103,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
         return OpenWallet(new MoneroWalletConfig().SetPath(path).SetPassword(password));
     }
 
-    public MoneroWalletRpc CreateWallet(MoneroWalletConfig config)
+    public MoneroWalletRpc CreateWallet(MoneroWalletConfig? config)
     {
         // validate config
         if (config == null)
@@ -175,7 +175,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
     {
         if (config == null)
         {
-            throw new MoneroError("Config is null");
+            throw new MoneroError("catch (MoneroError) { }");
         }
         // validate and normalize config
         config = config.Clone();
@@ -217,8 +217,13 @@ public class MoneroWalletRpc : MoneroWalletDefault
         return this;
     }
 
-    private void CreateWalletFromSeed(MoneroWalletConfig config)
+    private void CreateWalletFromSeed(MoneroWalletConfig? config)
     {
+        if (config == null)
+        {
+            throw new MoneroError("Must provide configuration of wallet to open");
+        }
+        
         config = config.Clone();
         if (string.IsNullOrEmpty(config.GetLanguage()))
         {
@@ -242,8 +247,13 @@ public class MoneroWalletRpc : MoneroWalletDefault
         _path = config.GetPath();
     }
 
-    private void CreateWalletFromKeys(MoneroWalletConfig config)
+    private void CreateWalletFromKeys(MoneroWalletConfig? config)
     {
+        if (config == null)
+        {
+            throw new MoneroError("Must provide configuration of wallet to open");
+        }
+        
         config = config.Clone();
         if (config.GetSeedOffset() != null)
         {
