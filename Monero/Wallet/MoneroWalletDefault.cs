@@ -16,8 +16,13 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public abstract int AddAddressBookEntry(string address, string description);
 
-    public virtual void AddListener(MoneroWalletListener listener)
+    public virtual void AddListener(MoneroWalletListener? listener)
     {
+        if (listener == null)
+        {
+            throw new MoneroError("Cannot add null listener");
+        }
+        
         lock (_listeners)
         {
             if (listener == null)
@@ -481,8 +486,13 @@ public abstract class MoneroWalletDefault : MoneroWallet
         return RelayTxs(txMetadatas);
     }
 
-    public virtual void RemoveListener(MoneroWalletListener listener)
+    public virtual void RemoveListener(MoneroWalletListener? listener)
     {
+        if (listener == null)
+        {
+            throw new MoneroError("Cannot remove null listener");
+        }
+        
         lock (_listeners)
         {
             _listeners.Remove(listener);
@@ -495,7 +505,7 @@ public abstract class MoneroWalletDefault : MoneroWallet
 
     public abstract void Save();
 
-    public abstract void ScanTxs(List<string> txHashes);
+    public abstract void ScanTxs(List<string>? txHashes);
 
     public virtual void SetAccountLabel(uint accountIdx, string label)
     {

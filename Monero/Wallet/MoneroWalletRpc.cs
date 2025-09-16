@@ -284,12 +284,15 @@ public class MoneroWalletRpc : MoneroWalletDefault
 
     private static void HandleCreateWalletError(string? name, MoneroRpcError e)
     {
-        if (e.Message.Equals("Cannot create wallet. Already exists."))
+        string errorMsg = e.Message ?? "";
+        string walletName = name ?? "unknown";
+        
+        if (errorMsg.Equals("Cannot create wallet. Already exists."))
         {
-            throw new MoneroRpcError("Wallet already exists: " + (name ?? "unkown"), e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
+            throw new MoneroRpcError($"Wallet already exists: {walletName}", e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
         }
 
-        if (e.Message.Equals("Electrum-style word list failed verification"))
+        if (errorMsg.Equals("Electrum-style word list failed verification"))
         {
             throw new MoneroRpcError("Invalid mnemonic", e.GetCode(), e.GetRpcMethod(), e.GetRpcParams());
         }
@@ -313,13 +316,13 @@ public class MoneroWalletRpc : MoneroWalletDefault
 
     #region Common Wallet Methods
 
-    public override void AddListener(MoneroWalletListener listener)
+    public override void AddListener(MoneroWalletListener? listener)
     {
         base.AddListener(listener);
         RefreshListening();
     }
 
-    public override void RemoveListener(MoneroWalletListener listener)
+    public override void RemoveListener(MoneroWalletListener? listener)
     {
         base.RemoveListener(listener);
         RefreshListening();
@@ -357,15 +360,26 @@ public class MoneroWalletRpc : MoneroWalletDefault
 
     public void SetDaemonConnection(MoneroRpcConnection? connection, bool? isTrusted, SslOptions? sslOptions)
     {
+        string? address = "placeholder";
+        string? username = "";
+        string? password = "";
+        
         if (sslOptions == null)
         {
             sslOptions = new SslOptions();
         }
 
+        if (connection != null)
+        {
+            address = connection.GetUri();
+            username = connection.GetUsername();
+            password = connection.GetPassword();
+        }
+
         MoneroJsonRpcParams parameters = [];
-        parameters.Add("address", connection == null ? "placeholder" : connection.GetUri());
-        parameters.Add("username", connection == null ? "" : connection.GetUsername());
-        parameters.Add("password", connection == null ? "" : connection.GetPassword());
+        parameters.Add("address", address);
+        parameters.Add("username", username);
+        parameters.Add("password", password);
         parameters.Add("trusted", isTrusted);
         parameters.Add("ssl_support", "autodetect");
         parameters.Add("ssl_private_key_path", sslOptions.GetPrivateKeyPath());
@@ -374,7 +388,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
         parameters.Add("ssl_allowed_fingerprints", sslOptions.GetAllowedFingerprints());
         parameters.Add("ssl_allow_any_cert", sslOptions.GetAllowAnyCert());
         _rpc.SendJsonRequest("set_daemon", parameters);
-        if (connection != null && !string.IsNullOrEmpty(connection.GetUri()))
+        if (connection != null && !string.IsNullOrEmpty(address))
         {
             _daemonConnection = new MoneroRpcConnection(connection);
         }
@@ -631,7 +645,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
         _rpc.SendJsonRequest("auto_refresh", parameters);
     }
 
-    public override void ScanTxs(List<string> txHashes)
+    public override void ScanTxs(List<string>? txHashes)
     {
         if (txHashes == null || txHashes.Count == 0)
         {
@@ -2992,12 +3006,9 @@ public class MoneroWalletRpc : MoneroWalletDefault
             {
                 subaddress.SetNumUnspentOutputs((ulong)val);
             }
-            else if (key.Equals("label"))
+            else if (key.Equals("label") && !"".Equals(val))
             {
-                if (!"".Equals(val))
-                {
-                    subaddress.SetLabel((string)val);
-                }
+                subaddress.SetLabel((string)val);
             }
             else if (key.Equals("used"))
             {
@@ -3007,11 +3018,6 @@ public class MoneroWalletRpc : MoneroWalletDefault
             {
                 subaddress.SetNumBlocksToUnlock((ulong)val);
             }
-            else if (key.Equals("time_to_unlock"))
-            {
-                // ignoring
-            }
-            //else LOGGER.warning("ignoring unexpected subaddress field: " + key + ": " + val);
         }
 
         return subaddress;

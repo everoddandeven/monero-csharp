@@ -14,14 +14,14 @@ public interface MoneroWallet
     *
     * @param listener is the listener to receive wallet notifications
     */
-    void AddListener(MoneroWalletListener listener);
+    void AddListener(MoneroWalletListener? listener);
 
     /**
      * Unregister a listener to receive wallet notifications.
      *
      * @param listener is the listener to unregister
      */
-    void RemoveListener(MoneroWalletListener listener);
+    void RemoveListener(MoneroWalletListener? listener);
 
     /**
      * Get the listeners registered with the wallet.
@@ -294,7 +294,7 @@ public interface MoneroWallet
      *
      * @param txHashes tx hashes to scan
      */
-    void ScanTxs(List<string> txHashes);
+    void ScanTxs(List<string>? txHashes);
 
     /**
      * Rescan the blockchain for spent outputs.
