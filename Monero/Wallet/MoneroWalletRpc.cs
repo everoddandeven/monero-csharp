@@ -1597,7 +1597,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
                 !isGood || !result.ContainsKey("signature_type") ? null :
                 "view".Equals(result["signature_type"]) ? MoneroMessageSignatureType.SignWithViewKey :
                 MoneroMessageSignatureType.SignWithSpendKey,
-                !isGood ? null : (int?)result["version"]);
+                !isGood ? null : Convert.ToInt32(result["version"]));
         }
         catch (MoneroRpcError e)
         {
@@ -2045,8 +2045,8 @@ public class MoneroWalletRpc : MoneroWalletDefault
         MoneroMultisigInfo info = new();
         info.SetIsMultisig((bool?)result["multisig"]);
         info.SetIsReady((bool?)result["ready"]);
-        info.SetThreshold((int?)result["threshold"]);
-        info.SetNumParticipants((int?)result["total"]);
+        info.SetThreshold(Convert.ToInt32(result["threshold"]));
+        info.SetNumParticipants(Convert.ToInt32(result["total"]));
         return info;
     }
 
@@ -3475,7 +3475,7 @@ public class MoneroWalletRpc : MoneroWalletDefault
                         }
                         else if (destinationKey.Equals("amount"))
                         {
-                            destination.SetAmount((ulong?)rpcDestination[destinationKey]);
+                            destination.SetAmount(Convert.ToUInt64(rpcDestination[destinationKey]));
                         }
                         else
                         {

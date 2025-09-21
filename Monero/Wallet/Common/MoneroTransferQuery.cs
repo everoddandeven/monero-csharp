@@ -76,6 +76,12 @@ public class MoneroTransferQuery : MoneroTransfer
         return this;
     }
 
+    public override MoneroTransferQuery SetAmount(ulong? amount)
+    {
+        base.SetAmount(amount);
+        return this;
+    }
+
     public override bool? IsIncoming()
     {
         return _isIncoming;

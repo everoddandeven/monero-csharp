@@ -105,4 +105,22 @@ public class MoneroOutputWallet : MoneroOutput
 
         return tx.IsLocked();
     }
+
+    public bool Equals(MoneroOutputWallet? other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (!base.Equals(other))
+        {
+            return false;
+        }
+
+        return _accountIndex == other._accountIndex &&
+               _subaddressIndex == other._subaddressIndex &&
+               _isSpent == other._isSpent &&
+               _isFrozen == other._isFrozen;
+    }
 }

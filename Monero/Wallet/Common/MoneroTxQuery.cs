@@ -61,6 +61,18 @@ public class MoneroTxQuery : MoneroTxWallet
         return new MoneroTxQuery(this);
     }
 
+    public override MoneroTxQuery SetInTxPool(bool? inTxPool)
+    {
+        base.SetInTxPool(inTxPool);
+        return this;
+    }
+
+    public override MoneroTxQuery SetIsConfirmed(bool? isConfirmed)
+    {
+        base.SetIsConfirmed(isConfirmed);
+        return this;
+    }
+
     public override MoneroTxQuery SetIsLocked(bool? isLocked)
     {
         base.SetIsLocked(isLocked);

@@ -4,30 +4,60 @@ using Monero.IntegrationTests.Utils;
 using Monero.Wallet;
 using Monero.Wallet.Common;
 
+using Xunit.Abstractions;
+using Xunit.Sdk;
+
 namespace Monero.IntegrationTests;
 
+[TraitDiscoverer("Monero.IntegrationTests.PriorityDiscoverer", "Monero.IntegrationTests")]
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+public class TestPriorityAttribute : Attribute, ITraitAttribute
+{
+    public TestPriorityAttribute(int priority) => Priority = priority;
+    public int Priority { get; }
+}
+
+public class PriorityDiscoverer : ITraitDiscoverer
+{
+    public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
+    {
+        var priority = traitAttribute.GetConstructorArguments().First().ToString();
+        yield return new KeyValuePair<string, string>("Priority", priority);
+    }
+}
+
+public class PriorityOrderer : ITestCaseOrderer
+{
+    public IEnumerable<TTestCase> OrderTestCases<TTestCase>(IEnumerable<TTestCase> testCases)
+        where TTestCase : ITestCase
+    {
+        return testCases.OrderBy(tc =>
+        {
+            var priority = tc.Traits.GetValueOrDefault("Priority")?.FirstOrDefault();
+            return priority != null ? int.Parse(priority) : 3;
+        });
+    }
+}
+
+[TestCaseOrderer("Monero.IntegrationTests.PriorityOrderer", "Monero.IntegrationTests")]
 public class TestMoneroWalletRpc
 {
     // test constants
     private static readonly bool TestNonRelays = true;
     private static readonly ulong AmountRequiredAu = MoneroUtils.XmrToAtomicUnits(1);
-    private static bool Funded;
+    private static readonly bool Funded;
     private readonly MoneroDaemonRpc daemon; // daemon instance to test
     private static readonly ulong MinBlockchainHeight = 640;
+    private static readonly ulong SendMaxDiff = 60;
+    private static readonly ulong SendDivisor = 10;
 
     // instance variables
     private readonly MoneroWalletRpc wallet; // wallet instance to test
-
-    private static void SetFunded()
-    {
-        Funded = true;
-    }
 
     public TestMoneroWalletRpc()
     {
         daemon = TestUtils.GetDaemonRpc();
         wallet = TestUtils.GetWalletRpcSync();
-        FundTestWalletSync();
     }
 
     private MoneroWalletRpc CreateWalletSync(MoneroWalletConfig? config)
@@ -35,42 +65,51 @@ public class TestMoneroWalletRpc
         return (MoneroWalletRpc)CreateWallet(config).GetAwaiter().GetResult();
     }
 
-    private void FundTestWalletSync()
+    private async Task<List<MoneroTxWallet>> CreateTxs(IMoneroWallet wallet, MoneroTxConfig? config)
     {
-        FundTestWallet().GetAwaiter().GetResult();
+        if (config == null)
+        {
+            throw new MoneroError("Musto provide valid tx config");
+        }
+
+        for (int i = 0; i < 5; i++)
+        {
+            try
+            {
+                return await wallet.CreateTxs(config);
+            }
+            catch (MoneroRpcError e)
+            {
+                if (e.Message.Contains("not enough money"))
+                {
+                    Thread.Sleep(5000);
+                    continue;
+                }
+
+                throw;
+            }
+        }
+
+        throw new MoneroError("Could not fund test wallet, please re-run tests");
     }
 
-    private async Task FundTestWallet()
+    [Fact, TestPriority(0)]
+    public async Task TestFundWallet()
     {
-        if (Funded)
-        {
-            return;
-        }
-
-        ulong balance = await wallet.GetBalance();
-
-        if (balance > 0)
-        {
-            SetFunded();
-            return;
-        }
-
         while (await daemon.GetHeight() < MinBlockchainHeight)
         {
             // wait for blockchain height
-            Thread.Sleep(10000);
+            Thread.Sleep(5000);
         }
 
         MoneroWalletRpc miningWallet = (MoneroWalletRpc)await CreateWallet(new MoneroWalletConfig().SetSeed(TestUtils.MINING_SEED));
         MoneroTxConfig txConfig = await GetFundTxConfig();
-        List<MoneroTxWallet> txs = await miningWallet.CreateTxs(txConfig);
+        List<MoneroTxWallet> txs = await CreateTxs(miningWallet, txConfig);
         await CloseWallet(miningWallet);
         // wait for confirmations
-
         Thread.Sleep(10000);
-
+        await wallet.Sync();
         Assert.True(await wallet.GetBalance() > 0);
-        SetFunded();
     }
 
     private async Task<MoneroTxConfig> GetFundTxConfig()
@@ -96,7 +135,7 @@ public class TestMoneroWalletRpc
                 await wallet.CreateAccount();
             }
 
-            for (uint subaddressIndex = 0; subaddressIndex < 10; subaddressIndex++)
+            for (uint subaddressIndex = 0; subaddressIndex < 50; subaddressIndex++)
             {
                 MoneroSubaddress subaddress = await wallet.CreateSubaddress(accountIndex);
 
@@ -260,7 +299,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a random wallet
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateWalletRandom()
     {
         Assert.True(TestNonRelays);
@@ -313,7 +352,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a wallet from a seed.
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateWalletFromSeed()
     {
         Assert.True(TestNonRelays);
@@ -374,7 +413,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a wallet from a seed with a seed offset
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateWalletFromSeedWithOffset()
     {
         Assert.True(TestNonRelays);
@@ -405,7 +444,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a wallet from keys
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateWalletFromKeys()
     {
         Assert.True(TestNonRelays);
@@ -461,7 +500,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create wallets with subaddress lookahead
-    [Fact(Skip = "monero-wallet-rpc does not support creating wallets with subaddress lookahead over rpc")]
+    [Fact(Skip = "monero-wallet-rpc does not support creating wallets with subaddress lookahead over rpc"), TestPriority(2)]
     public async Task TestSubaddressLookahead()
     {
         Assert.True(TestNonRelays);
@@ -501,7 +540,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the wallet's version
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetVersion()
     {
         Assert.True(TestNonRelays);
@@ -512,7 +551,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the wallet's path
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetPath()
     {
         Assert.True(TestNonRelays);
@@ -537,7 +576,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can set the daemon connection
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestSetDaemonConnection()
     {
         if (!TestUtils.TESTS_INCONTAINER)
@@ -621,7 +660,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the seed
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSeed()
     {
         Assert.True(TestNonRelays);
@@ -653,7 +692,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the private view key
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetPrivateViewKey()
     {
         Assert.True(TestNonRelays);
@@ -662,7 +701,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the private spend key
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetPrivateSpendKey()
     {
         Assert.True(TestNonRelays);
@@ -671,7 +710,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the public view key
-    [Fact(Skip = "Enable after monero-project fix (https://github.com/monero-project/monero/pull/9364)")]
+    [Fact(Skip = "Enable after monero-project fix (https://github.com/monero-project/monero/pull/9364)"), TestPriority(2)]
     public async Task TestGetPublicViewKey()
     {
         Assert.True(TestNonRelays);
@@ -680,7 +719,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the public view key
-    [Fact(Skip = "Enable after monero-project fix (https://github.com/monero-project/monero/pull/9364)")]
+    [Fact(Skip = "Enable after monero-project fix (https://github.com/monero-project/monero/pull/9364)"), TestPriority(2)]
     public async Task TestGetPublicSpendKey()
     {
         Assert.True(TestNonRelays);
@@ -689,7 +728,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the primary address
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetPrimaryAddress()
     {
         Assert.True(TestNonRelays);
@@ -699,7 +738,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the address of a subaddress at a specified account and subaddress index
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSubaddressAddress()
     {
         Assert.True(TestNonRelays);
@@ -715,7 +754,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get addresses out of range of used accounts and subaddresses
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSubaddressAddressOutOfRange()
     {
         Assert.True(TestNonRelays);
@@ -736,7 +775,7 @@ public class TestMoneroWalletRpc
 
 
     // Can get the current height that the wallet is synchronized to
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetHeight()
     {
         Assert.True(TestNonRelays);
@@ -750,7 +789,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a new account without a label
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateAccountWithoutLabel()
     {
         Assert.True(TestNonRelays);
@@ -761,7 +800,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a new account with a label
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateAccountWithLabel()
     {
         Assert.True(TestNonRelays);
@@ -804,7 +843,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get accounts without subaddresses
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetAccountsWithoutSubaddresses()
     {
         Assert.True(TestNonRelays);
@@ -818,7 +857,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get accounts with subaddresses
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetAccountsWithSubaddresses()
     {
         Assert.True(TestNonRelays);
@@ -833,7 +872,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get an account at a specified index
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetAccount()
     {
         Assert.True(TestNonRelays);
@@ -863,7 +902,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can set account labels
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestSetAccountLabel()
     {
         // create account
@@ -879,7 +918,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can create a subaddress with and without a label
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestCreateSubaddress()
     {
         Assert.True(TestNonRelays);
@@ -916,7 +955,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get subaddresses at a specified account index
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSubaddresses()
     {
         Assert.True(TestNonRelays);
@@ -942,7 +981,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get subaddresses at specified account and subaddress indices
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSubaddressesByIndices()
     {
         Assert.True(TestNonRelays);
@@ -993,7 +1032,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get a subaddress at a specified account and subaddress index
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetSubaddressByIndex()
     {
         Assert.True(TestNonRelays);
@@ -1023,7 +1062,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can set subaddress labels
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestSetSubaddressLabel()
     {
 
@@ -1044,7 +1083,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can sync (without progress)
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestSyncWithoutProgress()
     {
         Assert.True(TestNonRelays);
@@ -1057,7 +1096,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get the locked and unlocked balances of the wallet, accounts, and subaddresses
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestGetAllBalances()
     {
         Assert.True(TestNonRelays);
@@ -1097,7 +1136,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can save and close the wallet in a single call
-    [Fact]
+    [Fact, TestPriority(2)]
     public async Task TestSaveAndClose()
     {
         Assert.True(TestNonRelays);
@@ -1129,7 +1168,7 @@ public class TestMoneroWalletRpc
     }
 
     // Can get transfers in the wallet, accounts, and subaddresses
-    [Fact]
+    [Fact, TestPriority(2)]
     public virtual async Task TestGetTransfers()
     {
         // get all transfers
@@ -1240,6 +1279,224 @@ public class TestMoneroWalletRpc
         Assert.True(nonDefaultIncoming, "No transfers found in non-default account and subaddress; run send-to-multiple tests");
     }
 
+    // Can get transfers with additional configuration
+    [Fact, TestPriority(2)]
+    public virtual async Task TestGetTransfersWithQuery()
+    {
+        // get incoming transfers
+        List<MoneroTransfer> transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetIsIncoming(true), null, true);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.True(transfer.IsIncoming());
+        }
+
+        // get outgoing transfers
+        transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetIsOutgoing(true), null, true);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.True(transfer.IsOutgoing());
+        }
+
+        // get confirmed transfers to account 0
+        transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetAccountIndex(0).SetTxQuery(new MoneroTxQuery().SetIsConfirmed(true)), null, true);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.Equal(0, (int)transfer.GetAccountIndex()!);
+            Assert.True(transfer.GetTx()!.IsConfirmed());
+        }
+
+        // get confirmed transfers to [1, 2]
+        transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetAccountIndex(1).SetSubaddressIndex(2).SetTxQuery(new MoneroTxQuery().SetIsConfirmed(true)), null, true);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.Equal(1, (int)transfer.GetAccountIndex()!);
+            if (transfer.IsIncoming() == true)
+            {
+                Assert.Equal(2, (int)((MoneroIncomingTransfer)transfer).GetSubaddressIndex()!);
+            }
+            else
+            {
+                Assert.Contains((uint)2, ((MoneroOutgoingTransfer)transfer).GetSubaddressIndices()!);
+            }
+            Assert.True(transfer.GetTx()!.IsConfirmed());
+        }
+
+        // get transfers in the _tx pool
+        transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetTxQuery(new MoneroTxQuery().SetInTxPool(true)), null, null);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.Equal(true, transfer.GetTx()!.InTxPool());
+        }
+
+        // get random transactions
+        List<MoneroTxWallet> txs = await GetRandomTransactions(wallet, null, 3, 5);
+
+        // get transfers with a _tx hash
+        List<string> txHashes = new List<string>();
+        foreach (MoneroTxWallet tx in txs)
+        {
+            txHashes.Add(tx.GetHash()!);
+            transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetTxQuery(new MoneroTxQuery().SetHash(tx.GetHash())), null, true);
+            foreach (MoneroTransfer transfer in transfers)
+            {
+                Assert.Equal(tx.GetHash(), transfer.GetTx()!.GetHash());
+            }
+        }
+
+        // get transfers with _tx hashes
+        transfers = await GetAndTestTransfers(wallet, new MoneroTransferQuery().SetTxQuery(new MoneroTxQuery().SetHashes(txHashes)), null, true);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.Contains(transfer.GetTx()!.GetHash()!, txHashes);
+        }
+
+        // TODO: test that transfers with the same txHash have the same _tx reference
+
+        // TODO: test transfers destinations
+
+        // get transfers with pre-built query that are confirmed and have outgoing destinations
+        MoneroTransferQuery transferQuery = new MoneroTransferQuery();
+        transferQuery.SetIsOutgoing(true);
+        transferQuery.SetHasDestinations(true);
+        transferQuery.SetTxQuery(new MoneroTxQuery().SetIsConfirmed(true));
+        transfers = await GetAndTestTransfers(wallet, transferQuery, null, null);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.Equal(true, transfer.IsOutgoing());
+            Assert.True(((MoneroOutgoingTransfer)transfer).GetDestinations()!.Count > 0);
+            Assert.Equal(true, transfer.GetTx()!.IsConfirmed());
+        }
+
+        // get incoming transfers to account 0 which has outgoing transfers (i.e. originated from the same wallet)
+        transfers = await wallet.GetTransfers(new MoneroTransferQuery().SetAccountIndex(1).SetIsIncoming(true).SetTxQuery(new MoneroTxQuery().SetIsOutgoing(true)));
+        Assert.False(transfers.Count == 0);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.True(transfer.IsIncoming());
+            Assert.Equal(1, (int)transfer.GetAccountIndex()!);
+            Assert.True(transfer.GetTx()!.IsOutgoing());
+            Assert.Null(transfer.GetTx()!.GetOutgoingTransfer());
+        }
+
+        // get incoming transfers to a specific address
+        string? subaddress = await wallet.GetAddress(1, 0);
+        transfers = await wallet.GetTransfers(new MoneroTransferQuery().SetIsIncoming(true).SetAddress(subaddress));
+        Assert.True(transfers.Count > 0);
+        foreach (MoneroTransfer transfer in transfers)
+        {
+            Assert.True(transfer is MoneroIncomingTransfer);
+            Assert.True(1 == (uint)transfer.GetAccountIndex()!);
+            Assert.True(0 == (uint)((MoneroIncomingTransfer)transfer).GetSubaddressIndex()!);
+            Assert.Equal(subaddress, ((MoneroIncomingTransfer)transfer).GetAddress());
+        }
+    }
+
+    // Validates inputs when getting transfers
+    [Fact, TestPriority(2)]
+    public async Task TestValidateInputsGetTransfers()
+    {
+        // test with invalid hash
+        List<MoneroTransfer> transfers = await wallet.GetTransfers(new MoneroTransferQuery().SetTxQuery(new MoneroTxQuery().SetHash("invalid_id")));
+        Assert.Empty(transfers);
+
+        // test invalid hash in collection
+        List<MoneroTxWallet> randomTxs = await GetRandomTransactions(wallet, null, 3, 5);
+        transfers = await wallet.GetTransfers(new MoneroTransferQuery().SetTxQuery(new MoneroTxQuery().SetHashes([randomTxs[0].GetHash()!, "invalid_id"])));
+        Assert.True(transfers.Count > 0);
+        MoneroTxWallet? tx = transfers[0].GetTx();
+        foreach (MoneroTransfer transfer in transfers) Assert.True(tx == transfer.GetTx());
+
+        // test unused subaddress indices
+        transfers = await wallet.GetTransfers(new MoneroTransferQuery().SetAccountIndex(0).SetSubaddressIndices([1234907]));
+        Assert.True(transfers.Count == 0);
+    }
+
+    // Can get incoming and outgoing transfers using convenience methods
+    [Fact, TestPriority(2)]
+    public async Task TestGetIncomingOutgoingTransfers()
+    {
+        // get incoming transfers
+        List<MoneroIncomingTransfer> inTransfers = await wallet.GetIncomingTransfers();
+        Assert.False(inTransfers.Count == 0);
+        foreach (MoneroIncomingTransfer transfer in inTransfers)
+        {
+            Assert.True(transfer.IsIncoming());
+            TestTransfer(transfer, null);
+        }
+
+        // get incoming transfers with query
+        ulong? amount = inTransfers[0].GetAmount();
+        uint? accountIdx = inTransfers[0].GetAccountIndex();
+        uint? subaddressIdx = inTransfers[0].GetSubaddressIndex();
+        inTransfers = await wallet.GetIncomingTransfers(new MoneroTransferQuery().SetAmount(amount).SetAccountIndex(accountIdx).SetSubaddressIndex(subaddressIdx).SetTxQuery(new MoneroTxQuery().SetIsConfirmed(true)));
+        Assert.False(inTransfers.Count == 0);
+        foreach (MoneroIncomingTransfer transfer in inTransfers)
+        {
+            Assert.True(transfer.IsIncoming());
+            Assert.Equal(amount, transfer.GetAmount());
+            Assert.Equal(accountIdx, (uint)transfer.GetAccountIndex()!);
+            Assert.Equal(subaddressIdx, (uint)transfer.GetSubaddressIndex()!);
+            TestTransfer(transfer, null);
+        }
+
+        // get incoming transfers with contradictory query
+        try
+        {
+            inTransfers = await wallet.GetIncomingTransfers(new MoneroTransferQuery().SetIsIncoming(false));
+        }
+        catch (MoneroError e)
+        {
+            Assert.Equal("Transfer query contradicts getting incoming transfers", e.Message);
+        }
+
+        // get outgoing transfers
+        List<MoneroOutgoingTransfer> outTransfers = await wallet.GetOutgoingTransfers();
+        Assert.False(outTransfers.Count == 0);
+        foreach (MoneroOutgoingTransfer transfer in outTransfers)
+        {
+            Assert.True(transfer.IsOutgoing());
+            TestTransfer(transfer, null);
+        }
+
+
+        // get outgoing transfers with query
+        accountIdx = outTransfers[0].GetAccountIndex();
+        subaddressIdx = outTransfers[0].GetSubaddressIndices()![0];
+        outTransfers = await wallet.GetOutgoingTransfers(new MoneroTransferQuery().SetAccountIndex(accountIdx).SetSubaddressIndex(subaddressIdx));
+        Assert.False(outTransfers.Count == 0);
+        foreach (MoneroOutgoingTransfer transfer in outTransfers)
+        {
+            Assert.True(transfer.IsOutgoing());
+            Assert.Equal(accountIdx, (uint)transfer.GetAccountIndex()!);
+            Assert.Contains((uint)subaddressIdx, transfer.GetSubaddressIndices());
+            TestTransfer(transfer, null);
+        }
+
+        // get outgoing transfers with contradictory query
+        try
+        {
+            outTransfers = await wallet.GetOutgoingTransfers(new MoneroTransferQuery().SetIsOutgoing(false));
+        }
+        catch (MoneroError e)
+        {
+            Assert.Equal("Transfer query contradicts getting outgoing transfers", e.Message);
+        }
+    }
+
+    // Can send to multiple addresses in a single transaction
+    [Fact, TestPriority(1)]
+    public async Task TestSendToMultiple()
+    {
+        await SendToMultiple(5, 3, false);
+    }
+
+    // Can send to multiple addresses in split transactions
+    [Fact, TestPriority(1)]
+    public async Task TestSendToMultipleSplit()
+    {
+        await SendToMultiple(3, 15, true);
+    }
+
     #region Test Utils
 
     private static void TestSubaddress(MoneroSubaddress? subaddress)
@@ -1299,6 +1556,55 @@ public class TestMoneroWalletRpc
         // tag must be undefined or non-empty
         string? tag = account.GetTag();
         Assert.True(tag == null || tag.Length > 0);
+    }
+
+    protected virtual void TestTxsWallet(List<MoneroTxWallet> txs, TxContext ctx)
+    {
+        // test each transaction
+        Assert.True(txs.Count > 0);
+        foreach (MoneroTxWallet tx in txs)
+        {
+            TestTxWallet(tx, ctx);
+        }
+
+        // test destinations across transactions
+        if (ctx.Config != null && ctx.Config.GetDestinations() != null)
+        {
+            int destinationIdx = 0;
+            bool subtractFeeFromDestinations = ctx.Config.GetSubtractFeeFrom() != null && ctx.Config.GetSubtractFeeFrom()!.Count > 0;
+            foreach (MoneroTxWallet tx in txs)
+            {
+                // TODO: remove this after >18.3.1 when amounts_by_dest_list is official
+                if (tx.GetOutgoingTransfer()!.GetDestinations() == null)
+                {
+                    Console.WriteLine("Tx missing destinations");
+                    return;
+                }
+
+                ulong amountDiff = 0;
+                foreach (MoneroDestination destination in tx.GetOutgoingTransfer()!.GetDestinations()!)
+                {
+                    MoneroDestination ctxDestination = ctx.Config.GetDestinations()![destinationIdx];
+                    Assert.Equal(ctxDestination.GetAddress(), destination.GetAddress());
+                    if (subtractFeeFromDestinations)
+                    {
+                        amountDiff += ctxDestination.GetAmount() - destination.GetAmount() ?? 0;
+                    }
+                    else
+                    {
+                        Assert.Equal(ctxDestination.GetAmount(), destination.GetAmount());
+                    }
+                    destinationIdx++;
+                }
+
+                if (subtractFeeFromDestinations)
+                {
+                    Assert.Equal(amountDiff, tx.GetFee());
+                }
+            }
+
+            Assert.Equal(destinationIdx, ctx.Config.GetDestinations()!.Count);
+        }
     }
 
     protected virtual void TestTxWallet(MoneroTxWallet? tx)
@@ -1579,12 +1885,7 @@ public class TestMoneroWalletRpc
             }
 
             // test destinations of sent _tx
-            if (tx.GetOutgoingTransfer()!.GetDestinations() == null)
-            {
-                Assert.True(config.GetCanSplit());
-                Console.WriteLine("Destinations not returned from split transactions"); // TODO: remove this after >18.3.1 when amounts_by_dest_list official
-            }
-            else
+            if (tx.GetOutgoingTransfer()!.GetDestinations() != null)
             {
                 Assert.NotNull(tx.GetOutgoingTransfer()!.GetDestinations());
                 Assert.True(tx.GetOutgoingTransfer()!.GetDestinations()!.Count > 0);
@@ -1599,7 +1900,6 @@ public class TestMoneroWalletRpc
                     }
                 }
             }
-
 
             // test relayed txs
             if (config.GetRelay() == true)
@@ -1974,6 +2274,174 @@ public class TestMoneroWalletRpc
             Assert.True(copy.Equals(query));
         }
         return transfers;
+    }
+
+    private static async Task<List<MoneroTxWallet>> GetRandomTransactions(IMoneroWallet wallet, MoneroTxQuery? txQuery, int? minTxs, int? maxTxs)
+    {
+        List<MoneroTxWallet> txs = await wallet.GetTxs(txQuery);
+
+        if (minTxs != null)
+        {
+            Assert.True(txs.Count >= minTxs, txs.Count + "/" + minTxs + " transactions found with the query");
+        }
+
+        GenUtils.Shuffle(txs);
+
+        if (maxTxs == null)
+        {
+            return txs;
+        }
+        return txs.GetRange(0, Math.Min((int)maxTxs, txs.Count));
+    }
+
+    private async Task SendToMultiple(uint numAccounts, uint numSubaddressesPerAccount, bool canSplit, ulong? sendAmountPerSubaddress = null, bool subtractFeeFromDestinations = false)
+    {
+        await TestUtils.WALLET_TX_TRACKER.WaitForWalletTxsToClearPool(wallet);
+
+        // compute the minimum account unlocked balance needed in order to fulfill the config
+        ulong? minAccountAmount = null;
+        uint totalSubaddresses = numAccounts * numSubaddressesPerAccount;
+        if (sendAmountPerSubaddress != null) minAccountAmount = (totalSubaddresses * sendAmountPerSubaddress) + TestUtils.MAX_FEE; // min account amount must cover the total amount being sent plus the tx fee = numAddresses * (amtPerSubaddress + fee)
+        else minAccountAmount = (TestUtils.MAX_FEE * totalSubaddresses * SendDivisor) + TestUtils.MAX_FEE; // account balance must be more than fee * numAddresses * divisor + fee so each destination amount is at least a fee's worth (so dust is not sent)
+
+        // send funds from first account with sufficient unlocked funds
+        MoneroAccount? srcAccount = null;
+        bool hasBalance = false;
+        foreach (MoneroAccount walletAccount in await wallet.GetAccounts())
+        {
+            if (walletAccount.GetBalance()! > minAccountAmount) hasBalance = true;
+            if (walletAccount.GetUnlockedBalance()! > minAccountAmount)
+            {
+                srcAccount = walletAccount;
+                break;
+            }
+        }
+        Assert.True(hasBalance, "Wallet does not have enough balance; load '" + TestUtils.WALLET_NAME + "' with XMR in order to test sending");
+        if (srcAccount == null) throw new Exception("Wallet is waiting on unlocked funds");
+        ulong balance = (ulong)srcAccount.GetBalance()!;
+        ulong unlockedBalance = (ulong)srcAccount.GetUnlockedBalance()!;
+
+        // get amount to send total and per subaddress
+        ulong? sendAmount;
+        if (sendAmountPerSubaddress == null)
+        {
+            sendAmount = TestUtils.MAX_FEE * 5 * totalSubaddresses;
+            sendAmountPerSubaddress = (sendAmount / (totalSubaddresses));
+        }
+        else
+        {
+            sendAmount = sendAmountPerSubaddress * totalSubaddresses;
+        }
+
+        // create minimum number of accounts
+        List<MoneroAccount> accounts = await wallet.GetAccounts();
+        for (int i = 0; i < numAccounts - accounts.Count; i++)
+        {
+            await wallet.CreateAccount();
+        }
+
+        // create minimum number of subaddresses per account and collect destination addresses
+        List<string> destinationAddresses = new List<string>();
+        for (uint i = 0; i < numAccounts; i++)
+        {
+            List<MoneroSubaddress> subaddresses = await wallet.GetSubaddresses(i);
+            for (int j = 0; j < numSubaddressesPerAccount - subaddresses.Count; j++)
+            {
+                await wallet.CreateSubaddress(i);
+            }
+            subaddresses = await wallet.GetSubaddresses(i);
+            Assert.True(subaddresses.Count >= numSubaddressesPerAccount);
+            for (int j = 0; j < numSubaddressesPerAccount; j++)
+            {
+                destinationAddresses.Add(subaddresses[j].GetAddress()!);
+            }
+        }
+
+        // build tx config
+        MoneroTxConfig config = new MoneroTxConfig();
+        config.SetAccountIndex(srcAccount.GetIndex());
+        config.SetSubaddressIndices(null); // test assigning null
+        config.SetDestinations(new List<MoneroDestination>());
+        config.SetRelay(true);
+        config.SetCanSplit(canSplit);
+        config.SetPriority(MoneroTxPriority.Normal);
+        List<uint> subtractFeeFrom = new List<uint>();
+        for (uint i = 0; i < destinationAddresses.Count; i++)
+        {
+            config.GetDestinations()!.Add(new MoneroDestination(destinationAddresses[(int)i], sendAmountPerSubaddress));
+            subtractFeeFrom.Add(i);
+        }
+        if (subtractFeeFromDestinations) config.SetSubtractFeeFrom(subtractFeeFrom);
+
+        MoneroTxConfig configCopy = config.Clone();
+
+        // send tx(s) with config
+        List<MoneroTxWallet>? txs = null;
+        try
+        {
+            txs = await wallet.CreateTxs(config);
+        }
+        catch (MoneroError e)
+        {
+
+            // test error applying subtractFromFee with split txs
+            if (subtractFeeFromDestinations && txs == null)
+            {
+                if (!e.Message.Equals("subtractfeefrom transfers cannot be split over multiple transactions yet")) throw;
+                return;
+            }
+
+            throw;
+        }
+
+        if (!canSplit)
+        {
+            Assert.True(1 == txs.Count);
+        }
+
+        // test that config is unchanged
+        Assert.True(configCopy != config);
+        Assert.True(configCopy.Equals(config));
+
+        // test that wallet balance decreased
+        MoneroAccount account = await wallet.GetAccount((uint)srcAccount.GetIndex()!);
+        Assert.True(account.GetBalance()! < balance);
+        Assert.True(account.GetUnlockedBalance()! < unlockedBalance);
+
+        // build test context
+        config.SetCanSplit(canSplit);
+        TxContext ctx = new TxContext();
+        ctx.Wallet = wallet;
+        ctx.Config = config;
+        ctx.IsSendResponse = true;
+
+        // test each transaction
+        Assert.True(txs.Count > 0);
+        ulong feeSum = 0;
+        ulong outgoingSum = 0;
+        TestTxsWallet(txs, ctx);
+        foreach (MoneroTxWallet tx in txs)
+        {
+            feeSum += ((ulong)tx.GetFee()!);
+            outgoingSum = outgoingSum + ((ulong)tx.GetOutgoingAmount()!);
+            if (tx.GetOutgoingTransfer() != null && tx.GetOutgoingTransfer()!.GetDestinations() != null)
+            {
+                ulong destinationSum = 0;
+                foreach (MoneroDestination destination in tx.GetOutgoingTransfer()!.GetDestinations()!)
+                {
+                    TestDestination(destination);
+                    Assert.Contains(destination.GetAddress()!, destinationAddresses);
+                    destinationSum = destinationSum + ((ulong)destination.GetAmount()!);
+                }
+                Assert.True(tx.GetOutgoingAmount().Equals(destinationSum));  // Assert. that transfers sum up to tx amount
+            }
+        }
+
+        // Assert. that outgoing amounts sum up to the amount sent within a small margin
+        if (sendAmount - (subtractFeeFromDestinations ? feeSum : 0) - outgoingSum > SendMaxDiff)
+        { // send amounts may be slightly different
+            Assert.Fail("Actual send amount is too different from requested send amount: " + sendAmount + " - " + (subtractFeeFromDestinations ? feeSum : 0) + " - " + outgoingSum + " = " + (sendAmount - (subtractFeeFromDestinations ? feeSum : 0) - outgoingSum));
+        }
     }
 
     #endregion

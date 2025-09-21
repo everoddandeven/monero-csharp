@@ -36,7 +36,23 @@ internal class MoneroIncomingTransferComparer : Comparer<MoneroIncomingTransfer>
 
         if (t1.GetAccountIndex() == t2.GetAccountIndex())
         {
-            return Nullable.Compare(t1.GetSubaddressIndex(), t2.GetSubaddressIndex());
+            uint? sub1 = t1.GetSubaddressIndex();
+            uint? sub2 = t2.GetSubaddressIndex();
+            if (sub1 == null && sub2 == null)
+            {
+                return 0;
+            }
+
+            if (sub1 == null)
+            {
+                return 1;
+            }
+
+            if (sub2 == null)
+            {
+                return -1;
+            }
+            return sub1.Value.CompareTo(sub2.Value);
         }
 
         return 1;

@@ -82,6 +82,32 @@ public class MoneroKeyImage
 
     public MoneroKeyImage Merge(MoneroKeyImage? keyImage)
     {
-        throw new NotImplementedException("MoneroKeyImage.Merge(): not implemented");
+        if (keyImage == null)
+        {
+            throw new MoneroError("Cannot merge: key image is null");
+        }
+
+        if (keyImage == this)
+        {
+            return this;
+        }
+        SetHex(GenUtils.Reconcile(GetHex(), keyImage.GetHex()));
+        SetSignature(GenUtils.Reconcile(GetSignature(), keyImage.GetSignature()));
+        return this;
+    }
+
+    public bool Equals(MoneroKeyImage? other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (other == this)
+        {
+            return true;
+        }
+
+        return _hex == other._hex && _signature == other._signature;
     }
 }

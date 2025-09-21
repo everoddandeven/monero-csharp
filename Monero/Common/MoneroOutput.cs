@@ -143,4 +143,74 @@ public class MoneroOutput
 
         return this;
     }
+
+    public bool Equals(MoneroOutput? other)
+    {
+        if (this == other)
+        {
+            return true;
+        }
+
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (_ringOutputIndices == null)
+        {
+            if (other._ringOutputIndices != null)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (other._ringOutputIndices == null)
+            {
+                return false;
+            }
+
+            if (_ringOutputIndices.Count != other._ringOutputIndices.Count)
+            {
+                return false;
+            }
+
+            int i = 0;
+
+            foreach (ulong ringOutputIndex in _ringOutputIndices)
+            {
+                if (ringOutputIndex != other._ringOutputIndices[i])
+                {
+                    return false;
+                }
+
+                i++;
+            }
+        }
+
+        if (_keyImage == null)
+        {
+            if (other._keyImage != null)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (other._keyImage == null)
+            {
+                return false;
+            }
+
+            if (!_keyImage.Equals(other._keyImage))
+            {
+                return false;
+            }
+        }
+
+        return _amount == other._amount &&
+               _index == other._index &&
+               _ringOutputIndices == other._ringOutputIndices &&
+               _stealthPublicKey == other._stealthPublicKey;
+    }
 }

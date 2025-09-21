@@ -5,6 +5,8 @@ namespace Monero.Common;
 
 public static class GenUtils
 {
+    private static readonly Random Rand = new();
+
     public static string GetGuid()
     {
         return Guid.NewGuid().ToString();
@@ -230,5 +232,16 @@ public static class GenUtils
         }
 
         return sb.ToString();
+    }
+
+    public static void Shuffle<T>(IList<T> list)
+    {
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = Rand.Next(n + 1); // random index
+            (list[n], list[k]) = (list[k], list[n]); // swap
+        }
     }
 }
