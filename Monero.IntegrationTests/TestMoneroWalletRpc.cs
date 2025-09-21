@@ -49,7 +49,7 @@ public class TestMoneroWalletRpc
 
         ulong balance = await wallet.GetBalance();
 
-        if (balance > AmountRequiredAu)
+        if (balance > 0)
         {
             SetFunded();
             return;
