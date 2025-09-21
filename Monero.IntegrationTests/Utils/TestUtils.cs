@@ -54,6 +54,9 @@ internal abstract class TestUtils
     public static readonly string SEED =
         "arena fossil anchor tapestry iguana tubes javelin gotten cafe damp talent angled onslaught haggled moon roles gills cigar cowl awning vapidly sighting buzzer delayed iguana";
 
+    public static readonly string MINING_SEED =
+        "journal dying mittens orders fight summon framed wrap rumble lemon video dented dazed teeming gills refer factual wildly phase cycling madness software emulate fierce madness";
+
     public static readonly string ADDRESS =
         "4B7nn4hBQhaJ2MBWHLpdUHQMoMqgE2BWtZfofNxTDAJoGgckeEGm4f9WaBuFJmCKuwZ7FE3Di7biKbdafqE4JDj19MWPvQ9";
 
