@@ -63,7 +63,7 @@ internal abstract class TestUtils
     public static readonly string PRIVATE_VIEW_KEY = "395d05e724f4c08f072895eab08ee4d00b3b2848902cf939fd3c07288454f804";
 
     public static readonly ulong
-        FIRST_RECEIVE_HEIGHT = 171; // NOTE: this value must be the height of the wallet's first tx for tests
+        FIRST_RECEIVE_HEIGHT = 1; // NOTE: this value must be the height of the wallet's first tx for tests
 
     public static readonly int SYNC_PERIOD_IN_MS = 5000; // period between wallet syncs in milliseconds
 
