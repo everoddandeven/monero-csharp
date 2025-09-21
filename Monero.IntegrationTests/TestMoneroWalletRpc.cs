@@ -13,7 +13,7 @@ public class TestMoneroWalletRpc
     private static readonly ulong AmountRequiredAu = MoneroUtils.XmrToAtomicUnits(1);
     private static bool Funded;
     private readonly MoneroDaemonRpc daemon; // daemon instance to test
-    private static readonly ulong MinBlockchainHeight = 180;
+    private static readonly ulong MinBlockchainHeight = 640;
 
     // instance variables
     private readonly MoneroWalletRpc wallet; // wallet instance to test
