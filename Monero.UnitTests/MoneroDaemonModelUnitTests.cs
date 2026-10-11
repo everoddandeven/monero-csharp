@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Monero.Common;
 using Monero.Daemon.Model;
+using static Monero.UnitTests.ModelTestSupport;
 
 namespace Monero.UnitTests;
 
@@ -34,14 +35,6 @@ public class MoneroDaemonModelUnitTests
     // helpers
     // ------------------------------------------------------------------------------------------------------------------------------
 
-    /// <summary>
-    /// The two ways to read and write the models: with reflection, and with the code that the compiler generates.
-    /// </summary>
-    public enum Engine
-    {
-        Reflection,
-        SourceGenerated
-    }
 
     /// <summary>
     /// The fixtures and the type of the model that every one of them holds.
@@ -119,12 +112,12 @@ public class MoneroDaemonModelUnitTests
 
     private static string FixturePath(string name)
     {
-        return Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", "Daemon", name + ".json");
+        return ModelTestSupport.FixturePath("Daemon", name);
     }
 
     private static string Fixture(string name)
     {
-        return File.ReadAllText(FixturePath(name));
+        return ModelTestSupport.Fixture("Daemon", name);
     }
 
     private static T Read<T>(string json)
@@ -144,144 +137,14 @@ public class MoneroDaemonModelUnitTests
 
     private static object ReadWith(Engine engine, string json, Type type)
     {
-        var model = engine == Engine.Reflection
-            ? JsonSerializer.Deserialize(json, type, MoneroJson.Options)
-            : JsonSerializer.Deserialize(json, type, MoneroDaemonJsonContext.Default);
-        Assert.That(model, Is.Not.Null, $"{type.Name} was read as null");
-        return model!;
+        return ModelTestSupport.ReadWith(engine, json, type, MoneroDaemonJsonContext.Default);
     }
 
     private static string WriteWith(Engine engine, object model, Type type)
     {
-        return engine == Engine.Reflection
-            ? JsonSerializer.Serialize(model, type, MoneroJson.Options)
-            : JsonSerializer.Serialize(model, type, MoneroDaemonJsonContext.Default);
+        return ModelTestSupport.WriteWith(engine, model, type, MoneroDaemonJsonContext.Default);
     }
 
-    /// <summary>
-    /// Compare two JSON documents by value: the order of the properties does not matter, the order of an array does.
-    /// </summary>
-    /// <returns>where the two differ, or <c>null</c> if they are the same.</returns>
-    private static string? Diff(JsonNode? expected, JsonNode? actual, string path = "$")
-    {
-        switch (expected)
-        {
-            case JsonObject expectedObject:
-            {
-                if (actual is not JsonObject actualObject) return $"{path}: expected an object, but it is {Show(actual)}";
-                foreach (var (key, value) in expectedObject)
-                {
-                    if (!actualObject.ContainsKey(key)) return $"{path}.{key}: missing, expected {Show(value)}";
-                    var difference = Diff(value, actualObject[key], $"{path}.{key}");
-                    if (difference != null) return difference;
-                }
-
-                foreach (var (key, value) in actualObject)
-                {
-                    if (!expectedObject.ContainsKey(key)) return $"{path}.{key}: not expected, but it is {Show(value)}";
-                }
-
-                return null;
-            }
-            case JsonArray expectedArray:
-            {
-                if (actual is not JsonArray actualArray) return $"{path}: expected an array, but it is {Show(actual)}";
-                if (expectedArray.Count != actualArray.Count) return $"{path}: expected {expectedArray.Count} items, but there are {actualArray.Count}";
-                for (var i = 0; i < expectedArray.Count; i++)
-                {
-                    var difference = Diff(expectedArray[i], actualArray[i], $"{path}[{i}]");
-                    if (difference != null) return difference;
-                }
-
-                return null;
-            }
-            default:
-                return JsonNode.DeepEquals(expected, actual) ? null : $"{path}: expected {Show(expected)}, but it is {Show(actual)}";
-        }
-    }
-
-    private static string Show(JsonNode? node)
-    {
-        var text = node?.ToJsonString() ?? "null";
-        return text.Length <= 80 ? text : text[..77] + "...";
-    }
-
-    private static void AssertSameJson(string expected, string actual)
-    {
-        Assert.That(Diff(JsonNode.Parse(expected), JsonNode.Parse(actual)), Is.Null);
-    }
-
-    /// <summary>
-    /// The properties of a model that are in its JSON.
-    /// </summary>
-    private static IEnumerable<PropertyInfo> JsonProperties(Type type)
-    {
-        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition != JsonIgnoreCondition.Always);
-    }
-
-    /// <summary>
-    /// Fills a model with a value that is different for every property, so a property that is copied or mapped from another one shows.
-    /// </summary>
-    private sealed class Sampler
-    {
-        private int _n;
-
-        public T Populate<T>() where T : new()
-        {
-            return (T)Populate(new T());
-        }
-
-        public object Populate(object model)
-        {
-            foreach (var property in JsonProperties(model.GetType()))
-            {
-                property.SetValue(model, Make(property.PropertyType, property.Name));
-            }
-
-            return model;
-        }
-
-        private object Make(Type type, string name)
-        {
-            var t = Nullable.GetUnderlyingType(type) ?? type;
-            if (t == typeof(string)) return $"{name}-{++_n}";
-            if (t == typeof(bool)) return (++_n & 1) == 0;
-            if (t == typeof(byte)) return (byte)(255 - ++_n % 200);
-            if (t == typeof(int)) return int.MaxValue - ++_n;
-            if (t == typeof(uint)) return uint.MaxValue - (uint)++_n;
-            if (t == typeof(ulong)) return ulong.MaxValue - (ulong)++_n;
-            if (t.IsEnum)
-            {
-                var values = Enum.GetValues(t);
-                return values.GetValue(++_n % values.Length)!;
-            }
-
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                var list = CreateInstanceAs<IList>(t);
-                list.Add(Make(t.GetGenericArguments()[0], name + "Item"));
-                list.Add(Make(t.GetGenericArguments()[0], name + "Item"));
-                return list;
-            }
-
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            {
-                var dictionary = CreateInstanceAs<IDictionary>(t);
-                var arguments = t.GetGenericArguments();
-                dictionary.Add(Make(arguments[0], name + "Key"), Make(arguments[1], name + "Value"));
-                return dictionary;
-            }
-
-            if (t.IsClass) return Populate(Activator.CreateInstance(t)!);
-            throw new NotSupportedException($"No sample for {type} of {name}");
-        }
-
-        private static T CreateInstanceAs<T>(Type type) where T : class
-        {
-            return Activator.CreateInstance(type) as T ?? throw new InvalidOperationException($"{type} is not a {typeof(T).Name}");
-        }
-    }
 
     // ------------------------------------------------------------------------------------------------------------------------------
     // fixtures: what monero-c writes
@@ -2318,7 +2181,8 @@ public class MoneroDaemonModelUnitTests
             Assert.That((int)MoneroNetworkType.MainNet, Is.EqualTo(0));
             Assert.That((int)MoneroNetworkType.TestNet, Is.EqualTo(1));
             Assert.That((int)MoneroNetworkType.StageNet, Is.EqualTo(2));
-            Assert.That(Enum.GetValues<MoneroNetworkType>(), Has.Length.EqualTo(3));
+            Assert.That((int)MoneroNetworkType.Regtest, Is.EqualTo(3));
+            Assert.That(Enum.GetValues<MoneroNetworkType>(), Has.Length.EqualTo(4));
 
             Assert.That((int)MoneroConnectionType.Invalid, Is.EqualTo(0));
             Assert.That((int)MoneroConnectionType.Ipv4, Is.EqualTo(1));
@@ -2337,13 +2201,14 @@ public class MoneroDaemonModelUnitTests
     [TestCase(0, ExpectedResult = MoneroNetworkType.MainNet)]
     [TestCase(1, ExpectedResult = MoneroNetworkType.TestNet)]
     [TestCase(2, ExpectedResult = MoneroNetworkType.StageNet)]
+    [TestCase(3, ExpectedResult = MoneroNetworkType.Regtest)]
     public MoneroNetworkType NetworkTypeParser_ParsesTheNumber(int number)
     {
         return MoneroNetworkTypeParser.Parse(number);
     }
 
     [TestCase(-1)]
-    [TestCase(3)]
+    [TestCase(4)]
     [TestCase(int.MaxValue)]
     [TestCase(int.MinValue)]
     public void NetworkTypeParser_RejectsANumberThatIsNotANetwork(int number)
@@ -2360,6 +2225,8 @@ public class MoneroDaemonModelUnitTests
     [TestCase("  TestNet\n", ExpectedResult = MoneroNetworkType.TestNet)]
     [TestCase("stagenet", ExpectedResult = MoneroNetworkType.StageNet)]
     [TestCase("StageNet", ExpectedResult = MoneroNetworkType.StageNet)]
+    [TestCase("regtest", ExpectedResult = MoneroNetworkType.Regtest)]
+    [TestCase("RegTest", ExpectedResult = MoneroNetworkType.Regtest)]
     public MoneroNetworkType NetworkTypeParser_ParsesTheName(string name)
     {
         return MoneroNetworkTypeParser.Parse(name);
@@ -2367,7 +2234,7 @@ public class MoneroDaemonModelUnitTests
 
     [TestCase("")]
     [TestCase(" ")]
-    [TestCase("regtest")]
+    [TestCase("fakechain")]
     [TestCase("main net")]
     [TestCase("0")]
     public void NetworkTypeParser_RejectsANameThatIsNotANetwork(string name)

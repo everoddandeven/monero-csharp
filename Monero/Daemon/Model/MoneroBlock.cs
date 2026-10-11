@@ -70,11 +70,12 @@ public class MoneroBlock : MoneroBlockHeader
     }
 
     /// <summary>
-    /// Transactions included in current block. Assigning the list sets the block of each transaction.
+    /// Transactions included in current block. Assigning the list sets the block of each transaction. A block of a wallet overrides it, so
+    /// that its transactions are read as wallet transactions.
     /// </summary>
     [JsonPropertyName("txs")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<MoneroTx>? Txs
+    public virtual List<MoneroTx>? Txs
     {
         get => _txs;
         set

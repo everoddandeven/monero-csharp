@@ -18,5 +18,11 @@ public enum MoneroNetworkType
     /// <summary>
     /// The stage network, a copy of the main network with no value, to try software before it is used on the main one.
     /// </summary>
-    StageNet
+    StageNet,
+
+    /// <summary>
+    /// A private test chain on which the blocks are mined on demand. The ABI of monero-c gives it a type of its own, 3, for the wallets, while
+    /// monero-cpp has it as a flag of the main network, and a daemon reports it as <see cref="MainNet"/> with its <c>isRegtest</c> set.
+    /// </summary>
+    Regtest
 }

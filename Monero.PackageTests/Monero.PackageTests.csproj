@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <Content Include="..\Monero.UnitTests\Fixtures\Daemon\*.json" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="..\Monero.UnitTests\Fixtures\Wallet\txs_miner.json;..\Monero.UnitTests\Fixtures\Wallet\tx_sets_created.json;..\Monero.UnitTests\Fixtures\Wallet\listener_output_spent_first.json" Link="Fixtures\wallet_%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

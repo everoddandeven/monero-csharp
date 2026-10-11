@@ -272,11 +272,12 @@ public class MoneroTx
     private List<MoneroOutput>? _outputs;
 
     /// <summary>
-    /// Inputs used in transaction. Assigning the list sets the transaction of each input.
+    /// Inputs used in transaction. Assigning the list sets the transaction of each input. A transaction of a wallet overrides it, so that
+    /// its inputs are read as wallet outputs.
     /// </summary>
     [JsonPropertyName("inputs")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<MoneroOutput>? Inputs
+    public virtual List<MoneroOutput>? Inputs
     {
         get => _inputs;
         set
@@ -287,11 +288,12 @@ public class MoneroTx
     }
     
     /// <summary>
-    /// Outputs created by transaction. Assigning the list sets the transaction of each output.
+    /// Outputs created by transaction. Assigning the list sets the transaction of each output. A transaction of a wallet overrides it, so that
+    /// its outputs are read as wallet outputs.
     /// </summary>
     [JsonPropertyName("outputs")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<MoneroOutput>? Outputs
+    public virtual List<MoneroOutput>? Outputs
     {
         get => _outputs;
         set
