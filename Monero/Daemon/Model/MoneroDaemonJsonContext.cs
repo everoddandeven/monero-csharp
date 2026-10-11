@@ -1,0 +1,61 @@
+using System.Text.Json.Serialization;
+
+namespace Monero.Daemon.Model;
+
+/// <summary>
+/// The JSON of the daemon models, generated at compile time. It reads and writes the same JSON as <see cref="Monero.Common.MoneroJson"/>,
+/// without reflection, so it works in trimmed and ahead of time compiled programs, and it is faster.
+/// </summary>
+[JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(MoneroAddAuxiliaryPowResult))]
+[JsonSerializable(typeof(MoneroAltChain))]
+[JsonSerializable(typeof(MoneroAuxiliaryPow))]
+[JsonSerializable(typeof(MoneroBan))]
+[JsonSerializable(typeof(MoneroBlock))]
+[JsonSerializable(typeof(MoneroBlockHeader))]
+[JsonSerializable(typeof(MoneroBlockTemplate))]
+[JsonSerializable(typeof(MoneroBlocksResult))]
+[JsonSerializable(typeof(MoneroConnectionSpan))]
+[JsonSerializable(typeof(MoneroDaemonInfo))]
+[JsonSerializable(typeof(MoneroDaemonNetworkStats))]
+[JsonSerializable(typeof(MoneroDaemonSyncInfo))]
+[JsonSerializable(typeof(MoneroDaemonUpdateCheckResult))]
+[JsonSerializable(typeof(MoneroDaemonUpdateDownloadResult))]
+[JsonSerializable(typeof(MoneroFeeEstimate))]
+[JsonSerializable(typeof(MoneroGenerateBlocksResult))]
+[JsonSerializable(typeof(MoneroGetBlockHashesResult))]
+[JsonSerializable(typeof(MoneroGetBlocksByHashResult))]
+[JsonSerializable(typeof(MoneroHardForkInfo))]
+[JsonSerializable(typeof(MoneroKeyImage))]
+[JsonSerializable(typeof(MoneroMinerData))]
+[JsonSerializable(typeof(MoneroMinerTxSum))]
+[JsonSerializable(typeof(MoneroMiningStatus))]
+[JsonSerializable(typeof(MoneroOutput))]
+[JsonSerializable(typeof(MoneroOutputDistributionEntry))]
+[JsonSerializable(typeof(MoneroOutputHistogramEntry))]
+[JsonSerializable(typeof(MoneroPeer))]
+[JsonSerializable(typeof(MoneroPruneResult))]
+[JsonSerializable(typeof(MoneroRpcPaymentInfo))]
+[JsonSerializable(typeof(MoneroSubmitTxResult))]
+[JsonSerializable(typeof(MoneroTx))]
+[JsonSerializable(typeof(MoneroTxBacklogEntry))]
+[JsonSerializable(typeof(MoneroTxPoolStats))]
+[JsonSerializable(typeof(MoneroVersion))]
+[JsonSerializable(typeof(List<MoneroAltChain>))]
+[JsonSerializable(typeof(List<MoneroBan>))]
+[JsonSerializable(typeof(List<MoneroBlock>))]
+[JsonSerializable(typeof(List<MoneroBlockHeader>))]
+[JsonSerializable(typeof(List<MoneroPeer>))]
+[JsonSerializable(typeof(List<MoneroTx>))]
+[JsonSerializable(typeof(List<MoneroOutputDistributionEntry>))]
+[JsonSerializable(typeof(List<MoneroOutputHistogramEntry>))]
+[JsonSerializable(typeof(List<MoneroTxBacklogEntry>))]
+[JsonSerializable(typeof(List<MoneroKeyImage>))]
+[JsonSerializable(typeof(List<MoneroKeyImageSpentStatus>))]
+[JsonSerializable(typeof(List<MoneroSubmitTxResult>))]
+[JsonSerializable(typeof(List<string>))]
+[JsonSerializable(typeof(List<ulong>))]
+[JsonSerializable(typeof(List<int>))]
+public partial class MoneroDaemonJsonContext : JsonSerializerContext
+{
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The coverage of the library: dotnet test with the data collector "XPlat Code Coverage" and this file as the settings -->
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat Code Coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+                    <!-- the library, and not the tests -->
+                    <Include>[Monero]*</Include>
+                    <!-- and not the code that the compiler generates -->
+                    <ExcludeByFile>**/*.g.cs</ExcludeByFile>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

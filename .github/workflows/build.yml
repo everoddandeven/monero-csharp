@@ -1,0 +1,71 @@
+# Builds the library and the unit tests, and packages the library in package.yml. The tests that run on the build are in test.yml
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore monero-csharp.sln
+
+      - name: Build
+        run: dotnet build monero-csharp.sln --configuration Release --no-restore
+
+      # the program and the files it needs, which test.yml runs on every platform without building them again
+      - name: Upload the unit tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: monero-csharp-tests
+          path: Monero.UnitTests/bin/Release/net10.0
+          if-no-files-found: error
+
+      # The coverage needs the tests of the project, so the run is here. A failure of the collector does not fail Build: the tests of test.yml
+      # are the ones that count.
+      - name: Collect the coverage
+        id: coverage
+        continue-on-error: true
+        run: |
+          dotnet test monero-csharp.sln --configuration Release --no-build --collect "XPlat Code Coverage" --settings coverlet.runsettings --results-directory coverage-results
+          mkdir coverage-reports
+          cp coverage-results/*/coverage.cobertura.xml coverage-reports/
+
+      - name: Upload the coverage report
+        if: steps.coverage.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports
+          path: coverage-reports
+          if-no-files-found: error
+
+  package:
+    name: NuGet package
+    needs: build
+    permissions:
+      contents: read
+    uses: ./.github/workflows/package.yml

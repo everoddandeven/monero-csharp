@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\Version.props" />
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- the NuGet package. Its version is in Version.props, and the CI checks that a tag v<version> matches it -->
+        <PackageId>Monero.NET</PackageId>
+        <Version>$(MoneroNetVersion)</Version>
+        <Authors>Libmonero</Authors>
+        <Description>C# library for using Monero.</Description>
+        <PackageTags>monero;xmr;cryptocurrency;wallet;daemon</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/libmonero/monero-csharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/libmonero/monero-csharp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- the same bytes from the same source, wherever the package is built -->
+        <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Daemon\Model\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="Monero.UnitTests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

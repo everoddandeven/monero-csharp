@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\Version.props" />
+
+    <!--
+      Uses the NuGet package of Monero, the way a program that depends on it does, and not the project. It is not in the solution.
+      Pack the library into the packages folder of this project first, with "dotnet pack Monero/Monero.csproj -c Release -o Monero.PackageTests/packages",
+      and run the project with "dotnet run". The CI does it for the package that it builds.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- exactly the version that is built: the one of Version.props, and no other -->
+        <PackageReference Include="Monero.NET" Version="[$(MoneroNetVersion)]" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\Monero.UnitTests\Fixtures\Daemon\*.json" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

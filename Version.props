@@ -1,0 +1,8 @@
+<Project>
+
+    <!-- the version of the package Monero.NET, read by the library, by the program that uses the package, and by the CI -->
+    <PropertyGroup>
+        <MoneroNetVersion>0.1.0-alpha.1</MoneroNetVersion>
+    </PropertyGroup>
+
+</Project>

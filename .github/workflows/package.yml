@@ -1,0 +1,75 @@
+name: Package
+
+# Called from build.yml. Packs the library, checks what is in the package, and uploads it for test.yml to try
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Pack
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read the package version
+        run: |
+          version=$(dotnet msbuild Monero/Monero.csproj -getProperty:Version)
+          test -n "$version" || { echo "no version in Monero/Monero.csproj"; exit 1; }
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check the tag matches the package version
+        if: github.ref_type == 'tag'
+        run: |
+          [ "${GITHUB_REF_NAME#v}" = "$PACKAGE_VERSION" ] || { echo "tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION"; exit 1; }
+
+      - name: Pack NuGet package
+        run: dotnet pack Monero/Monero.csproj --configuration Release --output packages
+
+      - name: Verify what is in the package
+        run: |
+          package="packages/Monero.NET.$PACKAGE_VERSION.nupkg"
+          symbols="packages/Monero.NET.$PACKAGE_VERSION.snupkg"
+          test -s "$package" || { echo "no package $package"; exit 1; }
+          test -s "$symbols" || { echo "no symbols package $symbols"; exit 1; }
+          unzip -Z1 "$package" > package-files.txt
+          for file in \
+            Monero.NET.nuspec \
+            README.md \
+            lib/net10.0/Monero.dll \
+            lib/net10.0/Monero.xml; do
+            grep -Fxq "$file" package-files.txt || { echo "package is missing $file"; exit 1; }
+          done
+          if grep -Eq 'UnitTests|PackageTests' package-files.txt; then
+            echo "package has files of the tests:"; grep -E 'UnitTests|PackageTests' package-files.txt; exit 1
+          fi
+          unzip -Z1 "$symbols" | grep -Fxq lib/net10.0/Monero.pdb || { echo "symbols package is missing lib/net10.0/Monero.pdb"; exit 1; }
+          unzip -p "$package" Monero.NET.nuspec > Monero.NET.nuspec
+          grep -Fq '<id>Monero.NET</id>' Monero.NET.nuspec || { echo "unexpected package id"; exit 1; }
+          grep -Fq "<version>$PACKAGE_VERSION</version>" Monero.NET.nuspec || { echo "unexpected package version"; exit 1; }
+          grep -Fq '<license type="expression">MIT</license>' Monero.NET.nuspec || { echo "package is missing the MIT license"; exit 1; }
+          grep -Fq '<readme>README.md</readme>' Monero.NET.nuspec || { echo "package is missing the readme"; exit 1; }
+          grep -Fq '<repository type="git" url="https://github.com/libmonero/monero-csharp"' Monero.NET.nuspec || { echo "package is missing the repository"; exit 1; }
+          # the commit is how a debugger finds the source
+          grep -Eq '<repository [^>]*commit="[0-9a-f]{40}"' Monero.NET.nuspec || { echo "package is missing the commit of the repository"; exit 1; }
+          # a library with no dependencies, so a program that uses it gets nothing else
+          if grep -Fq '<dependency ' Monero.NET.nuspec; then echo "package has dependencies:"; grep -F '<dependency ' Monero.NET.nuspec; exit 1; fi
+
+      - name: Upload NuGet package
+        uses: actions/upload-artifact@v7
+        with:
+          name: monero-csharp-nuget
+          path: |
+            packages/Monero.NET.${{ env.PACKAGE_VERSION }}.nupkg
+            packages/Monero.NET.${{ env.PACKAGE_VERSION }}.snupkg
+          if-no-files-found: error
