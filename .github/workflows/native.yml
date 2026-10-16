@@ -1,0 +1,220 @@
+# Builds monero-c from the submodule for Linux x86_64 and packs it as Monero.Native, until the package is on nuget.org. Called from build.yml.
+# The steps are the ones of build-linux.yml of monero-c, without the tests, the coverage and the sanitizers. The library is cached by the commit of
+# the submodule, so only a new commit builds it again, which takes hours.
+name: Native
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  library:
+    name: Library, Linux x86_64
+    runs-on: ubuntu-24.04
+    # debian:12, as monero-c: the library needs glibc 2.34
+    container: debian:12
+    timeout-minutes: 360
+
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y git ca-certificates
+          git config --global --add safe.directory '*'
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Read the commit of monero-c
+        id: monero-c
+        run: echo "sha=$(git rev-parse HEAD:external/monero-c)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the library
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: monero-c-linux-x86_64-${{ steps.monero-c.outputs.sha }}-${{ hashFiles('.github/workflows/native.yml') }}
+
+      - name: Checkout monero-c and its submodules
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: git submodule update --init --recursive
+
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          apt-get install -y build-essential cmake pkg-config file perl wget libzmq3-dev libunbound-dev libsodium-dev libunwind-dev liblzma-dev libreadline-dev libexpat1-dev libpgm-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev python3 git curl autoconf libtool gperf bison flex nettle-dev libevent-dev
+
+      - name: Install openssl
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://github.com/openssl/openssl/releases/download/openssl-3.5.7/openssl-3.5.7.tar.gz
+          echo "a8c0d28a529ca480f9f36cf5792e2cd21984552a3c8e4aa11a24aa31aeac98e8  openssl-3.5.7.tar.gz" | sha256sum -c
+          tar xzf openssl-3.5.7.tar.gz
+          cd openssl-3.5.7
+          ./config --prefix=/usr/local --openssldir=/etc/ssl --libdir=lib no-shared no-tests -fPIC
+          make -j3
+          make install_sw
+
+      - name: Install expat
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://github.com/libexpat/libexpat/releases/download/R_2_7_1/expat-2.7.1.tar.bz2
+          echo "45c98ae1e9b5127325d25186cf8c511fa814078e9efeae7987a574b482b79b3d  expat-2.7.1.tar.bz2" | sha256sum -c
+          tar -xf expat-2.7.1.tar.bz2
+          cd expat-2.7.1
+          ./configure --enable-static --disable-shared --with-pic
+          make
+          make install
+
+      - name: Install unbound
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://www.nlnetlabs.nl/downloads/unbound/unbound-1.22.0.tar.gz
+          echo "c5dd1bdef5d5685b2cedb749158dd152c52d44f65529a34ac15cd88d4b1b3d43  unbound-1.22.0.tar.gz" | sha256sum -c
+          tar xzf unbound-1.22.0.tar.gz
+          cd unbound-1.22.0
+          # arc4random and arc4random_uniform are in glibc 2.36: without them unbound builds its own, and the library needs glibc 2.34 at most
+          ./configure --with-libexpat=/usr/local --with-ssl=/usr/local --enable-static --disable-shared --with-pic ac_cv_func_arc4random=no ac_cv_func_arc4random_uniform=no
+          make
+          make install
+
+      - name: Install libusb
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.tar.bz2
+          echo "ffaa41d741a8a3bee244ac8e54a72ea05bf2879663c098c82fc5757853441575  libusb-1.0.27.tar.bz2" | sha256sum -c
+          tar -xf libusb-1.0.27.tar.bz2
+          cd libusb-1.0.27
+          ./configure --disable-static --enable-shared --disable-udev --with-pic
+          make
+          make install
+          test -s /usr/local/lib/libusb-1.0.so.0
+
+      - name: Install hidapi
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://github.com/libusb/hidapi/archive/refs/tags/hidapi-0.14.0.tar.gz
+          echo "a5714234abe6e1f53647dd8cba7d69f65f71c558b7896ed218864ffcf405bcbd  hidapi-0.14.0.tar.gz" | sha256sum -c
+          tar xzf hidapi-0.14.0.tar.gz
+          cd hidapi-hidapi-0.14.0
+          cmake -B build -DBUILD_SHARED_LIBS=OFF -DHIDAPI_WITH_HIDRAW=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .
+          cmake --build build
+          cmake --install build
+
+      - name: Install boost
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd /tmp
+          wget --tries=5 --waitretry=5 --timeout=30 --retry-on-http-error=500,502,503,504 https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.bz2
+          echo "7009fe1faa1697476bdc7027703a2badb84e849b7b0baad5086b087b971f8617  boost_1_85_0.tar.bz2" | sha256sum -c
+          tar xf boost_1_85_0.tar.bz2
+          cd boost_1_85_0
+          ./bootstrap.sh --with-libraries=chrono,date_time,filesystem,locale,program_options,regex,serialization,system,thread
+          ./b2 -j3 cxxflags=-fPIC cflags=-fPIC link=static runtime-link=shared boost.locale.icu=off install
+
+      - name: Build monero-project
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd external/monero-c/external/monero-cpp/external/monero-project
+          mkdir -p build/release
+          cd build/release
+          cmake -DSTATIC=ON -DBUILD_64=ON -DARCH="x86-64" -DCMAKE_BUILD_TYPE=Release -DUSE_DEVICE_TREZOR=OFF ../../
+          make -j3 wallet cryptonote_protocol
+
+      - name: Build monero-cpp libraries
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd external/monero-c/external/monero-cpp
+          mkdir -p build
+          cd build
+          cmake -DBUILD_LIBRARY=ON -DBUILD_SAMPLE=OFF -DBUILD_SCRATCHPAD=OFF -DBUILD_TESTS=OFF -DBOOST_ROOT=/usr/local -DBoost_NO_SYSTEM_PATHS=ON ..
+          cmake --build . --target monero-cpp-static -j3
+
+      - name: Build monero-c library
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd external/monero-c
+          mkdir -p build
+          cd build
+          cmake -DMONERO_C_STATIC_DEPENDENCIES=ON -DMONERO_C_LIBUSB_SHARED_LIBRARY:FILEPATH=/usr/local/lib/libusb-1.0.so -DBOOST_ROOT=/usr/local -DBoost_NO_SYSTEM_PATHS=ON ..
+          grep -Fxq 'MONERO_C_LIBUSB_SHARED_LIBRARY:FILEPATH=/usr/local/lib/libusb-1.0.so' CMakeCache.txt
+          cmake --build . -j3
+
+      - name: Stage the library
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dist
+          cp external/monero-c/build/libmonero_c.so dist/
+          cp -L /usr/local/lib/libusb-1.0.so.0 dist/
+          strip --strip-unneeded dist/*.so*
+
+      - name: Upload the library
+        uses: actions/upload-artifact@v7
+        with:
+          name: monero-c-linux-x86_64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  package:
+    name: Monero.Native package
+    needs: library
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Download the library
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-c-linux-x86_64
+          path: dist
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read the package version
+        run: |
+          version=$(dotnet msbuild external/monero-c/packaging/dotnet-core/monero.pkgproj -getProperty:MoneroNativeVersion)
+          test -n "$version" || { echo "no MoneroNativeVersion in the submodule"; exit 1; }
+          [ "$version" = "$(dotnet msbuild Version.props -getProperty:MoneroNativeVersion)" ] || { echo "MoneroNativeVersion of Version.props is not the one of the submodule ($version)"; exit 1; }
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Stage the library
+        run: |
+          runtime=external/monero-c/packaging/dotnet-core/runtimes/linux-x64/native
+          mkdir -p "$runtime"
+          cp dist/libmonero_c.so dist/libusb-1.0.so.0 "$runtime/"
+
+      - name: Pack
+        run: dotnet pack external/monero-c/packaging/dotnet-core/monero.pkgproj --configuration Release --output native-packages
+
+      - name: Verify what is in the package
+        run: |
+          package="native-packages/Monero.Native.$PACKAGE_VERSION.nupkg"
+          test -s "$package" || { echo "no package $package"; exit 1; }
+          unzip -Z1 "$package" > package-files.txt
+          for file in runtimes/linux-x64/native/libmonero_c.so runtimes/linux-x64/native/libusb-1.0.so.0 LICENSE; do
+            grep -Fxq "$file" package-files.txt || { echo "package is missing $file"; exit 1; }
+          done
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v7
+        with:
+          name: monero-native-nuget
+          path: native-packages/Monero.Native.${{ env.PACKAGE_VERSION }}.nupkg
+          if-no-files-found: error
+          retention-days: 7

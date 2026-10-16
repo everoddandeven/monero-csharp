@@ -1,9 +1,9 @@
 name: Package
 
-# Called from build.yml. Packs the library, checks what is in the package, and uploads it for test.yml to try
+# Called from build.yml, after the Monero.Native package it needs was built. Packs the library, checks what is in the package, and uploads it
+# for test.yml to try
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +17,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Download the Monero.Native package
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-native-nuget
+          path: native-packages
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -27,6 +33,9 @@ jobs:
           version=$(dotnet msbuild Monero/Monero.csproj -getProperty:Version)
           test -n "$version" || { echo "no version in Monero/Monero.csproj"; exit 1; }
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          native_version=$(dotnet msbuild Monero/Monero.csproj -getProperty:MoneroNativeVersion)
+          test -n "$native_version" || { echo "no MoneroNativeVersion in Version.props"; exit 1; }
+          echo "NATIVE_VERSION=$native_version" >> "$GITHUB_ENV"
 
       - name: Check the tag matches the package version
         if: github.ref_type == 'tag'
@@ -62,8 +71,9 @@ jobs:
           grep -Fq '<repository type="git" url="https://github.com/libmonero/monero-csharp"' Monero.NET.nuspec || { echo "package is missing the repository"; exit 1; }
           # the commit is how a debugger finds the source
           grep -Eq '<repository [^>]*commit="[0-9a-f]{40}"' Monero.NET.nuspec || { echo "package is missing the commit of the repository"; exit 1; }
-          # a library with no dependencies, so a program that uses it gets nothing else
-          if grep -Fq '<dependency ' Monero.NET.nuspec; then echo "package has dependencies:"; grep -F '<dependency ' Monero.NET.nuspec; exit 1; fi
+          # the only dependency is the native library
+          [ "$(grep -Fc '<dependency ' Monero.NET.nuspec)" = 1 ] || { echo "unexpected dependencies:"; grep -F '<dependency ' Monero.NET.nuspec; exit 1; }
+          grep -Fq "<dependency id=\"Monero.Native\" version=\"$NATIVE_VERSION\"" Monero.NET.nuspec || { echo "package does not depend on Monero.Native $NATIVE_VERSION"; exit 1; }
 
       - name: Upload NuGet package
         uses: actions/upload-artifact@v7

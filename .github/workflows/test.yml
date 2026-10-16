@@ -48,7 +48,7 @@ jobs:
           fi
           MISSING=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts" --jq '
             [.artifacts[] | select(.expired | not) | .name] as $available |
-            ["monero-csharp-tests", "monero-csharp-nuget"] |
+            ["monero-csharp-tests", "monero-csharp-nuget", "monero-native-nuget"] |
             map(select(. as $name | $available | index($name) == null)) | .[]')
           if [ -n "$MISSING" ]; then
             echo "Build run $RUN_ID is missing required artifacts:"
@@ -129,6 +129,14 @@ jobs:
         with:
           name: monero-csharp-nuget
           path: Monero.PackageTests/packages
+          run-id: ${{ needs.wait-build.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Download the Monero.Native package
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-native-nuget
+          path: native-packages
           run-id: ${{ needs.wait-build.outputs.run-id }}
           github-token: ${{ github.token }}
 

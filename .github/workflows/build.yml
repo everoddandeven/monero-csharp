@@ -18,13 +18,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # the Monero.Native package, built from the submodule: the library needs it to restore
+  native:
+    name: Native
+    uses: ./.github/workflows/native.yml
+
   build:
     name: Build
+    needs: native
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Download the Monero.Native package
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-native-nuget
+          path: native-packages
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -65,7 +79,7 @@ jobs:
 
   package:
     name: NuGet package
-    needs: build
+    needs: [build, native]
     permissions:
       contents: read
     uses: ./.github/workflows/package.yml
