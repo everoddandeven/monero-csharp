@@ -55,3 +55,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# the Monero.Native package, packed from monero-c
+/native-packages/*.nupkg
