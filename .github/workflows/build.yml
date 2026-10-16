@@ -59,13 +59,13 @@ jobs:
           path: Monero.UnitTests/bin/Release/net10.0
           if-no-files-found: error
 
-      # The coverage needs the tests of the project, so the run is here. A failure of the collector does not fail Build: the tests of test.yml
-      # are the ones that count.
+      # The coverage needs the tests of the project, so the run is here. Only the unit tests: the integration tests need the regtest nodes of Docker.
+      # A failure of the collector does not fail Build: the tests of test.yml are the ones that count.
       - name: Collect the coverage
         id: coverage
         continue-on-error: true
         run: |
-          dotnet test monero-csharp.sln --configuration Release --no-build --collect "XPlat Code Coverage" --settings coverlet.runsettings --results-directory coverage-results
+          dotnet test Monero.UnitTests --configuration Release --no-build --collect "XPlat Code Coverage" --settings coverlet.runsettings --results-directory coverage-results
           mkdir coverage-reports
           cp coverage-results/*/coverage.cobertura.xml coverage-reports/
 

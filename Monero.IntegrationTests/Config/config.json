@@ -1,0 +1,29 @@
+{
+  "general": {
+    "testRelays": true,
+    "testNonRelays": true,
+    "liteMode": false,
+    "testNotifications": true,
+    "testResets": true,
+    "networkType": "regtest",
+    "autoConnectTimeoutMs": 3000,
+    "logLevel": 3,
+    "logCategories": "*:WARNING,net:FATAL,net.http:FATAL,net.ssl:FATAL,net.p2p:FATAL,net.cn:FATAL,daemon.rpc:FATAL,global:INFO,verify:FATAL,serialization:FATAL,daemon.rpc.payment:ERROR,stacktrace:INFO,logging:INFO,msgwriter:INFO"
+  },
+  "daemon": {
+    "rpcUri": "http://127.0.0.1:18081",
+    "rpcUsername": "rpc_daemon_user",
+    "rpcPassword": "abc123",
+    "zmqUri": "tcp://127.0.0.1:18085",
+    "zmqPubUri": "tcp://127.0.0.1:18086",
+    "miningRpcUri": "http://127.0.0.1:18089",
+    "logLevel": 3,
+    "pollPeriodInMs": 10000
+  },
+  "wallet": {
+    "address": "48W9YHwPzRz9aPTeXCA6kmSpW6HsvmWx578jj3of2gT3JwZzwTf33amESBoNDkL6SVK34Q2HTKqgYbGyE1hBws3wCrcBDR2"
+  },
+  "miningWallet": {
+    "address": "49cvU1JnXFAH7r1RbDLJw78aaDnhW4sCKRbLaTYa9eHvcz9PK1YXwod5npWZvMyQ8L4waVjUhuCp6btFyELkRpA4SWNKeQH"
+  }
+}
