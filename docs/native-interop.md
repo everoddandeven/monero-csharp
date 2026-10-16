@@ -21,7 +21,7 @@ monero-c is documented in `monero_c.h` and in the [package README](https://githu
 - Strings are UTF-8. A C `bool` is one byte (`UnmanagedType.U1`). A `size_t` is a `nuint`.
 - An optional parameter is a pointer, and NULL means none.
 - A handle (`monero_wallet*`, `monero_daemon*`, `monero_rpc_connection*`, a listener) is released with its own `*_free()`. To keep a wallet that is a file, call `monero_wallet_close(wallet, true)` before.
-- The library is `monero_c`, from the package `Monero.Native`: `LibraryImport("monero_c")`. The declarations that exist in the repository today use `"monero-c"`, and they return a `string` or read an error with `monero_api_error()`. That is the shape of another API. In monero-c a function like `monero_utils_get_integrated_address` returns a `monero_result` and writes to `char** out_json`. Rewrite those declarations, don't copy their style.
+- The library is `monero_c`, from the package `Monero.Native`: `LibraryImport("monero_c")`. The declarations are in `Monero/Native`.
 - Compare `monero_utils_get_abi_version()` with the version that the code was written for, when the library loads. While the major version is 0, a different minor version can break callers.
 
 ## The layers
