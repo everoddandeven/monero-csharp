@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero", "Monero\Monero.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.UnitTests", "Monero.UnitTests\Monero.UnitTests.csproj", "{DB09EA3F-ECE9-431F-B39E-8305CB024737}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.Native", "external\monero-c\packaging\dotnet-core\monero.pkgproj", "{7D1C5E4A-2B3F-4A6E-9C81-5F0A3B6D2E17}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.Native", "external\monero-c\native\Monero.Native.csproj", "{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.IntegrationTests", "Monero.IntegrationTests\Monero.IntegrationTests.csproj", "{65153726-B003-4449-AA5A-4DAE0BEB106A}"
 EndProject
@@ -23,8 +23,8 @@ Global
 		{DB09EA3F-ECE9-431F-B39E-8305CB024737}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB09EA3F-ECE9-431F-B39E-8305CB024737}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB09EA3F-ECE9-431F-B39E-8305CB024737}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7D1C5E4A-2B3F-4A6E-9C81-5F0A3B6D2E17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7D1C5E4A-2B3F-4A6E-9C81-5F0A3B6D2E17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Release|Any CPU.ActiveCfg = Release|Any CPU
