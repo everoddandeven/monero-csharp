@@ -6,6 +6,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -35,6 +36,11 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Monero.UnitTests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- the C library of monero-c for each platform. The library is loaded as "monero_c" -->
+        <PackageReference Include="Monero.Native" Version="$(MoneroNativeVersion)" />
     </ItemGroup>
 
     <ItemGroup>
