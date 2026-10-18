@@ -200,7 +200,9 @@ jobs:
           cp dist/libmonero_c.so dist/libusb-1.0.so.0 "$runtime/"
 
       - name: Pack
-        run: dotnet pack external/monero-c/packaging/dotnet-core/monero.pkgproj --configuration Release --output native-packages
+        run: |
+          mkdir -p external/monero-c/packaging/dotnet-core/packages
+          dotnet pack external/monero-c/packaging/dotnet-core/monero.pkgproj --configuration Release --output native-packages
 
       - name: Verify what is in the package
         run: |

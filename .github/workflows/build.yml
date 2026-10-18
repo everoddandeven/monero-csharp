@@ -47,7 +47,9 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore monero-csharp.sln
+        run: |
+          mkdir -p external/monero-c/packaging/dotnet-core/packages
+          dotnet restore monero-csharp.sln
 
       - name: Build
         run: dotnet build monero-csharp.sln --configuration Release --no-restore
