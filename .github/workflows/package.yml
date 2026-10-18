@@ -43,7 +43,7 @@ jobs:
           [ "${GITHUB_REF_NAME#v}" = "$PACKAGE_VERSION" ] || { echo "tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION"; exit 1; }
 
       - name: Pack NuGet package
-        run: dotnet pack Monero/Monero.csproj --configuration Release --output packages
+        run: dotnet pack Monero/Monero.csproj --configuration Release --output packages -p:MoneroNativeFromPackage=true -p:RestoreAdditionalProjectSources="$PWD/native-packages"
 
       - name: Verify what is in the package
         run: |

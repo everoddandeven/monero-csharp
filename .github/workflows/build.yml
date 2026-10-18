@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # the Monero.Native package, built from the submodule: the library needs it to restore
+  # the library of monero-c, built from the submodule, and the Monero.Native package that Monero.NET depends on
   native:
     name: Native
     uses: ./.github/workflows/native.yml
@@ -34,11 +34,12 @@ jobs:
         with:
           submodules: true
 
-      - name: Download the Monero.Native package
+      # where the project Monero.Native leaves the library when it is built locally, and where Monero copies it from
+      - name: Download the library
         uses: actions/download-artifact@v8
         with:
-          name: monero-native-nuget
-          path: native-packages
+          name: monero-c-linux-x86_64
+          path: external/monero-c/build
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
