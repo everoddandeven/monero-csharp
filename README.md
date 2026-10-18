@@ -11,7 +11,7 @@ cd monero-csharp
 git submodule update --init
 ```
 
-`external/monero-c` is [monero-c](https://github.com/libmonero/monero-c), the C library that `Monero` calls. It provides the package `Monero.Native`, which is not on nuget.org yet. Until it is, `Monero` restores it from `native-packages`, the source in `nuget.config`. CI builds it from the submodule. To use your own build, follow the [.NET build guide](https://github.com/libmonero/monero-c/blob/main/docs/dotnet.md) in a monero-c checkout and copy `Monero.Native.<version>.nupkg` to `native-packages`. The version has to be the `MoneroNativeVersion` of `Version.props`. If you rebuild the same version, delete `~/.nuget/packages/monero.native` first, or NuGet keeps the old one.
+`external/monero-c` is [monero-c](https://github.com/libmonero/monero-c), the C library that `Monero` calls. `Monero` references its project `Monero.Native`, which builds the library before `Monero` and copies it to the output of `Monero` and of the tests. The first build takes hours, and the next ones only what changed. It needs the dependencies of the [.NET build guide](https://github.com/libmonero/monero-c/blob/main/docs/dotnet.md). To skip the native build, for example when the library of the submodule is already built, use `-p:MoneroCSkipNative=true`. CI builds the library in the job **Native**, puts it where the project would leave it and packs the package `Monero.Native`, which `Monero.NET` depends on and which is not on nuget.org yet.
 
 ```sh
 dotnet build

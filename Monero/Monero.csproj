@@ -38,10 +38,33 @@
       <InternalsVisibleTo Include="Monero.UnitTests" />
     </ItemGroup>
 
-    <ItemGroup>
-        <!-- the C library of monero-c for each platform. The library is loaded as "monero_c" -->
+    <!--
+      The C library of monero-c, loaded as "monero_c". The project builds it from the submodule before Monero, and copies it to the output of
+      Monero and of the projects that reference it, so that the tests find it. CI builds it in native.yml and puts it in the build folder of the
+      submodule. The package is the dependency of Monero.NET, and package.yml and Monero.PackageTests use it: -p:MoneroNativeFromPackage=true
+    -->
+    <PropertyGroup>
+        <MoneroCBuild>$(MSBuildThisFileDirectory)..\external\monero-c\build\</MoneroCBuild>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(MoneroNativeFromPackage)' == 'true'">
         <PackageReference Include="Monero.Native" Version="$(MoneroNativeVersion)" />
     </ItemGroup>
+
+    <ItemGroup Condition="'$(MoneroNativeFromPackage)' != 'true'">
+        <ProjectReference Include="..\external\monero-c\native\Monero.Native.csproj" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <!-- the files are looked for when the references are built, since the library may not exist before -->
+    <Target Name="IncludeMoneroNative" AfterTargets="ResolveProjectReferences" BeforeTargets="AssignTargetPaths" Condition="'$(MoneroNativeFromPackage)' != 'true'">
+        <ItemGroup>
+            <None Include="$(MoneroCBuild)libmonero_c.so" Condition="Exists('$(MoneroCBuild)libmonero_c.so')" Link="libmonero_c.so" CopyToOutputDirectory="PreserveNewest" />
+            <None Include="$(MoneroCBuild)libmonero_c.dylib" Condition="Exists('$(MoneroCBuild)libmonero_c.dylib')" Link="libmonero_c.dylib" CopyToOutputDirectory="PreserveNewest" />
+            <None Include="$(MoneroCBuild)libmonero_c.dll" Condition="Exists('$(MoneroCBuild)libmonero_c.dll')" Link="monero_c.dll" CopyToOutputDirectory="PreserveNewest" />
+            <None Include="$(MoneroCBuild)libusb-1.0.so.0" Condition="Exists('$(MoneroCBuild)libusb-1.0.so.0')" Link="libusb-1.0.so.0" CopyToOutputDirectory="PreserveNewest" />
+            <None Include="$(MoneroCBuild)libusb-1.0.dll" Condition="Exists('$(MoneroCBuild)libusb-1.0.dll')" Link="libusb-1.0.dll" CopyToOutputDirectory="PreserveNewest" />
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\" />
