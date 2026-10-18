@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# 
+#
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero", "Monero\Monero.csproj", "{A6B17C18-03D4-4F78-8A16-BD1E8E6D2EB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.UnitTests", "Monero.UnitTests\Monero.UnitTests.csproj", "{DB09EA3F-ECE9-431F-B39E-8305CB024737}"
@@ -8,6 +8,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.Native", "external\monero-c\native\Monero.Native.csproj", "{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.IntegrationTests", "Monero.IntegrationTests\Monero.IntegrationTests.csproj", "{65153726-B003-4449-AA5A-4DAE0BEB106A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3A67C232-91A6-40EF-B231-A8F433ADA762}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,10 +26,16 @@ Global
 		{DB09EA3F-ECE9-431F-B39E-8305CB024737}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB09EA3F-ECE9-431F-B39E-8305CB024737}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C0E5B3A-4D1F-4E8B-9A62-3F5D8C1B2A90}.Release|Any CPU.Build.0 = Release|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65153726-B003-4449-AA5A-4DAE0BEB106A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{65153726-B003-4449-AA5A-4DAE0BEB106A} = {3A67C232-91A6-40EF-B231-A8F433ADA762}
+		{DB09EA3F-ECE9-431F-B39E-8305CB024737} = {3A67C232-91A6-40EF-B231-A8F433ADA762}
 	EndGlobalSection
 EndGlobal
