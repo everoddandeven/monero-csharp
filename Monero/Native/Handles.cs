@@ -49,3 +49,35 @@ internal sealed class RpcConnectionHandle : SafeHandle
         return true;
     }
 }
+
+/// <summary>A <c>monero_wallet*</c>. It is freed once, when it is disposed or finalized, and never while a call uses it.</summary>
+internal sealed class WalletHandle : SafeHandle
+{
+    public WalletHandle() : base(IntPtr.Zero, ownsHandle: true)
+    {
+    }
+
+    public override bool IsInvalid => handle == IntPtr.Zero;
+
+    protected override bool ReleaseHandle()
+    {
+        NativeMethods.monero_wallet_free(handle);
+        return true;
+    }
+}
+
+/// <summary>A <c>monero_wallet_listener*</c>.</summary>
+internal sealed class WalletListenerHandle : SafeHandle
+{
+    public WalletListenerHandle() : base(IntPtr.Zero, ownsHandle: true)
+    {
+    }
+
+    public override bool IsInvalid => handle == IntPtr.Zero;
+
+    protected override bool ReleaseHandle()
+    {
+        NativeMethods.monero_wallet_listener_free(handle);
+        return true;
+    }
+}
