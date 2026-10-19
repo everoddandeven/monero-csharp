@@ -176,7 +176,7 @@ This project is licensed under MIT.
 
 ## Donations
 
-If this library has been valuable to you, please consider donating to support its continued development.
+If this library has been valuable to you, please consider donating to support its continued development. 🙏
 
 <p align="center">
   <code>XMR</code><br>
