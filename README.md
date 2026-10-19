@@ -2,9 +2,9 @@
 
 [![Build](https://github.com/libmonero/monero-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/build.yml)
 [![Tests](https://github.com/libmonero/monero-csharp/actions/workflows/test.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/test.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/222e7e7926d44eb1907ec37b6abdf65d)](https://app.codacy.com/gh/libmonero/monero-csharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/222e7e7926d44eb1907ec37b6abdf65d)](https://app.codacy.com/gh/libmonero/monero-csharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet/10.0)
-[![monero-c](https://img.shields.io/badge/monero--c-C_ABI-blue)](https://github.com/libmonero/monero-c)
-[![License](https://img.shields.io/github/license/libmonero/monero-csharp)](https://github.com/libmonero/monero-csharp/blob/main/LICENSE)
 
 > [!WARNING]
 >
