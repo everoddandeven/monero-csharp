@@ -4,7 +4,8 @@
 #   dotnet test Monero.IntegrationTests
 #   docker compose -f Monero.IntegrationTests/docker-compose.yml down -v
 #
-# node_2 is the daemon under test (127.0.0.1:18081) and node_1 is the one that mines (127.0.0.1:18089).
+# node_2 is the daemon under test (127.0.0.1:18081) and node_1 is the one that mines (127.0.0.1:18089). The wallets of the tests are on the
+# monero-wallet-rpc servers xmr_wallet_1, xmr_wallet_2 and xmr_wallet_3 (127.0.0.1:18082, 18083 and 18084), which use node_2.
 # The difficulty is fixed at 25: low enough to mine blocks quickly, and not 1, so that a template without a nonce is not a valid block.
 services:
 
@@ -77,6 +78,93 @@ services:
       - node_1
     restart: on-failure
 
+  xmr_wallet_1:
+    image: lalanza808/monero:v0.18.5.1
+    container_name: xmr_wallet_1
+    command: [
+      "monero-wallet-rpc",
+      "--log-level=3",
+      "--allow-mismatched-daemon-version",
+      "--rpc-bind-ip=0.0.0.0",
+      "--confirm-external-bind",
+      "--rpc-bind-port=18082",
+      "--trusted-daemon",
+      "--daemon-address=node_2:18081",
+      "--daemon-login=rpc_daemon_user:abc123",
+      "--rpc-login=rpc_user:abc123",
+      "--rpc-max-connections-per-private-ip=100",
+      "--wallet-dir=/wallet",
+      "--rpc-access-control-origins=*",
+      "--non-interactive"
+    ]
+    ports:
+      - "18082:18082"
+    volumes:
+      - xmr_wallet_1_data:/wallet
+    depends_on:
+      - node_1
+      - node_2
+    restart: on-failure
+
+  xmr_wallet_2:
+    image: lalanza808/monero:v0.18.5.1
+    container_name: xmr_wallet_2
+    command: [
+      "monero-wallet-rpc",
+      "--log-level=3",
+      "--allow-mismatched-daemon-version",
+      "--rpc-bind-ip=0.0.0.0",
+      "--confirm-external-bind",
+      "--rpc-bind-port=18083",
+      "--trusted-daemon",
+      "--daemon-address=node_2:18081",
+      "--daemon-login=rpc_daemon_user:abc123",
+      "--rpc-login=rpc_user:abc123",
+      "--rpc-max-connections-per-private-ip=100",
+      "--wallet-dir=/wallet",
+      "--rpc-access-control-origins=*",
+      "--non-interactive"
+    ]
+    ports:
+      - "18083:18083"
+    volumes:
+      - xmr_wallet_2_data:/wallet
+    depends_on:
+      - node_1
+      - node_2
+    restart: on-failure
+
+  xmr_wallet_3:
+    image: lalanza808/monero:v0.18.5.1
+    container_name: xmr_wallet_3
+    command: [
+      "monero-wallet-rpc",
+      "--log-level=3",
+      "--allow-mismatched-daemon-version",
+      "--rpc-bind-ip=0.0.0.0",
+      "--confirm-external-bind",
+      "--rpc-bind-port=18084",
+      "--trusted-daemon",
+      "--daemon-address=node_2:18081",
+      "--daemon-login=rpc_daemon_user:abc123",
+      "--rpc-login=rpc_user:abc123",
+      "--rpc-max-connections-per-private-ip=100",
+      "--wallet-dir=/wallet",
+      "--rpc-access-control-origins=*",
+      "--non-interactive"
+    ]
+    ports:
+      - "18084:18084"
+    volumes:
+      - xmr_wallet_3_data:/wallet
+    depends_on:
+      - node_1
+      - node_2
+    restart: on-failure
+
 volumes:
   xmr_node_1_data:
   xmr_node_2_data:
+  xmr_wallet_1_data:
+  xmr_wallet_2_data:
+  xmr_wallet_3_data:

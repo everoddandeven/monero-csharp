@@ -21,9 +21,28 @@
     "pollPeriodInMs": 10000
   },
   "wallet": {
-    "address": "48W9YHwPzRz9aPTeXCA6kmSpW6HsvmWx578jj3of2gT3JwZzwTf33amESBoNDkL6SVK34Q2HTKqgYbGyE1hBws3wCrcBDR2"
+    "name": "test_wallet_1",
+    "password": "supersecretpassword123",
+    "language": "English",
+    "address": "48W9YHwPzRz9aPTeXCA6kmSpW6HsvmWx578jj3of2gT3JwZzwTf33amESBoNDkL6SVK34Q2HTKqgYbGyE1hBws3wCrcBDR2",
+    "privateViewKey": "e8c2288181bad9ec410d7322efd65f663c6da57bd1d1198636278a039743a600",
+    "privateSpendKey": "be7a2f71097f146bdf0fb5bb8edfe2240a9767e15adee74d95af1b5a64f29a0c",
+    "publicViewKey": "42e465bdcd00de50516f1c7049bbe26bd3c11195e8dae5cceb38bad92d484269",
+    "publicSpendKey": "b58d33a1dac23d334539cbed3657b69a5c967d6860357e24ab4d11899a312a6b",
+    "seed": "vortex degrees outbreak teeming gimmick school rounded tonic observant injury leech ought problems ahead upcoming ledge textbook cigar atrium trash dunes eavesdrop dullness evolved vortex",
+    "syncPeriodInMs": 5000,
+    "rpcUris": [
+      "http://127.0.0.1:18082",
+      "http://127.0.0.1:18083",
+      "http://127.0.0.1:18084"
+    ],
+    "rpcUsername": "rpc_user",
+    "rpcPassword": "abc123"
   },
   "miningWallet": {
-    "address": "49cvU1JnXFAH7r1RbDLJw78aaDnhW4sCKRbLaTYa9eHvcz9PK1YXwod5npWZvMyQ8L4waVjUhuCp6btFyELkRpA4SWNKeQH"
+    "name": "mining_wallet",
+    "password": "supersecretpassword123",
+    "address": "49cvU1JnXFAH7r1RbDLJw78aaDnhW4sCKRbLaTYa9eHvcz9PK1YXwod5npWZvMyQ8L4waVjUhuCp6btFyELkRpA4SWNKeQH",
+    "seed": "lush waffle neither siblings when sanity pencil grunt ghost fall rabbits adapt items ornament sequence nitrogen orders fall bagpipe width hope fainted hexagon imagine orders"
   }
 }
