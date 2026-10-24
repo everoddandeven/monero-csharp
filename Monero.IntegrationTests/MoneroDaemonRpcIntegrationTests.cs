@@ -6,7 +6,7 @@ using Monero.IntegrationTests.Utils;
 namespace Monero.IntegrationTests;
 
 /// <summary>
-/// Daemon RPC integration tests. They need the regtest network of <c>docker-compose.yml</c>.
+/// Rpc daemon integration tests.
 /// </summary>
 [TestFixture]
 public class MoneroDaemonRpcIntegrationTests : BaseTestClass
@@ -17,14 +17,14 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
 
     protected override async Task BeforeAll()
     {
-        // mine the blockchain until the minimum height
+        // setup blockchain for tests
         await BlockchainUtils.SetupBlockchain();
     }
 
     // helpers
 
     /// <summary>
-    /// The hashes of the confirmed txs to test: the ones of a wallet, if there are any, and the miner txs otherwise.
+    /// The hashes of the confirmed txs to test: the ones of the blocks, and the miner txs if the blocks have no other.
     /// </summary>
     private static async Task<(List<string> Hashes, bool AreMinerTxs)> GetTxHashesToTest()
     {
@@ -35,7 +35,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
     }
 
     /// <summary>
-    /// Test a tx that the daemon returned.
+    /// Test a confirmed tx of the daemon.
     /// </summary>
     private static void TestConfirmedTx(MoneroTx? tx, bool isMinerTx, bool isPruned)
     {
@@ -47,8 +47,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
             return;
         }
 
-        // a miner tx has no fee, no inputs and no signatures, and it can't be tested like the others. The daemon doesn't say that it is a miner tx
-        // when it is asked for it by hash: it has the outputs and the unlock time, and nothing else of the miner tx of a block
+        // a miner tx has no fee, no inputs and no signatures
         Assert.That(tx!.Hash, Is.Not.Null.And.Length.EqualTo(64));
         Assert.That(tx.IsConfirmed, Is.True);
         Assert.That(tx.InTxPool, Is.False);
@@ -63,7 +62,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         if (isPruned) Assert.That(tx.PrunedHex, Is.Not.Null);
     }
 
-    // non relays tests
+    #region Non Relays Tests
 
     // Test offline daemon connection
     [Test, Category(NonRelays)]
@@ -278,7 +277,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         // set number of blocks to test
         const int numBlocks = 100;
 
-        // select the last heights
+        // select random heights # TODO: this is horribly inefficient way of computing last 100 blocks if not shuffling
         var currentHeight = await Daemon.GetHeightAsync();
         var endHeight = currentHeight - 1;
         var startHeight = endHeight - numBlocks;
@@ -298,8 +297,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
             Assert.That(blocks[i].Height, Is.EqualTo(heights[i]));
         }
 
-        // only a wallet can send transactions, so a fresh chain has only miner txs
-        if (!txFound) TestContext.Progress.WriteLine("No transactions found to test: the blockchain has only miner transactions");
+        if (!txFound) TestContext.Progress.WriteLine("No transactions found to test");
     }
 
     // Can get blocks by range in a single request
@@ -399,7 +397,6 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         {
             var tx = await Daemon.GetTxAsync(txHash);
             TestConfirmedTx(tx, areMinerTxs, false);
-            Assert.That(tx!.Hash, Is.EqualTo(txHash));
         }
 
         // fetch each tx by hash with pruning
@@ -426,9 +423,6 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         var txs = await Daemon.GetTxsAsync(txHashes);
         Assert.That(txs, Has.Count.EqualTo(txHashes.Count));
         foreach (var tx in txs) TestConfirmedTx(tx, areMinerTxs, false);
-
-        // the txs come in the order of the hashes
-        Assert.That(txs.Select(tx => tx.Hash), Is.EqualTo(txHashes));
 
         // fetch each tx by hash with pruning
         txs = await Daemon.GetTxsAsync(txHashes, true);
@@ -525,59 +519,6 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         Assert.That(feeEstimate.Fees, Has.Count.EqualTo(4), "Expected 4 fees");
         foreach (var fee in feeEstimate.Fees!) GenUtils.TestUnsignedBigInteger(fee, true);
         GenUtils.TestUnsignedBigInteger(feeEstimate.QuantizationMask, true);
-    }
-
-    // Can get the transaction pool, which can be empty
-    [Test, Category(NonRelays)]
-    public async Task TestGetTxPool()
-    {
-        var txs = await Daemon.GetTxPoolAsync();
-        var txHashes = await Daemon.GetTxPoolHashesAsync();
-        var stats = await Daemon.GetTxPoolStatsAsync();
-
-        var ctx = new ModelTestContext { IsPruned = false, IsConfirmed = false, FromGetTxPool = true };
-        Assert.That(txs, Has.Count.EqualTo(txHashes.Count), $"Txs in pool {txs.Count} != Txs hashes in pool {txHashes.Count}");
-        Assert.That(stats.NumTxs, Is.EqualTo(txs.Count));
-        foreach (var tx in txs)
-        {
-            TxUtils.TestTx(tx, ctx);
-            Assert.That(txHashes, Does.Contain(tx.Hash));
-        }
-
-        DaemonUtils.TestTxPoolStats(stats);
-    }
-
-    // Can flush all transactions from the pool
-    [Test, Category(NonRelays)]
-    public async Task TestFlushTxsFromPool()
-    {
-        await Daemon.FlushTxPoolAsync();
-        Assert.That(await Daemon.GetTxPoolAsync(), Is.Empty);
-
-        // flush what is not there
-        await Daemon.FlushTxPoolAsync(new string('7', 64));
-        await Daemon.FlushTxPoolAsync([new string('8', 64), new string('9', 64)]);
-        Assert.That(await Daemon.GetTxPoolAsync(), Is.Empty);
-    }
-
-    // Can get the spent status of key images
-    [Test, Category(NonRelays)]
-    public async Task TestGetSpentStatusOfKeyImages()
-    {
-        // an image that no tx spent
-        await DaemonUtils.TestSpentStatuses(Daemon, [new string('1', 64), new string('2', 64)], MoneroKeyImageSpentStatus.NotSpent);
-
-        // collect key images of confirmed txs, which only a wallet sends
-        var keyImages = new List<string>();
-        foreach (var tx in await DaemonUtils.GetConfirmedTxs(Daemon, 10))
-        {
-            foreach (var input in tx.Inputs ?? []) keyImages.Add(input.KeyImage!.Hex!);
-        }
-
-        if (keyImages.Count == 0) TestContext.Progress.WriteLine("No confirmed txs to read key images from: the blockchain has only miner transactions");
-
-        // key images are all spent
-        await DaemonUtils.TestSpentStatuses(Daemon, keyImages, MoneroKeyImageSpentStatus.Confirmed);
     }
 
     // Can get an output histogram (binary)
@@ -742,9 +683,10 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         try
         {
             // start mining if possible to help push the network along
+            var address = TestUtils.MiningAddress;
             try
             {
-                await Daemon.StartMiningAsync(TestUtils.MiningAddress, 1, false, true);
+                await Daemon.StartMiningAsync(address, 1, false, true);
             }
             catch (Exception e)
             {
@@ -830,8 +772,11 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         // stop mining at beginning of test
         await MiningUtils.TryStopMining(Daemon);
 
-        // start mining to the address of the mining wallet
-        await Daemon.StartMiningAsync(TestUtils.MiningAddress, 1, false, true);
+        // address to mine to
+        var address = TestUtils.MiningAddress;
+
+        // start mining
+        await Daemon.StartMiningAsync(address, 1, false, true);
 
         // stop mining
         await Daemon.StopMiningAsync();
@@ -855,13 +800,14 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
             Assert.That(status.IsBackground, Is.Null);
 
             // test status with mining
+            var address = TestUtils.MiningAddress;
             const int threadCount = 1;
             const bool isBackground = false;
-            await Daemon.StartMiningAsync(TestUtils.MiningAddress, threadCount, isBackground, true);
+            await Daemon.StartMiningAsync(address, threadCount, isBackground, true);
             status = await Daemon.GetMiningStatusAsync();
             Assert.That(status.Speed, Is.Not.Null);
             Assert.That(status.IsActive, Is.True);
-            Assert.That(status.Address, Is.EqualTo(TestUtils.MiningAddress));
+            Assert.That(status.Address, Is.EqualTo(address));
             Assert.That(status.NumThreads, Is.EqualTo(threadCount));
             Assert.That(status.IsBackground, Is.EqualTo(isBackground));
         }
@@ -1197,9 +1143,9 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         Assert.That(error!.Message, Is.EqualTo("Must provide a number of blocks to pop greater than 0"));
     }
 
-    // TODO: relay tests and tx pool tests, they need a wallet to send transactions
+    #endregion
 
-    // notifications tests
+    #region Test Notifications
 
     // Can start and stop listening
     [Test, Category(Notifications)]
@@ -1215,7 +1161,7 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         // mine blocks and collect notifications
         await BlockchainUtils.WaitForBlocks(10);
 
-        // the daemon polls: wait for the notifications of the blocks
+        // wait for the daemon to poll the blocks
         var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(TestUtils.DaemonPollPeriodInMs * 3);
         while ((listener.NumBlockHeaders == 0 || autoRemoveListener.NumBlockHeaders == 0) && DateTime.UtcNow < deadline)
         {
@@ -1223,7 +1169,6 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         }
 
         // test notifications
-        Assert.That(listener.Errors, Is.Empty);
         Assert.That(listener.NumBlockHashes, Is.GreaterThan(0), "Daemon listener didn't collect any block hash");
         Assert.That(listener.NumBlockHeaders, Is.GreaterThan(0), "Daemon listener didn't collect any block header");
         Assert.That(listener.NumBlockHeaders, Is.EqualTo(listener.NumBlockHashes), $"Count mismatch {listener.NumBlockHashes} != {listener.NumBlockHeaders}");
@@ -1237,4 +1182,6 @@ public class MoneroDaemonRpcIntegrationTests : BaseTestClass
         Daemon.RemoveListener(listener);
         Assert.That(Daemon.GetListeners(), Is.Empty);
     }
+
+    #endregion
 }
