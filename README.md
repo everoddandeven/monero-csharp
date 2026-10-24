@@ -159,7 +159,10 @@ The first run mines the blocks that the tests need, and funds the test wallet fr
 ## Continuous integration
 
 * **Build** builds `Monero.Native` from the submodule (**Native**), then the library and the tests, collects the coverage, and calls **Package**, which packs the NuGet package, checks what is in it and uploads it. A tag `v<version>` has to match the version in `Version.props`.
-* **Tests** waits for the Build run of the same commit, and runs the unit tests that Build made on Linux (x86_64 and arm64), Windows and macOS (arm64 and x86_64), without building them again. It also installs the package that Build made in `Monero.PackageTests`, on Linux, Windows and macOS.
+* **Tests** waits for the Build run of the same commit, and runs what Build made without building it again:
+  * **Unit tests** run the unit tests on Linux (x86_64 and arm64), Windows and macOS (arm64 and x86_64).
+  * **Integration tests** run `Monero.IntegrationTests` on Linux x86_64, against the regtest network of `docker-compose.yml`.
+  * It also installs the package in `Monero.PackageTests`, on Linux, Windows and macOS.
 * **Codacy Coverage Reporter** sends the coverage of Build to Codacy, when the repository has the `CODACY_PROJECT_TOKEN` secret.
 
 ## Related projects

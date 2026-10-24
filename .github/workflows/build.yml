@@ -1,4 +1,4 @@
-# Builds the library and the unit tests, and packages the library in package.yml. The tests that run on the build are in test.yml
+# Builds the library and the tests, and packages the library in package.yml. The tests that run on the build are in test.yml
 name: Build
 
 on:
@@ -60,6 +60,14 @@ jobs:
         with:
           name: monero-csharp-tests
           path: Monero.UnitTests/bin/Release/net10.0
+          if-no-files-found: error
+
+      # the same for the integration tests, which test.yml runs against the regtest network
+      - name: Upload the integration tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: monero-csharp-integration-tests
+          path: Monero.IntegrationTests/bin/Release/net10.0
           if-no-files-found: error
 
       # The coverage needs the tests of the project, so the run is here. Only the unit tests: the integration tests need the regtest nodes of Docker.

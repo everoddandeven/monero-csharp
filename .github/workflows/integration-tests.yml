@@ -1,0 +1,95 @@
+# MoneroDaemonRpc and MoneroWalletRpc against the regtest network of Monero.IntegrationTests/docker-compose.yml. Called by test.yml with the
+# Build run to test
+name: Integration tests
+
+on:
+  workflow_call:
+    inputs:
+      run-id:
+        description: the Build run whose artifacts are tested
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  integration:
+    name: Linux x86_64 (regtest network)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      # for the docker compose file
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download the integration tests
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-csharp-integration-tests
+          path: integration-tests
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Install runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsodium23 libunbound8
+          ldd_out=$(ldd integration-tests/libmonero_c.so || true)
+          if grep -q 'not found' <<< "$ldd_out"; then
+            echo "$ldd_out"
+            echo "missing runtime libraries above"; exit 1
+          fi
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Start the regtest network
+        run: docker compose -f Monero.IntegrationTests/docker-compose.yml up -d
+
+      - name: Wait for the nodes
+        run: |
+          for port in 18081 18089; do
+            for _ in $(seq 1 60); do
+              if curl -fsS -m 5 --digest -u rpc_daemon_user:abc123 -X POST "http://127.0.0.1:$port/json_rpc" -d '{"jsonrpc":"2.0","id":"0","method":"get_block_count"}' | grep -q '"count"'; then
+                continue 2
+              fi
+              sleep 2
+            done
+            echo "the node on port $port did not answer"; exit 1
+          done
+
+      - name: Wait for monero-wallet-rpc
+        run: |
+          for port in 18082 18083 18084; do
+            for _ in $(seq 1 60); do
+              if curl -fsS -m 5 --digest -u rpc_user:abc123 -X POST "http://127.0.0.1:$port/json_rpc" -d '{"jsonrpc":"2.0","id":"0","method":"get_version"}' | grep -q '"version"'; then
+                continue 2
+              fi
+              sleep 2
+            done
+            echo "monero-wallet-rpc on port $port did not answer"; exit 1
+          done
+
+      - name: Run the integration tests
+        run: dotnet test integration-tests/Monero.IntegrationTests.dll --logger "trx;LogFileName=results.trx" --results-directory test-results
+
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-results
+          path: test-results
+          if-no-files-found: ignore
+
+      - name: Show the logs of the network on failure
+        if: failure()
+        run: docker compose -f Monero.IntegrationTests/docker-compose.yml logs
+
+      - name: Stop the regtest network
+        if: always()
+        run: docker compose -f Monero.IntegrationTests/docker-compose.yml down -v

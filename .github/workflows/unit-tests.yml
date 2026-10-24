@@ -1,0 +1,60 @@
+# The unit tests that Build made. Called by test.yml with the Build run to test
+name: Unit tests
+
+on:
+  workflow_call:
+    inputs:
+      run-id:
+        description: the Build run whose artifacts are tested
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  unit:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x86_64
+            os: ubuntu-24.04
+          - platform: Linux arm64
+            os: ubuntu-24.04-arm
+          - platform: Windows x86_64
+            os: windows-latest
+          - platform: macOS arm64
+            os: macos-15
+          - platform: macOS x86_64
+            os: macos-15-intel
+
+    steps:
+      - name: Download the unit tests
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-csharp-tests
+          path: unit-tests
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run the unit tests
+        run: dotnet test unit-tests/Monero.UnitTests.dll --logger "trx;LogFileName=results.trx" --results-directory test-results
+
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results
+          if-no-files-found: ignore
