@@ -1,7 +1,7 @@
 name: Package
 
 # Called from build.yml, after the Monero.Native package it needs was built. Packs the library, checks what is in the package, and uploads it
-# for test.yml to try
+# for package-tests.yml to try
 on:
   workflow_call:
 

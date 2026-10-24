@@ -1,0 +1,69 @@
+# Tries the NuGet package that Build made, in a program that depends on it. It does not build anything
+name: Package tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: package-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wait-build:
+    name: Build
+    uses: ./.github/workflows/wait-build.yml
+    with:
+      artifacts: '["monero-csharp-nuget", "monero-native-nuget"]'
+
+  package:
+    name: NuGet package, ${{ matrix.platform }}
+    needs: wait-build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x86_64
+            os: ubuntu-24.04
+          - platform: Windows x86_64
+            os: windows-latest
+          - platform: macOS arm64
+            os: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download the NuGet package
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-csharp-nuget
+          path: Monero.PackageTests/packages
+          run-id: ${{ needs.wait-build.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Download the Monero.Native package
+        uses: actions/download-artifact@v8
+        with:
+          name: monero-native-nuget
+          path: native-packages
+          run-id: ${{ needs.wait-build.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # a program that depends on the package, with nothing else to restore it from
+      - name: Run the program that uses the package
+        run: dotnet run --project Monero.PackageTests --configuration Release

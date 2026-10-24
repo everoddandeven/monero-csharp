@@ -1,4 +1,5 @@
-# Builds the library and the tests, and packages the library in package.yml. The tests that run on the build are in test.yml
+# Builds the library and the tests, and packages the library in package.yml. The tests that run on the build are in unit-tests.yml,
+# integration-tests.yml and package-tests.yml
 name: Build
 
 on:
@@ -54,7 +55,7 @@ jobs:
       - name: Build
         run: dotnet build monero-csharp.sln --configuration Release --no-restore
 
-      # the program and the files it needs, which test.yml runs on every platform without building them again
+      # the program and the files it needs, which unit-tests.yml runs on every platform without building them again
       - name: Upload the unit tests
         uses: actions/upload-artifact@v7
         with:
@@ -62,7 +63,7 @@ jobs:
           path: Monero.UnitTests/bin/Release/net10.0
           if-no-files-found: error
 
-      # the same for the integration tests, which test.yml runs against the regtest network
+      # the same for the integration tests, which integration-tests.yml runs against the regtest network
       - name: Upload the integration tests
         uses: actions/upload-artifact@v7
         with:
@@ -71,7 +72,7 @@ jobs:
           if-no-files-found: error
 
       # The coverage needs the tests of the project, so the run is here. Only the unit tests: the integration tests need the regtest nodes of Docker.
-      # A failure of the collector does not fail Build: the tests of test.yml are the ones that count.
+      # A failure of the collector does not fail Build: the tests of unit-tests.yml are the ones that count.
       - name: Collect the coverage
         id: coverage
         continue-on-error: true

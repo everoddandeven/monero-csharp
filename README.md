@@ -1,7 +1,8 @@
 # Monero C# Library
 
 [![Build](https://github.com/libmonero/monero-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/build.yml)
-[![Tests](https://github.com/libmonero/monero-csharp/actions/workflows/test.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/test.yml)
+[![Unit tests](https://github.com/libmonero/monero-csharp/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/unit-tests.yml)
+[![Integration tests](https://github.com/libmonero/monero-csharp/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/libmonero/monero-csharp/actions/workflows/integration-tests.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/222e7e7926d44eb1907ec37b6abdf65d)](https://app.codacy.com/gh/libmonero/monero-csharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/222e7e7926d44eb1907ec37b6abdf65d)](https://app.codacy.com/gh/libmonero/monero-csharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet/10.0)
@@ -159,10 +160,9 @@ The first run mines the blocks that the tests need, and funds the test wallet fr
 ## Continuous integration
 
 * **Build** builds `Monero.Native` from the submodule (**Native**), then the library and the tests, collects the coverage, and calls **Package**, which packs the NuGet package, checks what is in it and uploads it. A tag `v<version>` has to match the version in `Version.props`.
-* **Tests** waits for the Build run of the same commit, and runs what Build made without building it again:
-  * **Unit tests** run the unit tests on Linux (x86_64 and arm64), Windows and macOS (arm64 and x86_64).
-  * **Integration tests** run `Monero.IntegrationTests` on Linux x86_64, against the regtest network of `docker-compose.yml`.
-  * It also installs the package in `Monero.PackageTests`, on Linux, Windows and macOS.
+* **Unit tests** waits for the Build run of the same commit, and runs the unit tests that Build made on Linux (x86_64 and arm64), Windows and macOS (arm64 and x86_64), without building them again.
+* **Integration tests** waits for the Build run, and runs `Monero.IntegrationTests` that Build made on Linux x86_64, against the regtest network of `docker-compose.yml`.
+* **Package tests** waits for the Build run, and installs the package that Build made in `Monero.PackageTests`, on Linux, Windows and macOS.
 * **Codacy Coverage Reporter** sends the coverage of Build to Codacy, when the repository has the `CODACY_PROJECT_TOKEN` secret.
 
 ## Related projects
