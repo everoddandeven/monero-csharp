@@ -433,6 +433,26 @@ public static class DaemonUtils
     }
 
     /// <summary>
+    /// Wait until the tx pool of a daemon has txs, which a node gets from the txs that another node relays.
+    /// </summary>
+    /// <param name="daemon">daemon whose tx pool is checked.</param>
+    /// <param name="txHashes">hashes of the txs to wait for.</param>
+    /// <param name="timeout">time to wait.</param>
+    public static async Task WaitForTxsInPool(MoneroDaemon daemon, List<string> txHashes, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMinutes(2));
+
+        while (true)
+        {
+            var poolHashes = await daemon.GetTxPoolHashesAsync();
+            if (txHashes.All(poolHashes.Contains)) return;
+
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("The tx pool of the daemon doesn't have the txs");
+            await Task.Delay(500);
+        }
+    }
+
+    /// <summary>
     /// Run a call that needs the update servers of Monero, which a daemon in a sandbox without a DNS can't reach.
     /// </summary>
     /// <param name="call">the call.</param>

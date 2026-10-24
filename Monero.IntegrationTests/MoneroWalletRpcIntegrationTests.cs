@@ -27,6 +27,9 @@ public partial class MoneroWalletRpcIntegrationTests : BaseTestClass
         var txs = await WalletTestUtils.FundWallet(wallet);
         if (txs.Count > 0)
         {
+            // the mining node mines the txs once it has them in its pool
+            await DaemonUtils.WaitForTxsInPool(MiningUtils.GetDaemon(), txs.Select(tx => tx.Hash!).ToList());
+
             // mine an output to the primary address, then the blocks that confirm and unlock the txs
             await MiningUtils.GenerateBlocks(await wallet.GetPrimaryAddressAsync(), 1);
             var height = await BlockchainUtils.WaitForBlocks(11);
