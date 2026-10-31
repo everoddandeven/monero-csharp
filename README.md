@@ -141,6 +141,8 @@ dotnet test Monero.UnitTests --collect "XPlat Code Coverage" --settings coverlet
 
 `Monero.IntegrationTests` tests `MoneroDaemonRpc` and `MoneroWalletRpc` against a regtest network of two nodes and three monero-wallet-rpc servers. They need Docker and the package `Monero.Native`. A wallet test needs about 2 GB of free memory when it mines on the node.
 
+The nodes and the servers run the images of [docker-monero-rpc](https://github.com/libmonero/docker-monero-rpc), `ghcr.io/libmonero/monero-daemon-rpc` and `ghcr.io/libmonero/monero-wallet-rpc`, with the services of the compose file of monero-python, except that the difficulty of the blocks is 25 and not 500. The tag is `master`, and `MONERO_TAG` in the environment or in a `.env` file next to the compose file sets another one.
+
 1. Set up the docker test environment:
     ```sh
     docker compose -f Monero.IntegrationTests/docker-compose.yml up -d
