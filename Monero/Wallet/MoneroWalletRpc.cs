@@ -364,7 +364,7 @@ public class MoneroWalletRpc : MoneroWallet, IAsyncDisposable, IDisposable
 
     /// <inheritdoc />
     public override Task<string> GetSeedAsync(CancellationToken ct = default) =>
-        Run(h => Required(Check.Text(NativeMethods.monero_wallet_get_seed(h, out var seed), seed)), ct);
+        Run(h => Required(Check.Secret(NativeMethods.monero_wallet_get_seed(h, out var seed), seed)), ct);
 
     /// <inheritdoc />
     public override Task<string> GetSeedLanguageAsync(CancellationToken ct = default) =>
@@ -372,11 +372,11 @@ public class MoneroWalletRpc : MoneroWallet, IAsyncDisposable, IDisposable
 
     /// <inheritdoc />
     public override Task<string> GetPrivateViewKeyAsync(CancellationToken ct = default) =>
-        Run(h => Required(Check.Text(NativeMethods.monero_wallet_get_private_view_key(h, out var key), key)), ct);
+        Run(h => Required(Check.Secret(NativeMethods.monero_wallet_get_private_view_key(h, out var key), key)), ct);
 
     /// <inheritdoc />
     public override Task<string> GetPrivateSpendKeyAsync(CancellationToken ct = default) =>
-        Run(h => Required(Check.Text(NativeMethods.monero_wallet_get_private_spend_key(h, out var key), key)), ct);
+        Run(h => Required(Check.Secret(NativeMethods.monero_wallet_get_private_spend_key(h, out var key), key)), ct);
 
     /// <inheritdoc />
     public override Task<string> GetPublicViewKeyAsync(CancellationToken ct = default) =>
@@ -1003,7 +1003,7 @@ public class MoneroWalletRpc : MoneroWallet, IAsyncDisposable, IDisposable
 
     /// <inheritdoc />
     public override Task<string> GetTxKeyAsync(string txHash, CancellationToken ct = default) =>
-        Run(h => Required(Check.Text(NativeMethods.monero_wallet_get_tx_key(h, txHash, out var key), key)), ct);
+        Run(h => Required(Check.Secret(NativeMethods.monero_wallet_get_tx_key(h, txHash, out var key), key)), ct);
 
     /// <inheritdoc />
     public override Task<MoneroCheckTx> CheckTxKeyAsync(string txHash, string txKey, string address, CancellationToken ct = default) =>

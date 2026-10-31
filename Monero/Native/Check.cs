@@ -106,6 +106,26 @@ internal static class Check
     /// <summary>Reads a native array of values that a call returned, and frees it.</summary>
     public static unsafe List<T> Array<T>(int result, IntPtr ptr, nuint count) where T : unmanaged
     {
+
+    /// <summary>
+    /// Reads a secret that a call returned in a native string, a seed or a private key, and frees the native string with
+    /// <c>monero_utils_free_secret()</c>, which overwrites it. The managed string that it returns stays in memory until the garbage collector
+    /// reuses it, so the caller should keep it as short as it can.
+    /// </summary>
+    public static string? Secret(int result, IntPtr ptr)
+    {
+        Ok(result);
+
+        var secret = new NativeString(ptr, secret: true);
+        try
+        {
+            return secret.IsNull ? null : secret.ToString();
+        }
+        finally
+        {
+            secret.Dispose();
+        }
+    }
         Ok(result);
 
         var list = new List<T>((int)count);
