@@ -143,6 +143,12 @@ dotnet test Monero.UnitTests --collect "XPlat Code Coverage" --settings coverlet
 
 The nodes and the servers run the images of [docker-monero-rpc](https://github.com/libmonero/docker-monero-rpc), `ghcr.io/libmonero/monero-daemon-rpc` and `ghcr.io/libmonero/monero-wallet-rpc`, with the services of the compose file of monero-python, except that the difficulty of the blocks is 25 and not 500. The tag is `master`, and `MONERO_TAG` in the environment or in a `.env` file next to the compose file sets another one.
 
+The tests mirror those of monero-python, with these differences, which come from the speed of mining on a regtest network:
+
+* The difficulty of the blocks is 25 and not 500. At 500 a block took 13 seconds on a runner, and the setup of the tests asks the node for 20 blocks in a request that has a timeout of 3 minutes.
+* The blocks that a test needs (`BlockchainUtils.WaitForHeight` and `ConfirmAndUnlock`) are generated with `generateblocks`, which is slower than the miner of the node, where the tests of monero-python start the miner and wait for the next block headers.
+* `TestCreateAndReceive` doesn't start the miner. A wallet is notified of a received output only if one of its polls finds the tx confirmed and locked, and at this difficulty the miner makes several blocks per second, so the tx is unlocked by the time the wallet polls. The test generates the one block that confirms the tx, and it doesn't test the notification while the node is mining, as the test of monero-python does. The comment of the test has the details.
+
 1. Set up the docker test environment:
     ```sh
     docker compose -f Monero.IntegrationTests/docker-compose.yml up -d

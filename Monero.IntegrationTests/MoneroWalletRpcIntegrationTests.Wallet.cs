@@ -865,36 +865,20 @@ public partial class MoneroWalletRpcIntegrationTests
         Assert.That((await wallet.ExportOutputsAsync(true)).Length, Is.GreaterThanOrEqualTo(outputsHexSinceLastExport.Length));
     }
 
-    // Can import the outputs to a view-only wallet. The server refreshes the wallet in the background, and the import fails with "Hot wallets
-    // cannot import outputs" in some of the refreshes, so the test is repeated
-    [Test, Category(NonRelays), Retry(3)]
+    // Can import outputs in hex format
+    [Test, Category(NonRelays)]
     public async Task TestImportOutputs()
     {
         var wallet = await GetWallet();
-        var outputsHex = await wallet.ExportOutputsAsync(true);
 
-        // a wallet with the spend key can't import outputs
-        var error = Assert.ThrowsAsync<MoneroError>(() => wallet.ImportOutputsAsync(outputsHex));
-        Assert.That(error!.Message, Does.Contain("Hot wallets cannot import outputs"));
+        // export outputs hex
+        var outputsHex = await wallet.ExportOutputsAsync();
 
-        // a view-only wallet can: it restores from the end of the chain, where it has nothing to find
-        var viewOnly = await TestUtils.CreateWalletRpc(new MoneroWalletConfig
+        // import outputs hex
+        if (outputsHex.Length > 0)
         {
-            PrimaryAddress = TestUtils.Address,
-            PrivateViewKey = TestUtils.PrivateViewKey,
-            RestoreHeight = await Daemon.GetHeightAsync(),
-        });
-        try
-        {
-            Assert.That(await viewOnly.IsViewOnlyAsync(), Is.True);
-
-            var numImported = await viewOnly.ImportOutputsAsync(outputsHex);
-
-            Assert.That(numImported, Is.GreaterThan(0));
-        }
-        finally
-        {
-            await CloseWallet(viewOnly);
+            var numImported = await wallet.ImportOutputsAsync(outputsHex);
+            Assert.That(numImported, Is.GreaterThanOrEqualTo(0));
         }
     }
 

@@ -243,6 +243,34 @@ public static class TestUtils
         return wallet;
     }
 
+    // the daemon of the monero-wallet-rpc servers, as the servers reach it in the network of the compose file. The wallet manager of the Python
+    // tests gives it to the wallets it creates or opens, because the client knows no daemon of a wallet that was not given one
+    private const string WalletDaemonRpcUri = "http://node_2:18081";
+
+    private static MoneroRpcConnection GetWalletDaemonRpcConnection() => new(WalletDaemonRpcUri, DaemonRpcUsername, DaemonRpcPassword);
+
+    // as the wallet manager of the Python tests does after it creates or opens a wallet on a server: the wallet keeps its daemon and trusts it,
+    // and if it is connected the wallet syncs in the background, which also sets the period of its poller. Without it a new wallet is refreshed
+    // by the server when the server pleases, and polled by the client every 20 seconds
+    private static async Task ConnectAndSync(MoneroWalletRpc wallet)
+    {
+        await wallet.SetDaemonConnectionAsync(await wallet.GetDaemonConnectionAsync(), true);
+        if (await wallet.IsConnectedToDaemonAsync()) await wallet.StartSyncingAsync(SyncPeriodInMs);
+    }
+
+    // the server may have no wallet open, and then it has nothing to stop
+    private static async Task StopSyncing(MoneroWalletRpc wallet)
+    {
+        try
+        {
+            await wallet.StopSyncingAsync();
+        }
+        catch (MoneroError)
+        {
+            // nothing to stop
+        }
+    }
+
     /// <summary>
     /// Create a wallet on the third server. The server has one wallet open at a time, so a wallet that was created before is not usable
     /// after: dispose it first.
@@ -256,7 +284,10 @@ public static class TestUtils
             config = config == null ? new MoneroWalletConfig() : config.Copy();
             config.Path ??= Guid.NewGuid().ToString("N");
             config.Password ??= WalletPassword;
+            config.Server ??= GetWalletDaemonRpcConnection();
+            await StopSyncing(wallet);
             await wallet.CreateWalletAsync(config);
+            await ConnectAndSync(wallet);
 
             return wallet;
         }
@@ -278,7 +309,10 @@ public static class TestUtils
         {
             config = config.Copy();
             config.Password ??= WalletPassword;
+            config.Server ??= GetWalletDaemonRpcConnection();
+            await StopSyncing(wallet);
             await wallet.OpenWalletAsync(config);
+            await ConnectAndSync(wallet);
 
             return wallet;
         }

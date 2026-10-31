@@ -130,41 +130,67 @@ public partial class MoneroWalletRpcIntegrationTests
         Assert.That(wallet.GetListeners(), Is.Empty);
     }
 
-    // A wallet is notified of the funds it receives. The poller of monero-wallet-rpc in monero-cpp races with the calls of the wallet and
-    // sometimes misses the output (the reference tests of Python expect this to fail for the same reason), so the test is repeated
-    [Test, Category(Relays), Category(Notifications), Retry(3)]
-    public async Task TestNotifiedOfReceivedFunds()
+    // Can be created and receive funds, as test_create_and_receive of monero-python, except that the funds are not confirmed by the miner.
+    //
+    // The receiver is notified of a received output when one of its polls finds the tx confirmed and still locked, with fewer than ten
+    // confirmations. monero-cpp doesn't announce the txs of the pool, and it announces the unlock of a tx only if it saw the tx locked before.
+    // monero-python starts the miner of the node and waits until the tx is confirmed. With the difficulty of 500 of its network a block takes
+    // about two seconds, so the tx stays locked for about twenty and the receiver finds it, although the test is marked flaky there "because of
+    // mining speed". The difficulty of this network is 25 (see docker-compose.yml), where the miner makes several blocks per second: a refresh
+    // of the wallet, every five seconds, brings tens of blocks, so the tx is unlocked in the wallet when the receiver polls. The receiver has the
+    // funds but nothing to be notified of.
+    //
+    // So this test doesn't start the miner. It waits until the node that mines has the tx in its pool, and generates the one block that confirms
+    // it. The tx stays locked for as long as the receiver needs, whatever the speed of the node, and the test needs no Retry. What it doesn't
+    // test, and the Python one does, is the notification while the node is mining.
+    [Test, Category(Relays), Category(Notifications)]
+    public async Task TestCreateAndReceive()
     {
         var wallet = await GetWallet();
-        var amount = MaxFee * 3;
-        await PrepareToSend(wallet, amount * 2);
 
-        var recipient = await TestUtils.CreateWalletRpc();
+        // create random wallet
+        var receiver = await TestUtils.CreateWalletRpc();
         try
         {
+            // listen for received funds
             var listener = new CollectingWalletListener();
-            recipient.AddListener(listener);
-            await recipient.SetPollPeriodInMsAsync(1000);
+            receiver.AddListener(listener);
+            Assert.That(receiver.GetListeners(), Is.Not.Empty);
 
-            // send the funds, and confirm them
-            await wallet.CreateTxAsync(new MoneroTxConfig(await recipient.GetPrimaryAddressAsync(), amount) { AccountIndex = 0, Relay = true });
-            await MiningUtils.GenerateBlocks(TestUtils.MiningAddress, 1);
+            // wait for txs to confirm and for sufficient unlocked balance
+            await PrepareToSend(wallet, MaxFee);
 
-            await WaitUntil(() => listener.Received.Count > 0, "The listener was not notified of the received output");
+            // no node may mine from here on: a block that the test didn't ask for could unlock the tx before the receiver polls
+            foreach (var node in new[] { MiningUtils.GetDaemon(), Daemon })
+            {
+                if (await MiningUtils.IsMining(node)) await MiningUtils.StopMining(node);
+            }
+
+            // send funds to the receiver
+            var sent = await wallet.CreateTxAsync(new MoneroTxConfig(await receiver.GetPrimaryAddressAsync(), MaxFee) { AccountIndex = 0, Relay = true });
+            Assert.That(sent.Hash, Is.Not.Null);
+
+            // confirm the funds with one block, which has the tx once the node that mines has it, and leaves it locked
+            await DaemonUtils.WaitForTxsInPool(MiningUtils.GetDaemon(), [sent.Hash!]);
+            await ConfirmAndUnlock(wallet, 1);
+
+            var tx = await wallet.GetTxAsync(sent.Hash!);
+            Assert.That(tx, Is.Not.Null);
+            Assert.That(tx!.IsFailed, Is.Not.True, $"Tx failed in mempool: {tx.Hash}");
+            Assert.That(tx.IsConfirmed, Is.True, "The block didn't confirm the tx");
+
+            // receiver should notify listeners of received outputs within a few rpc refresh / poll periods
+            await WaitUntil(() => listener.Received.Count > 0, "The listener was not notified of the received output", (int)(TestUtils.SyncPeriodInMs * 10));
+
             var output = listener.Received[0];
-            Assert.That(output.Amount, Is.EqualTo(amount));
+            Assert.That(output.Amount, Is.EqualTo(MaxFee));
             Assert.That(output.AccountIndex, Is.EqualTo(0u));
             Assert.That(output.SubaddressIndex, Is.EqualTo(0u));
             Assert.That(output.GetTxWallet(), Is.Not.Null);
-
-            await WaitUntil(() => listener.Balances.Count > 0, "The listener was not notified of a change of the balance");
-            Assert.That(listener.Balances.Any(balances => balances.Balance == amount), Is.True);
         }
         finally
         {
-            await CloseWallet(recipient);
+            await CloseWallet(receiver);
         }
-
-        await ConfirmAndUnlock(wallet);
     }
 }
