@@ -7,8 +7,9 @@ using Monero.Wallet.Model;
 namespace Monero.Native;
 
 /// <summary>
-/// The native listener of a wallet. Callbacks only queue what they get, since they run on a thread of monero-cpp while the wallet holds its
-/// lock; a task parses the output JSON and calls <c>onEvent</c> on the thread pool, one event after the other.
+/// The native listener of a wallet. The callbacks run one at a time on a thread of monero-c that the listener owns, with no lock of the wallet
+/// held. They only queue what they get, so the code of the program, which can be slow, never holds that thread; a task parses the output JSON
+/// and calls <c>onEvent</c> on the thread pool, one event after the other.
 /// </summary>
 internal sealed class WalletEvents : IDisposable
 {
@@ -26,6 +27,7 @@ internal sealed class WalletEvents : IDisposable
         {
             var callbacks = new WalletListenerCallbacks
             {
+                StructSize = (uint)sizeof(WalletListenerCallbacks),
                 UserData = (void*)GCHandle.ToIntPtr(_self),
                 OnSyncProgress = &SyncProgressCallback,
                 OnNewBlock = &NewBlockCallback,
@@ -62,7 +64,7 @@ internal sealed class WalletEvents : IDisposable
 
     private static unsafe WalletEvents Of(void* userData) => (WalletEvents)GCHandle.FromIntPtr((IntPtr)userData).Target!;
 
-    // an exception that leaves a callback ends the process, and nothing can be done on a thread of monero-cpp
+    // an exception that leaves a callback ends the process, and nothing can be done on a thread of monero-c
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static unsafe void SyncProgressCallback(void* userData, ulong height, ulong startHeight, ulong endHeight, double percentDone, byte* message)
     {

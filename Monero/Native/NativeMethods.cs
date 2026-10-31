@@ -309,6 +309,9 @@ internal static unsafe partial class NativeMethods
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct DaemonListenerCallbacks
 {
+    /// <summary>The size of this struct, which monero-c needs to read a struct that a program built with another version of the header. Without it the listener is not created.</summary>
+    public uint StructSize;
+
     public void* UserData;
     public delegate* unmanaged[Cdecl]<void*, byte*, void> OnBlockHeader;
 }

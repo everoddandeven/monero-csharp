@@ -14,7 +14,7 @@ internal static class Check
     public const uint AbiMajor = 0;
 
     /// <inheritdoc cref="AbiMajor"/>
-    public const uint AbiMinor = 1;
+    public const uint AbiMinor = 2;
 
     /// <summary>Throws if the result of a call is an error, with the message that monero-c recorded for this thread.</summary>
     public static void Ok(int result)

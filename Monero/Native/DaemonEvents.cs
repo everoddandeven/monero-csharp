@@ -5,7 +5,10 @@ using Monero.Daemon.Model;
 
 namespace Monero.Native;
 
-/// <summary>The native listener of a daemon. Callbacks only queue the header JSON; a task parses it and calls <c>onHeader</c> on the thread pool.</summary>
+/// <summary>
+/// The native listener of a daemon. Callbacks only queue the header JSON, since they run on a thread of monero-cpp; a task parses it and calls
+/// <c>onHeader</c> on the thread pool.
+/// </summary>
 internal sealed class DaemonEvents : IDisposable
 {
     private readonly Channel<string> _events = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
@@ -21,6 +24,7 @@ internal sealed class DaemonEvents : IDisposable
         {
             var callbacks = new DaemonListenerCallbacks
             {
+                StructSize = (uint)sizeof(DaemonListenerCallbacks),
                 UserData = (void*)GCHandle.ToIntPtr(_self),
                 OnBlockHeader = &BlockHeaderCallback,
             };
