@@ -1,3 +1,4 @@
+using Monero.Common;
 using Monero.Daemon;
 using Monero.Daemon.Model;
 using Monero.Wallet;
@@ -38,5 +39,23 @@ public class NativeListenerTests
 
         Assert.DoesNotThrow(() => wallet.RemoveListener(listener));
         Assert.That(wallet.GetListeners(), Is.Empty);
+    }
+
+    // the kind of the failure is the one that monero-c recorded for the call: a range that is too long is checked before the node is asked,
+    // and a node that does not answer is a network failure, which monero-cpp reports with its general exception
+    [Test]
+    public async Task AFailureHasTheKindThatMoneroCRecorded()
+    {
+        using var daemon = new MoneroDaemonRpc(Unreachable, timeoutMs: 500);
+
+        var invalid = Assert.ThrowsAsync<MoneroError>(async () => await daemon.GetBlocksByRangeAsync(0, 200000));
+        Assert.That(invalid!.Code, Is.EqualTo(MoneroErrorCode.InvalidArgument));
+        Assert.That(invalid.Message, Does.Contain("range is longer"));
+
+        var network = Assert.ThrowsAsync<MoneroError>(async () => await daemon.GetHeightAsync());
+        Assert.That(network!.Code, Is.EqualTo(MoneroErrorCode.Generic));
+        Assert.That(network.Message, Is.Not.Empty);
+
+        await Task.CompletedTask;
     }
 }

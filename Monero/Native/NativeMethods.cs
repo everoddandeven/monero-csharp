@@ -13,13 +13,16 @@ internal static unsafe partial class NativeMethods
     public static partial IntPtr monero_last_error();
 
     [LibraryImport(Library)]
+    public static partial int monero_last_error_code();
+
+    [LibraryImport(Library)]
     public static partial void monero_utils_free(IntPtr ptr);
 
     [LibraryImport(Library)]
-    public static partial int monero_utils_get_abi_version(out uint major, out uint minor, out uint patch);
+    public static partial void monero_utils_free_secret(IntPtr secret);
 
     [LibraryImport(Library)]
-    public static partial void monero_utils_free_secret(IntPtr secret);
+    public static partial int monero_utils_get_abi_version(out uint major, out uint minor, out uint patch);
 
     // rpc connection
 

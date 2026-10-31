@@ -22,7 +22,14 @@ internal static class Check
         if (result == 0) return;
 
         var message = Marshal.PtrToStringUTF8(NativeMethods.monero_last_error());
-        throw new MoneroError(string.IsNullOrEmpty(message) ? "monero-c error" : message);
+        throw new MoneroError(string.IsNullOrEmpty(message) ? "monero-c error" : message, CodeOfLastError());
+    }
+
+    /// <summary>The kind of the last failure on this thread. A value that this code doesn't know, or none, is a general failure.</summary>
+    private static MoneroErrorCode CodeOfLastError()
+    {
+        var code = (MoneroErrorCode)NativeMethods.monero_last_error_code();
+        return Enum.IsDefined(code) ? code : MoneroErrorCode.Generic;
     }
 
     /// <summary>Compares the version of the ABI of the loaded library with the one that this code was written for. It is done once.</summary>
@@ -100,13 +107,6 @@ internal static class Check
         }
     }
 
-    /// <summary>Reads a JSON array of strings that a call returned.</summary>
-    public static List<string> Strings(int result, IntPtr ptr) => Json<List<string>>(result, ptr);
-
-    /// <summary>Reads a native array of values that a call returned, and frees it.</summary>
-    public static unsafe List<T> Array<T>(int result, IntPtr ptr, nuint count) where T : unmanaged
-    {
-
     /// <summary>
     /// Reads a secret that a call returned in a native string, a seed or a private key, and frees the native string with
     /// <c>monero_utils_free_secret()</c>, which overwrites it. The managed string that it returns stays in memory until the garbage collector
@@ -126,6 +126,13 @@ internal static class Check
             secret.Dispose();
         }
     }
+
+    /// <summary>Reads a JSON array of strings that a call returned.</summary>
+    public static List<string> Strings(int result, IntPtr ptr) => Json<List<string>>(result, ptr);
+
+    /// <summary>Reads a native array of values that a call returned, and frees it.</summary>
+    public static unsafe List<T> Array<T>(int result, IntPtr ptr, nuint count) where T : unmanaged
+    {
         Ok(result);
 
         var list = new List<T>((int)count);
