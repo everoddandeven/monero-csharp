@@ -17,7 +17,7 @@ A C# library for creating Monero applications using RPC and a C ABI to [monero v
 * Supports client-side wallets using native bindings.
 * Supports multisig, view-only, and offline wallets.
 * Wallet types are interchangeable by conforming to a common interface, `MoneroWallet`.
-* Uses a clearly defined [data model and API specification](https://github.com/everoddandeven/monero-python/blob/main/docs/monero-spec.pdf) intended to be intuitive and robust.
+* Uses a clearly defined [data model and API specification](https://github.com/libmonero/monero-csharp/blob/main/docs/monero-spec.pdf) intended to be intuitive and robust.
 * Query wallet transactions, transfers, and outputs by their properties.
 * Fetch and process binary data from the daemon (e.g. raw blocks).
 * Receive notifications when blocks are added to the chain or when wallets sync, send, or receive.
@@ -86,7 +86,7 @@ class MyWalletListener : MoneroWalletListener
 
 * [Native interop and async design](https://github.com/libmonero/monero-csharp/blob/main/docs/native-interop.md): how the classes call monero-c, and how they expose async methods.
 * [API documentation of monero-python](https://everoddandeven.github.io/monero-python/mkdocs/public/) and [monero-ts](https://github.com/woodser/monero-ts#documentation) translate to C#, since the model and the method names are the same.
-* [Data model and API specification](https://github.com/everoddandeven/monero-python/blob/main/docs/monero-spec.pdf).
+* [Data model and API specification](https://github.com/libmonero/monero-csharp/blob/main/docs/monero-spec.pdf).
 
 ## Using monero-csharp in your project
 
