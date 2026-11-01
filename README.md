@@ -25,8 +25,8 @@ A C# library for creating Monero applications using RPC and a C ABI to [monero v
 ## Architecture
 
 <p align="center">
-	<img width="85%" height="auto" src="https://raw.githubusercontent.com/libmonero/monero-csharp/main/docs/architecture.png"/><br>
-	<i>Build C# applications using RPC or the C ABI of <a href="https://github.com/libmonero/monero-c">monero-c</a> to <a href="https://github.com/monero-project/monero">monero-project/monero</a>. Wallet implementations are interchangeable by conforming to a common abstract class, <code>MoneroWallet</code>.</i>
+	<img width="100%" height="auto" src="https://raw.githubusercontent.com/libmonero/monero-csharp/main/docs/architecture.png"/><br>
+	<i>A C# application calls the async classes of Monero.NET, which call the C ABI of <a href="https://github.com/libmonero/monero-c">monero-c</a> through P/Invoke. monero-c wraps <a href="https://github.com/woodser/monero-cpp">monero-cpp</a>, and monero-cpp reaches <a href="https://github.com/monero-project/monero">monero-project/monero</a>. Wallet implementations are interchangeable by conforming to a common abstract class, <code>MoneroWallet</code>.</i>
 </p>
 
 Every call is `async` and takes a `CancellationToken`. The call itself is made by monero-c, and the library runs the calls of a daemon or a wallet one after the other on a thread of its own, so an `await` never blocks a thread of the pool. [Native interop and async design](https://github.com/libmonero/monero-csharp/blob/main/docs/native-interop.md) explains how.
